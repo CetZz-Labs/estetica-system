@@ -1,0 +1,12 @@
+{
+  "name": "estetica-system",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "dev:web": "pnpm --filter @estetica/client dev",
+    "dev:api": "pnpm --filter @estetica/server dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  }
+}

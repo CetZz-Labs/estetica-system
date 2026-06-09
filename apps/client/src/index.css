@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colores de la marca Maison */
+  --color-maison-bg: #FDFBF7;
+  --color-maison-text: #2C2A29;
+  --color-maison-primary: #1A1A1A;
+  --color-maison-red: #E06B5E;
+  --color-maison-orange: #E5A059;
+  --color-maison-green: #54A885;
+  --color-maison-card: #FFFFFF;
+  --color-maison-border: #EAE6DF;
+
+  /* Tipografías */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+
+@layer base {
+  body {
+    /* En v4 usamos las variables nativas en lugar de la función theme() */
+    background-color: var(--color-maison-bg);
+    color: var(--color-maison-text);
+    @apply min-h-screen antialiased;
+  }
+}
+
+/* Scrollbar personalizado y elegante para las listas internas */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-maison-border);
+  border-radius: 20px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: #D1CEC7;
+  /* Un gris un poco más oscuro al pasar el mouse */
+}

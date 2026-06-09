@@ -1,0 +1,46 @@
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+interface IUsedProduct {
+    product: Types.ObjectId;
+    quantity: number; // Por ejemplo: gramos, ml o unidades
+}
+
+export interface IServiceRecord extends Document {
+    client: Types.ObjectId;
+    service: Types.ObjectId;
+    serviceDate: Date;
+    notes?: string;
+    productsUsed: IUsedProduct[];
+    nextTouchupDate?: Date;
+    touchupStatus: 'pending' | 'completed' | 'cancelled';
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const ServiceRecordSchema: Schema = new Schema({
+    client: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
+    service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
+    serviceDate: { type: Date, required: true, index: true },
+
+    notes: { type: String, trim: true }, // Ej: "Balayage rubio miel, corte en capas"
+    productsUsed: [{
+        product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+        quantity: { type: Number, required: true, min: 0 }
+    }],
+
+    // Lógica del Dashboard ("Próximos retoques")
+    nextTouchupDate: { type: Date, index: true },
+    touchupStatus: {
+        type: String,
+        enum: ['pending', 'completed', 'cancelled'],
+        default: 'pending',
+        index: true
+    }
+}, {
+    timestamps: true
+});
+
+// Índice compuesto vital para que el Dashboard principal cargue al instante
+ServiceRecordSchema.index({ touchupStatus: 1, nextTouchupDate: 1 });
+
+export const ServiceRecord = mongoose.model<IServiceRecord>('ServiceRecord', ServiceRecordSchema);
