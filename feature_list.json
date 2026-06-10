@@ -1,0 +1,367 @@
+{
+    "project": "Maison CRM — Sistema de Gestión para Estética",
+    "description": "Sistema integral de gestión para centros de estética. Fase 1: Core operativo (Autenticación, Clientes, Servicios, Inventario, Visitas, Dashboard). Fases 2-6: Multi-tenant, usuarios, agenda, reportes, pagos.",
+    "rules": {
+        "one_feature_at_a_time": true,
+        "require_build_to_close": true,
+        "valid_status": [
+            "pending",
+            "in_progress",
+            "done",
+            "blocked"
+        ]
+    },
+    "features": [
+        {
+            "id": "EP-01",
+            "name": "Autenticación y Control de Acceso",
+            "module": "Auth",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Inicio de sesión seguro via Clerk (Google OAuth y email/contraseña). Verificación de administrador en base de datos. Cierre de sesión.",
+            "acceptance_criteria": [
+                "El sistema DEBE presentar una página de login en la ruta /login",
+                "El login DEBE permitir autenticación con email/contraseña y Google OAuth",
+                "Las rutas protegidas DEBEN redirigir a /login si no hay sesión activa",
+                "Cada request a la API DEBE verificar que el userId de Clerk exista en la colección admins",
+                "Si el usuario no existe en admins, DEBE retornar 403 Forbidden",
+                "DEBE existir un botón de cerrar sesión que redirija a /login"
+            ]
+        },
+        {
+            "id": "EP-02",
+            "name": "Gestión de Clientes",
+            "module": "Clients",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "CRUD completo de clientes con listado, búsqueda, perfil e historial de visitas. Soft delete para preservar integridad referencial.",
+            "acceptance_criteria": [
+                "El listado DEBE mostrar nombre, apellido, teléfono e indicador de notas médicas",
+                "DEBE existir un campo de búsqueda que filtre en tiempo real por nombre/apellido/teléfono",
+                "El formulario de creación DEBE solicitar nombre (obligatorio), apellido (obligatorio), teléfono y notas médicas",
+                "La eliminación DEBE ser soft delete (isActive: false)",
+                "El perfil DEBE mostrar el historial completo de visitas ordenado de más reciente a más antiguo"
+            ]
+        },
+        {
+            "id": "EP-03",
+            "name": "Catálogo de Servicios",
+            "module": "Services",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Catálogo de servicios estéticos con configuración de días de retoque. CRUD completo con soft delete y validación de integridad referencial.",
+            "acceptance_criteria": [
+                "Los servicios DEBEN mostrarse en un grid responsive (1/2/3 columnas)",
+                "Cada tarjeta DEBE mostrar nombre del servicio y días de retoque configurados",
+                "El formulario DEBE solicitar nombre (obligatorio) y días de retoque (opcional)",
+                "DEBE impedirse la eliminación si el servicio tiene visitas asociadas"
+            ]
+        },
+        {
+            "id": "EP-04",
+            "name": "Gestión de Inventario",
+            "module": "Inventory",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Control de productos/insumos con stock, ajustes, carga masiva desde Excel/CSV y alertas visuales de stock bajo.",
+            "acceptance_criteria": [
+                "El listado DEBE mostrar nombre, marca, stock con badge de color según estado",
+                "DEBE existir filtro 'Solo stock bajo (<= 5)'",
+                "El formulario DEBE solicitar nombre (obligatorio), marca (obligatorio), stock inicial y descripción",
+                "DEBE validar duplicados (mismo nombre + marca) con mensaje claro",
+                "DEBE permitir ajuste de stock (ingreso/egreso) validando stock no negativo",
+                "DEBE aceptar archivos .xlsx, .xls y .csv para carga masiva con upsert"
+            ]
+        },
+        {
+            "id": "EP-05",
+            "name": "Registro de Visitas (Service Records)",
+            "module": "ServiceRecords",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Registro de visitas de clientes con selección de servicio, consumo de insumos con descuento automático de stock, y auto-cálculo de próxima fecha de retoque.",
+            "acceptance_criteria": [
+                "DEBE permitir seleccionar cliente y servicio mediante buscadores dinámicos",
+                "DEBE permitir agregar múltiples insumos consumidos con cantidad",
+                "Los productos sin stock DEBEN aparecer deshabilitados en el selector",
+                "Al guardar, DEBE descontar el stock de cada producto automáticamente",
+                "Si el servicio tiene defaultTouchupDays > 0, la fecha de retoque DEBE calcularse automáticamente",
+                "DEBE auto-completar retoques pendientes anteriores del mismo cliente+servicio"
+            ]
+        },
+        {
+            "id": "EP-06",
+            "name": "Dashboard y Próximos Retoques",
+            "module": "Dashboard",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Dashboard con estadísticas en tiempo real, timeline de próximos retoques con indicadores de urgencia, y últimos movimientos registrados.",
+            "acceptance_criteria": [
+                "DEBE mostrar tres tarjetas: Total Clientes, Servicios Realizados y Próximos Retoques",
+                "Los valores DEBEN cargarse desde la API y no ser estáticos",
+                "DEBE mostrarse skeleton loading mientras se cargan los datos",
+                "El timeline DEBE usar colores: rojo (atrasado/hoy), naranja (próximos 7 días), verde (próximos 21 días)",
+                "DEBE incluir botón rápido en cada tarjeta para registrar nueva visita",
+                "DEBE mostrar los últimos 10 registros de servicio"
+            ]
+        },
+        {
+            "id": "EP-07",
+            "name": "Perfil de Cliente e Historial",
+            "module": "Clients",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Perfil detallado del cliente con avatar de iniciales, badge de antigüedad, historial completo de visitas y acciones de edición/eliminación.",
+            "acceptance_criteria": [
+                "DEBE mostrar iniciales en avatar circular, nombre completo, teléfono, antigüedad y notas médicas",
+                "DEBE mostrar el historial completo de visitas en orden cronológico descendente",
+                "Cada visita DEBE incluir servicio, fecha, notas y productos utilizados",
+                "DEBE permitir editar y eliminar al cliente desde su perfil"
+            ]
+        },
+        {
+            "id": "EP-08",
+            "name": "Multi-Tenant — Aislamiento de datos por tenant",
+            "module": "MultiTenant",
+            "phase": "Fase 2",
+            "status": "pending",
+            "description": "Aislamiento de datos a nivel de base de datos. Cada tabla de negocio incluye tenant_id. Middleware que filtra automáticamente por tenant del usuario autenticado.",
+            "acceptance_criteria": [
+                "Cada tabla de negocio DEBE incluir un campo tenant_id",
+                "Los modelos afectados DEBEN ser: Client, Service, Product, ServiceRecord, Admin",
+                "Todo endpoint DEBE filtrar automáticamente por tenant_id del usuario autenticado",
+                "Los índices únicos DEBEN ser compuestos incluyendo tenant_id",
+                "Middleware checkTenantAccess que inyecte tenant_id en todos los queries",
+                "Tests que verifiquen que tenant A no accede a datos de tenant B"
+            ]
+        },
+        {
+            "id": "EP-09",
+            "name": "Registro autónomo de nuevos tenants",
+            "module": "MultiTenant",
+            "phase": "Fase 2",
+            "status": "pending",
+            "description": "Formulario de registro de negocio que permite a dueñas de estéticas registrarse autónomamente sin soporte. Creación automática de tenant y admin.",
+            "acceptance_criteria": [
+                "El formulario DEBE solicitar: nombre del negocio, nombre del responsable, email y contraseña",
+                "El email DEBE ser validado con formato estándar",
+                "La contraseña DEBE cumplir requisitos mínimos (8+ caracteres, mayúscula, número)",
+                "Al completar el registro, DEBE enviar mail de verificación",
+                "Al confirmar el correo, DEBE crearse el tenant y el admin vinculado"
+            ]
+        },
+        {
+            "id": "EP-10",
+            "name": "Configuración básica del negocio",
+            "module": "Settings",
+            "phase": "Fase 2",
+            "status": "pending",
+            "description": "Sección Mi Negocio para personalizar nombre, logo, zona horaria y moneda. La configuración se refleja en toda la plataforma.",
+            "acceptance_criteria": [
+                "DEBE existir sección 'Mi Negocio' en configuración",
+                "El administrador PUEDE editar nombre, logo, zona horaria y moneda",
+                "Los cambios se guardan de forma inmediata sin recargar"
+            ]
+        },
+        {
+            "id": "EP-11",
+            "name": "Gestión de usuarios del negocio",
+            "module": "Users",
+            "phase": "Fase 3",
+            "status": "pending",
+            "description": "Invitación de usuarios al equipo con asignación de roles. Gestión de usuarios activos/inactivos con protección del último administrador.",
+            "acceptance_criteria": [
+                "El administrador PUEDE invitar usuarios ingresando email y asignando rol",
+                "El usuario invitado recibe mail con link para crear contraseña",
+                "El link de invitación DEBE tener validez de 48 horas",
+                "El administrador PUEDE cambiar rol y desactivar usuarios",
+                "El sistema DEBE impedir que el último admin sea degradado o desactivado"
+            ]
+        },
+        {
+            "id": "EP-12",
+            "name": "Acceso diferenciado por rol",
+            "module": "RBAC",
+            "phase": "Fase 3",
+            "status": "pending",
+            "description": "Implementación de roles (Administrador, Profesional, Recepcionista) con permisos diferenciados por módulo. Middleware de autorización y UI adaptativa.",
+            "acceptance_criteria": [
+                "El rol Administrador tiene acceso completo a todos los módulos",
+                "Solo el Admin puede gestionar usuarios, configuración y reportes",
+                "Middleware requireRole que verifique el rol en cada endpoint",
+                "El sidebar se renderiza dinámicamente según permisos del usuario"
+            ]
+        },
+        {
+            "id": "EP-13",
+            "name": "Calendario visual de turnos",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Calendario con vistas diaria y semanal. Turnos como bloques de color según estado. Filtro por profesional y navegación fluida.",
+            "acceptance_criteria": [
+                "El calendario DEBE ofrecer vistas diaria y semanal",
+                "Cada turno DEBE mostrarse como bloque de color con nombre del cliente y servicio",
+                "Los colores DEBEN variar según estado: pendiente (gris), confirmado (verde), cancelado (rojo)",
+                "Al hacer click en un turno, DEBE abrirse modal con detalle completo"
+            ]
+        },
+        {
+            "id": "EP-14",
+            "name": "Crear y gestionar turnos",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "CRUD de turnos desde calendario o ficha del cliente. Validación de superposición de horarios. Cancelación con motivo.",
+            "acceptance_criteria": [
+                "Al crear turno DEBE seleccionarse: cliente, servicio, profesional, fecha y hora",
+                "La duración DEBE calcularse según configuración del servicio",
+                "El sistema DEBE alertar si el horario se superpone con otro turno del mismo profesional",
+                "Al cancelar, DEBE pedirse motivo opcional y registrarse la cancelación"
+            ]
+        },
+        {
+            "id": "EP-15",
+            "name": "Conversión de turno a visita registrada",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Al marcar turno como completado, se abre el flujo de registro de visita con campos pre-completados. El turno queda vinculado a la visita.",
+            "acceptance_criteria": [
+                "Al marcar turno como completado, DEBE abrirse flujo de registro de visita",
+                "Los campos DEBEN venir pre-completados (cliente, servicio, fecha)",
+                "Al guardar, el turno DEBE quedar vinculado a esa visita"
+            ]
+        },
+        {
+            "id": "EP-16",
+            "name": "Configuración de disponibilidad del negocio",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Horarios de atención, duración de servicios y días no laborables. Bloqueo de turnos fuera del horario configurado.",
+            "acceptance_criteria": [
+                "El admin PUEDE definir horario de atención para cada día de la semana",
+                "El admin PUEDE marcar días específicos como no laborables",
+                "Los turnos fuera del horario DEBEN ser bloqueados automáticamente"
+            ]
+        },
+        {
+            "id": "EP-17",
+            "name": "Recordatorio de turno por mail",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Envío automático de mail recordatorio 24/48 horas antes del turno. Configurable por el negocio.",
+            "acceptance_criteria": [
+                "El sistema DEBE enviar mail de recordatorio automáticamente",
+                "El mail DEBE incluir: nombre del cliente, servicio, fecha, hora y datos de contacto",
+                "Si el turno es cancelado antes del recordatorio, el mail no debe enviarse"
+            ]
+        },
+        {
+            "id": "EP-18",
+            "name": "Reporte de actividad del negocio",
+            "module": "Reports",
+            "phase": "Fase 5",
+            "status": "pending",
+            "description": "Reporte de actividad con filtro por período (semana, mes, 3 meses, rango personalizado).",
+            "acceptance_criteria": [
+                "El admin PUEDE filtrar por período seleccionable",
+                "DEBE mostrar total de visitas, servicios más realizados y clientes atendidos",
+                "Los datos DEBEN poder visualizarse en tabla y gráfica"
+            ]
+        },
+        {
+            "id": "EP-19",
+            "name": "Reporte de ingresos estimados",
+            "module": "Reports",
+            "phase": "Fase 5",
+            "status": "pending",
+            "description": "Reporte de ingresos estimados basados en servicios realizados en un período.",
+            "acceptance_criteria": [
+                "DEBE mostrar ingreso total estimado del período",
+                "DEBE desglosar por servicio",
+                "DEBE mostrar comparativa con período anterior"
+            ]
+        },
+        {
+            "id": "EP-20",
+            "name": "Reporte de inventario",
+            "module": "Reports",
+            "phase": "Fase 5",
+            "status": "pending",
+            "description": "Reporte de inventario con rotación de productos, productos más usados y alertas de reposición.",
+            "acceptance_criteria": [
+                "DEBE mostrar productos con mayor rotación",
+                "DEBE mostrar productos próximos a agotarse",
+                "DEBE permitir exportar el reporte"
+            ]
+        },
+        {
+            "id": "EP-21",
+            "name": "Reporte de retención de clientes",
+            "module": "Reports",
+            "phase": "Fase 5",
+            "status": "pending",
+            "description": "Reporte de retención de clientes con tasa de recompra, clientes inactivos y análisis de frecuencia de visitas.",
+            "acceptance_criteria": [
+                "DEBE mostrar tasa de retorno de clientes",
+                "DEBE identificar clientes inactivos (+90 días sin visita)",
+                "DEBE mostrar frecuencia promedio de visitas por cliente"
+            ]
+        },
+        {
+            "id": "EP-22",
+            "name": "Exportación de datos",
+            "module": "Reports",
+            "phase": "Fase 5",
+            "status": "pending",
+            "description": "Exportación de datos de clientes, servicios, inventario y reportes en formatos Excel y CSV.",
+            "acceptance_criteria": [
+                "DEBE permitir exportar clientes, servicios, inventario y visitas",
+                "Los formatos soportados DEBEN ser Excel (.xlsx) y CSV",
+                "DEBE respetar los filtros activos al exportar"
+            ]
+        },
+        {
+            "id": "EP-23",
+            "name": "Integración con pasarela de pago",
+            "module": "Payments",
+            "phase": "Fase 6",
+            "status": "pending",
+            "description": "Integración con MercadoPago o Stripe para procesar pagos de suscripción mensual.",
+            "acceptance_criteria": [
+                "DEBE integrarse con MercadoPago o Stripe",
+                "DEBE permitir pagos recurrentes (suscripción mensual)",
+                "DEBE registrar el historial de pagos"
+            ]
+        },
+        {
+            "id": "EP-24",
+            "name": "Bloqueo suave por falta de pago",
+            "module": "Payments",
+            "phase": "Fase 6",
+            "status": "pending",
+            "description": "Bloqueo suave que restringe el acceso al sistema cuando la suscripción está vencida, preservando los datos.",
+            "acceptance_criteria": [
+                "Si la suscripción está vencida, DEBE mostrar pantalla de bloqueo suave",
+                "Los datos del negocio NO DEBEN eliminarse",
+                "Al reactivar el pago, el acceso DEBE restaurarse inmediatamente"
+            ]
+        },
+        {
+            "id": "EP-25",
+            "name": "Panel de cuenta y facturación",
+            "module": "Payments",
+            "phase": "Fase 6",
+            "status": "pending",
+            "description": "Panel donde el administrador puede ver su plan, historial de pagos y gestionar su suscripción.",
+            "acceptance_criteria": [
+                "DEBE mostrar el plan actual y fecha de próximo vencimiento",
+                "DEBE mostrar historial de pagos",
+                "DEBE permitir cambiar de plan o cancelar suscripción"
+            ]
+        }
+    ]
+}
