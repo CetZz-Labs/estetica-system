@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck } from 'react-icons/fi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX } from 'react-icons/fi';
+import { toast } from 'sonner';
 
-import { getDashboardStats, getUpcomingTouchups, getRecentRecords } from '../api/serviceRecordApi';
+import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
 import type { ServiceRecord } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
 import { formatDate, getTimelineStatus } from '../utils/dates';
+import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
 import { Link } from 'react-router';
 
@@ -40,6 +42,25 @@ export default function Dashboard() {
         setPrefillClient(clientId);
         setPrefillService(serviceId);
         setIsRegistroModalOpen(true);
+    };
+
+    const queryClient = useQueryClient();
+
+    const { mutate: cancelTouchup } = useMutation({
+        mutationFn: (id: string) => updateServiceRecord(id, { touchupStatus: 'cancelled' }),
+        onSuccess: () => {
+            toast.success('Retoque cancelado');
+            queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        },
+        onError: (error) => handleApiError(error, 'Error al cancelar el retoque')
+    });
+
+    const handleCancelTouchup = (e: React.MouseEvent, recordId: string) => {
+        e.stopPropagation();
+        if (window.confirm('¿Cancelar este retoque?')) {
+            cancelTouchup(recordId);
+        }
     };
 
     const isDashboardLoading = isLoadingStats || isLoadingRetoques || isLoadingRecientes;
@@ -127,13 +148,22 @@ export default function Dashboard() {
                                             <p className="text-xs text-gray-400 font-medium">{formatDate(registro.nextTouchupDate)}</p>
                                         </div>
 
-                                        <button
-                                            onClick={() => handleTouchupCheck(registro.client._id, registro.service._id)}
-                                            title="Registrar nueva visita para este retoque"
-                                            className="absolute -right-3 -top-3 w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer shadow-sm"
-                                        >
-                                            <FiCheck size={16} />
-                                        </button>
+                                        <div className="absolute -right-3 -top-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+                                            <button
+                                                onClick={(e) => handleCancelTouchup(e, registro._id)}
+                                                title="Cancelar este retoque"
+                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-red hover:border-maison-red transition-all cursor-pointer shadow-sm"
+                                            >
+                                                <FiX size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleTouchupCheck(registro.client._id, registro.service._id)}
+                                                title="Registrar nueva visita para este retoque"
+                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
+                                            >
+                                                <FiCheck size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })}
