@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
 import {
     createServiceRecord,
     getClientRecords,
@@ -13,8 +13,9 @@ import { validateRequest } from '../middlewares/validateRequest';
 
 const router: Router = Router();
 
-// Proteger todas las rutas con el middleware de admin
+// Proteger todas las rutas con el middleware de admin y aislamiento por tenant
 router.use(checkAdminAccess);
+router.use(checkTenantAccess);
 
 // ==========================================
 // Rutas Específicas (Deben ir antes de las dinámicas como /:id)
@@ -65,11 +66,9 @@ router.put(
     '/:id',
     [
         param('id').isMongoId().withMessage('El ID del registro no es válido'),
-        body('client').optional().isMongoId().withMessage('El ID del cliente no es válido'),
-        body('service').optional().isMongoId().withMessage('El ID del servicio no es válido'),
+        // client, service y productsUsed NO son editables vía PUT (ver whitelist en el controller)
         body('serviceDate').optional().isISO8601().withMessage('serviceDate debe tener formato ISO 8601').toDate(),
         body('notes').optional().isString().trim(),
-        body('productsUsed').optional().isString().trim(),
         body('nextTouchupDate').optional({ nullable: true }).isISO8601().withMessage('nextTouchupDate debe ser una fecha válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'cancelled']).withMessage('Estado de retoque no válido'),
         validateRequest

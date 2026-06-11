@@ -8,6 +8,7 @@
         "target": "ESNext",
         "moduleResolution": "node",
         "module": "CommonJS",
+        "ignoreDeprecations": "6.0",
         "strict": true,
         "sourceMap": true,
         "esModuleInterop": true,
@@ -19,5 +20,8 @@
     },
     "include": [
         "src/**/*.ts"
+    ],
+    "exclude": [
+        "src/__tests__"
     ]
 }

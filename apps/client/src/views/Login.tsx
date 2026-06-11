@@ -1,5 +1,5 @@
 import { SignIn } from "@clerk/react";
-
+import { Link } from "react-router";
 
 export default function Login() {
     return (
@@ -15,6 +15,15 @@ export default function Login() {
                     }
                 }}
             />
+            <p className="text-sm text-gray-500 text-center mt-6">
+                ¿Primera vez?{" "}
+                <Link
+                    to="/registro"
+                    className="font-medium text-maison-text underline underline-offset-4 hover:text-black transition-colors"
+                >
+                    Registrá tu negocio
+                </Link>
+            </p>
         </div>
     )
 }

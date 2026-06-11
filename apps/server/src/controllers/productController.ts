@@ -11,8 +11,9 @@ export const createProduct = async (req: Request, res: Response) => {
         const safeName = escapeRegex(name.trim());
         const safeBrand = escapeRegex(brand.trim());
 
-        // Búsqueda insensible a mayúsculas/minúsculas y espacios extra
+        // Búsqueda insensible a mayúsculas/minúsculas y espacios extra, acotada al tenant
         const existingProduct = await Product.findOne({
+            tenantId: req.tenantId,
             name: { $regex: new RegExp(`^${safeName}$`, 'i') },
             brand: { $regex: new RegExp(`^${safeBrand}$`, 'i') }
         });
@@ -24,6 +25,7 @@ export const createProduct = async (req: Request, res: Response) => {
         }
 
         const product = new Product({
+            tenantId: req.tenantId,
             name: name.trim(),
             brand: brand.trim(),
             stock,
@@ -40,8 +42,8 @@ export const createProduct = async (req: Request, res: Response) => {
 // 2. Leer todos los productos activos
 export const getProducts = async (req: Request, res: Response) => {
     try {
-        // Ordenamos por marca y luego por nombre
-        const products = await Product.find({ isActive: true }).sort({ brand: 1, name: 1 });
+        // Filtramos por tenant y ordenamos por marca y luego por nombre
+        const products = await Product.find({ tenantId: req.tenantId, isActive: true }).sort({ brand: 1, name: 1 });
         return res.status(200).json(products);
     } catch (error) {
         return res.status(500).json({ error: 'Error al obtener productos' });
@@ -55,7 +57,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         const { name, brand, description } = req.body;
 
         const updatedProduct = await Product.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             { $set: { name, brand, description } },
             { new: true, runValidators: true }
         );
@@ -73,7 +75,7 @@ export const adjustStock = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { quantity } = req.body; // Puede ser 5 (suma) o -3 (resta)
 
-        const product = await Product.findOne({ _id: id, isActive: true });
+        const product = await Product.findOne({ _id: id, tenantId: req.tenantId, isActive: true });
 
         if (!product) {
             return res.status(404).json({ error: 'Producto no encontrado' });
@@ -102,7 +104,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const deletedProduct = await Product.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             { $set: { isActive: false } },
             { new: true }
         );
@@ -129,14 +131,18 @@ export const createBulkProducts = async (req: Request, res: Response) => {
 
             return {
                 updateOne: {
-                    // Criterio de búsqueda
+                    // Criterio de búsqueda (siempre acotado al tenant del admin autenticado)
                     filter: {
+                        tenantId: req.tenantId,
                         name: { $regex: new RegExp(`^${safeName}$`, 'i') },
                         brand: { $regex: new RegExp(`^${safeBrand}$`, 'i') }
                     },
                     update: {
-                        // Si es un producto NUEVO, seteamos los datos base
+                        // Si es un producto NUEVO, seteamos los datos base.
+                        // tenantId va explícito en $setOnInsert: el filtro usa regex y Mongo
+                        // no puede inferir el valor literal del campo al insertar.
                         $setOnInsert: {
+                            tenantId: req.tenantId,
                             name: prod.name.trim(),
                             brand: prod.brand.trim(),
                             description: prod.description || ''

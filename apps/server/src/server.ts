@@ -3,15 +3,17 @@ import cors from 'cors'
 import { connectDB } from './config/db'
 import { clerkMiddleware } from '@clerk/express'
 import adminRouter from './routes/adminRouter'
-import { checkAdminAccess } from './middlewares/authMiddleware'
+import { checkAdminAccess, checkTenantAccess } from './middlewares/authMiddleware'
 import clientRoutes from './routes/clientRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import productRoutes from './routes/productRoutes';
 import serviceRecordRoutes from './routes/serviceRecordRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import onboardingRoutes from './routes/onboardingRoutes';
+import tenantRoutes from './routes/tenantRoutes';
 
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     process.loadEnvFile()
 }
 
@@ -38,11 +40,15 @@ app.use(clerkMiddleware())
 app.get('/api', (req, res) => {
     res.send('Hello World!')
 })
-app.use('/api/admin', checkAdminAccess, adminRouter)
+app.use('/api/admin', checkAdminAccess, checkTenantAccess, adminRouter)
 app.use('/api/clientes', clientRoutes);
 app.use('/api/servicios', serviceRoutes);
 app.use('/api/productos', productRoutes);
 app.use('/api/registros', serviceRecordRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// Onboarding (EP-09): sin checkAdminAccess/checkTenantAccess — el admin aún no existe (excepción documentada)
+app.use('/api/onboarding', onboardingRoutes);
+
+app.use('/api/negocio', checkAdminAccess, checkTenantAccess, tenantRoutes);
 
 export default app

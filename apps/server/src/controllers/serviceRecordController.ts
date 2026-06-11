@@ -2,27 +2,38 @@ import { Request, Response } from 'express';
 import { ServiceRecord } from '../models/ServiceRecord';
 import { Service } from '../models/Service';
 import { Product } from '../models/Product';
+import { Client } from '../models/Client';
 
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
     try {
         const { client, service, serviceDate, notes, productsUsed, nextTouchupDate } = req.body;
+        const tenantId = req.tenantId;
+
+        // 0. VALIDACIÓN MULTI-TENANT: el cliente del body debe pertenecer al tenant autenticado
+        const foundClient = await Client.findOne({ _id: client, tenantId });
+        if (!foundClient) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        // 0.b. El servicio referenciado también debe pertenecer al tenant
+        const foundService = await Service.findOne({ _id: service, tenantId });
+        if (!foundService) {
+            return res.status(404).json({ error: 'Servicio no encontrado' });
+        }
 
         // 1. Lógica de fecha de retoque
         let finalNextTouchupDate = nextTouchupDate;
-        if (!finalNextTouchupDate) {
-            const foundService = await Service.findById(service);
-            if (foundService && foundService.defaultTouchupDays && foundService.defaultTouchupDays > 0) {
-                const date = new Date(serviceDate);
-                date.setDate(date.getDate() + foundService.defaultTouchupDays);
-                finalNextTouchupDate = date;
-            }
+        if (!finalNextTouchupDate && foundService.defaultTouchupDays && foundService.defaultTouchupDays > 0) {
+            const date = new Date(serviceDate);
+            date.setDate(date.getDate() + foundService.defaultTouchupDays);
+            finalNextTouchupDate = date;
         }
 
-        // 2. LÓGICA DE DESCUENTO DE STOCK
+        // 2. LÓGICA DE DESCUENTO DE STOCK (solo productos del tenant)
         if (productsUsed && Array.isArray(productsUsed) && productsUsed.length > 0) {
             for (const item of productsUsed) {
-                const product = await Product.findById(item.product);
+                const product = await Product.findOne({ _id: item.product, tenantId });
 
                 if (!product) {
                     return res.status(404).json({ error: `Producto con ID ${item.product} no encontrado` });
@@ -44,6 +55,7 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         // Buscamos si el cliente tenía retoques pendientes para este mismo servicio y los cerramos.
         await ServiceRecord.updateMany(
             {
+                tenantId: tenantId,
                 client: client,
                 service: service,
                 touchupStatus: 'pending'
@@ -55,6 +67,7 @@ export const createServiceRecord = async (req: Request, res: Response) => {
 
         // 4. Crear el registro con la nueva estructura de productos
         const newRecord = new ServiceRecord({
+            tenantId,
             client,
             service,
             serviceDate,
@@ -78,7 +91,7 @@ export const getClientRecords = async (req: Request, res: Response) => {
     try {
         const { clientId } = req.params;
 
-        const records = await ServiceRecord.find({ client: clientId })
+        const records = await ServiceRecord.find({ tenantId: req.tenantId, client: clientId })
             .populate('service', 'name') // Solo traemos el nombre del servicio
             .populate('productsUsed.product', 'name')
             .sort({ serviceDate: -1 }); // El más reciente primero (descendente)
@@ -95,6 +108,7 @@ export const getUpcomingTouchups = async (req: Request, res: Response) => {
     try {
         // Buscamos los que están pendientes. También nos aseguramos de que tengan una fecha programada.
         const records = await ServiceRecord.find({
+            tenantId: req.tenantId,
             touchupStatus: 'pending',
             nextTouchupDate: { $ne: null }
         })
@@ -113,10 +127,19 @@ export const getUpcomingTouchups = async (req: Request, res: Response) => {
 export const updateServiceRecord = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const updateData = req.body; // express-validator se encarga de que aquí solo vengan campos permitidos y válidos
 
-        const updatedRecord = await ServiceRecord.findByIdAndUpdate(
-            id,
+        // Whitelist explícita de campos editables (anti mass-assignment).
+        // tenantId, client, service y productsUsed NO son editables vía PUT:
+        // cambiarlos requeriría re-validar pertenencia al tenant y re-calcular stock.
+        const { serviceDate, notes, nextTouchupDate, touchupStatus } = req.body;
+        const updateData: Record<string, unknown> = {};
+        if (serviceDate !== undefined) updateData.serviceDate = serviceDate;
+        if (notes !== undefined) updateData.notes = notes;
+        if (nextTouchupDate !== undefined) updateData.nextTouchupDate = nextTouchupDate;
+        if (touchupStatus !== undefined) updateData.touchupStatus = touchupStatus;
+
+        const updatedRecord = await ServiceRecord.findOneAndUpdate(
+            { _id: id, tenantId: req.tenantId },
             { $set: updateData },
             { new: true, runValidators: true }
         );
@@ -137,8 +160,8 @@ export const deleteServiceRecord = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        // IMPORTANTE: Borrado físico como fue requerido para casos de error de carga
-        const deletedRecord = await ServiceRecord.findByIdAndDelete(id);
+        // IMPORTANTE: Borrado físico como fue requerido para casos de error de carga (acotado al tenant)
+        const deletedRecord = await ServiceRecord.findOneAndDelete({ _id: id, tenantId: req.tenantId });
 
         if (!deletedRecord) {
             return res.status(404).json({ error: 'Registro no encontrado' });
@@ -157,8 +180,8 @@ export const deleteServiceRecord = async (req: Request, res: Response) => {
 // Read - Últimos Movimientos (GET /api/registros/recientes)
 export const getRecentRecords = async (req: Request, res: Response) => {
     try {
-        // Traemos los últimos 10 servicios registrados, sin importar el estado del retoque
-        const records = await ServiceRecord.find()
+        // Traemos los últimos 10 servicios registrados del tenant, sin importar el estado del retoque
+        const records = await ServiceRecord.find({ tenantId: req.tenantId })
             .populate('client', 'firstName lastName')
             .populate('service', 'name')
             .sort({ createdAt: -1 }) // Los creados más recientemente primero

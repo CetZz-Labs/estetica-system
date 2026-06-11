@@ -7,6 +7,7 @@ export const createClient = async (req: Request, res: Response) => {
         const { firstName, lastName, phone, medicalNotes } = req.body;
 
         const newClient = new Client({
+            tenantId: req.tenantId,
             firstName,
             lastName,
             phone,
@@ -27,8 +28,8 @@ export const createClient = async (req: Request, res: Response) => {
 // 2. Read All (GET /api/clientes)
 export const getClients = async (req: Request, res: Response) => {
     try {
-        // Filtrar solo los activos y ordenar alfabéticamente por apellido (1 es ascendente)
-        const clients = await Client.find({ isActive: true }).sort({ lastName: 1 });
+        // Filtrar por tenant, solo los activos y ordenar alfabéticamente por apellido (1 es ascendente)
+        const clients = await Client.find({ tenantId: req.tenantId, isActive: true }).sort({ lastName: 1 });
         return res.status(200).json(clients);
     } catch (error) {
         console.error('Error al obtener los clientes:', error);
@@ -41,7 +42,7 @@ export const getClientById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        const client = await Client.findById(id);
+        const client = await Client.findOne({ _id: id, tenantId: req.tenantId });
 
         // Si no existe o no está activo, devolvemos 404 Not Found
         if (!client || !client.isActive) {
@@ -61,9 +62,9 @@ export const updateClient = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { firstName, lastName, phone, medicalNotes } = req.body;
 
-        // Actualizamos buscando por ID y asegurándonos de que esté activo
+        // Actualizamos buscando por ID dentro del tenant y asegurándonos de que esté activo
         const updatedClient = await Client.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             { 
                 $set: { 
                     ...(firstName !== undefined && { firstName }),
@@ -93,7 +94,7 @@ export const deleteClient = async (req: Request, res: Response) => {
 
         // IMPORTANTE: Soft Delete, solo actualizamos isActive a false
         const deletedClient = await Client.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             { $set: { isActive: false } },
             { new: true }
         );

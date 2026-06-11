@@ -124,7 +124,7 @@
             "name": "Multi-Tenant — Aislamiento de datos por tenant",
             "module": "MultiTenant",
             "phase": "Fase 2",
-            "status": "pending",
+            "status": "done",
             "description": "Aislamiento de datos a nivel de base de datos. Cada tabla de negocio incluye tenant_id. Middleware que filtra automáticamente por tenant del usuario autenticado.",
             "acceptance_criteria": [
                 "Cada tabla de negocio DEBE incluir un campo tenant_id",
@@ -140,7 +140,7 @@
             "name": "Registro autónomo de nuevos tenants",
             "module": "MultiTenant",
             "phase": "Fase 2",
-            "status": "pending",
+            "status": "done",
             "description": "Formulario de registro de negocio que permite a dueñas de estéticas registrarse autónomamente sin soporte. Creación automática de tenant y admin.",
             "acceptance_criteria": [
                 "El formulario DEBE solicitar: nombre del negocio, nombre del responsable, email y contraseña",
@@ -155,7 +155,7 @@
             "name": "Configuración básica del negocio",
             "module": "Settings",
             "phase": "Fase 2",
-            "status": "pending",
+            "status": "done",
             "description": "Sección Mi Negocio para personalizar nombre, logo, zona horaria y moneda. La configuración se refleja en toda la plataforma.",
             "acceptance_criteria": [
                 "DEBE existir sección 'Mi Negocio' en configuración",

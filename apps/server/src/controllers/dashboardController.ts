@@ -6,11 +6,13 @@ import { ServiceRecord } from '../models/ServiceRecord';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
-        // Ejecutamos las 3 promesas en paralelo para mayor velocidad
+        const tenantId = req.tenantId;
+
+        // Ejecutamos las 3 promesas en paralelo para mayor velocidad (siempre acotadas al tenant)
         const [totalClients, servicesDone, upcomingTouchups] = await Promise.all([
-            Client.countDocuments(),
-            ServiceRecord.countDocuments(),
-            ServiceRecord.countDocuments({ touchupStatus: 'pending' })
+            Client.countDocuments({ tenantId }),
+            ServiceRecord.countDocuments({ tenantId }),
+            ServiceRecord.countDocuments({ tenantId, touchupStatus: 'pending' })
         ]);
 
         return res.status(200).json({

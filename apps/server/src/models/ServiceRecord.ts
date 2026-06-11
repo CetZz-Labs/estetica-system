@@ -6,6 +6,7 @@ interface IUsedProduct {
 }
 
 export interface IServiceRecord extends Document {
+    tenantId: Types.ObjectId;
     client: Types.ObjectId;
     service: Types.ObjectId;
     serviceDate: Date;
@@ -18,6 +19,7 @@ export interface IServiceRecord extends Document {
 }
 
 const ServiceRecordSchema: Schema = new Schema({
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     client: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
     service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
     serviceDate: { type: Date, required: true, index: true },
@@ -40,7 +42,11 @@ const ServiceRecordSchema: Schema = new Schema({
     timestamps: true
 });
 
-// Índice compuesto vital para que el Dashboard principal cargue al instante
-ServiceRecordSchema.index({ touchupStatus: 1, nextTouchupDate: 1 });
+// Índice compuesto vital para que el Dashboard principal cargue al instante (acotado por tenant)
+ServiceRecordSchema.index({ tenantId: 1, touchupStatus: 1, nextTouchupDate: 1 });
+// Historial de visitas por cliente dentro del tenant
+ServiceRecordSchema.index({ tenantId: 1, client: 1, serviceDate: -1 });
+// Últimos movimientos del tenant
+ServiceRecordSchema.index({ tenantId: 1, createdAt: -1 });
 
 export const ServiceRecord = mongoose.model<IServiceRecord>('ServiceRecord', ServiceRecordSchema);

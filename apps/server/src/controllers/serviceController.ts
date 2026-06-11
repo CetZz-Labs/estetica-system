@@ -7,6 +7,7 @@ export const createService = async (req: Request, res: Response) => {
         const { name, defaultTouchupDays } = req.body;
 
         const newService = new Service({
+            tenantId: req.tenantId,
             name,
             defaultTouchupDays,
             isActive: true
@@ -24,8 +25,8 @@ export const createService = async (req: Request, res: Response) => {
 // 2. Read All (GET /api/servicios)
 export const getServices = async (req: Request, res: Response) => {
     try {
-        // Filtrar activos y ordenar alfabéticamente por 'name' (1 ascendente)
-        const services = await Service.find({ isActive: true }).sort({ name: 1 });
+        // Filtrar por tenant, activos y ordenar alfabéticamente por 'name' (1 ascendente)
+        const services = await Service.find({ tenantId: req.tenantId, isActive: true }).sort({ name: 1 });
         return res.status(200).json(services);
     } catch (error) {
         console.error('Error al obtener los servicios:', error);
@@ -38,7 +39,7 @@ export const getServiceById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        const service = await Service.findById(id);
+        const service = await Service.findOne({ _id: id, tenantId: req.tenantId });
 
         if (!service || !service.isActive) {
             return res.status(404).json({ error: 'Servicio no encontrado' });
@@ -62,7 +63,7 @@ export const updateService = async (req: Request, res: Response) => {
         }
 
         const updatedService = await Service.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             {
                 $set: {
                     ...(name !== undefined && { name }),
@@ -90,7 +91,7 @@ export const deleteService = async (req: Request, res: Response) => {
 
         // Soft Delete: actualizar isActive a false
         const deletedService = await Service.findOneAndUpdate(
-            { _id: id, isActive: true },
+            { _id: id, tenantId: req.tenantId, isActive: true },
             { $set: { isActive: false } },
             { new: true }
         );

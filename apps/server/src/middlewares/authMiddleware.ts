@@ -1,11 +1,13 @@
 import { getAuth } from '@clerk/express';
 import { Request, Response, NextFunction } from 'express';
+import { Types } from 'mongoose';
 import { Admin, type IAdmin } from '../models/Admin';
 
 declare global {
     namespace Express {
         interface Request {
             adminInfo?: IAdmin;
+            tenantId?: Types.ObjectId;
         }
     }
 }
@@ -35,6 +37,28 @@ export const checkAdminAccess = async (req: Request, res: Response, next: NextFu
         next();
     } catch (error) {
         console.error('Error verificando admin en BD:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+};
+
+// 3. Capa Multi-Tenant: corre DESPUÉS de checkAdminAccess.
+// Lee el tenant del admin autenticado y lo inyecta en la request para que
+// todos los controllers filtren automáticamente por tenantId.
+export const checkTenantAccess = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const tenantId = req.adminInfo?.tenantId;
+
+        if (!tenantId) {
+            return res.status(403).json({
+                error: 'Acceso denegado. El administrador no tiene un tenant asignado.'
+            });
+        }
+
+        req.tenantId = tenantId;
+
+        next();
+    } catch (error) {
+        console.error('Error verificando tenant del admin:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 };

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
 import {
     createProduct,
     getProducts,
@@ -14,6 +14,7 @@ import { validateRequest } from '../middlewares/validateRequest';
 const router: Router = Router();
 
 router.use(checkAdminAccess);
+router.use(checkTenantAccess);
 
 // CRUD Básico
 router.post('/', [

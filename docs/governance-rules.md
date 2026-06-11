@@ -6,6 +6,7 @@
 
 **Índice de reglas canónicas:**
 - [GOV-AUTH — Autenticación y Control de Acceso](#gov-auth--autenticación-y-control-de-acceso)
+- [GOV-TENANT — Aislamiento Multi-Tenant](#gov-tenant--aislamiento-multi-tenant)
 - [GOV-DB — Soft Deletes e Integridad Referencial](#gov-db--soft-deletes-e-integridad-referencial)
 - [GOV-STOCK — Control de Inventario y Stock](#gov-stock--control-de-inventario-y-stock)
 - [GOV-VISIT — Registro de Visitas y Retoques](#gov-visit--registro-de-visitas-y-retoques)
@@ -24,8 +25,29 @@
 1. El middleware `checkAdminAccess` busca al usuario por `externalId` en la colección `admins` en CADA request protegido. Si no existe → 403 Forbidden.
 2. Todo endpoint DEBE estar autenticado excepto health check.
 3. El token JWT se extrae via `getAuth(req)` de `@clerk/express`.
+4. Tras `checkAdminAccess`, el middleware `checkTenantAccess` resuelve `adminInfo.tenantId` y lo cuelga en `req.tenantId` (403 si el admin no tiene tenant). Ver [GOV-TENANT](#gov-tenant--aislamiento-multi-tenant).
 
 **Auditado por:** `CHECKPOINTS.md` C3 (Autenticación Obligatoria), C7 (SEC-A, SEC-B, SEC-C).
+
+---
+
+## GOV-TENANT — Aislamiento Multi-Tenant
+
+**Regla:** Cada centro de estética (tenant) tiene sus datos completamente aislados. Toda colección de negocio incluye `tenantId` (ObjectId, ref `Tenant`, required, indexado) y **todo query de la API filtra por el `tenantId` del usuario autenticado**, sin excepción.
+
+**Por qué:** Maison CRM es multi-tenant desde Fase 2 (EP-08). Una fuga cross-tenant (listar, leer, modificar o referenciar documentos de otro negocio) es una violación de privacidad y un defecto bloqueante. El aislamiento se garantiza a nivel de aplicación porque MongoDB no provee row-level security.
+
+**Mandatos:**
+1. Todo modelo de negocio DEBE declarar `tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true }`.
+2. El middleware `checkTenantAccess` corre después de `checkAdminAccess` en TODOS los routers protegidos e inyecta `req.tenantId`.
+3. Prohibido todo query Mongoose sin `tenantId` en el filtro: `findById`/`findByIdAndUpdate`/`findByIdAndDelete` se reemplazan por `findOne`/`findOneAndUpdate`/`findOneAndDelete` con `{ _id, tenantId }`.
+4. Las referencias del body (ej. `client`, `service`, `product` al crear un servicerecord) DEBEN validarse contra el tenant del request antes de usarse.
+5. En operaciones `upsert`/`bulkWrite`, `tenantId` va en el `filter` Y en `$setOnInsert`.
+6. Prohibido aceptar `tenantId` desde el body del cliente (mass-assignment): los updates usan whitelist explícita de campos editables.
+7. Los índices de consulta frecuente se anteponen con `tenantId`. Los índices únicos de negocio deben ser compuestos con `tenantId` (excepción documentada: `admins.externalId` y `admins.email` son únicos globales — un usuario Clerk pertenece a un solo tenant).
+8. Toda feature nueva DEBE incluir tests de aislamiento (tenant A no ve/modifica datos de tenant B).
+
+**Auditado por:** `CHECKPOINTS.md` C3, C6 (Índices), C7. Esquema en `docs/db-schema.md`.
 
 ---
 
@@ -55,7 +77,7 @@
 1. Validación Mongoose `min: [0, 'El stock no puede ser negativo']` en el campo `stock`.
 2. Las operaciones de egreso validan stock suficiente antes de descontar.
 3. El descuento de stock ocurre en la misma transacción lógica que la creación de `servicerecord`.
-4. Carga masiva: identificar producto por `name + brand` combinados para upsert.
+4. Carga masiva: identificar producto por `tenantId + name + brand` combinados para upsert (con `tenantId` también en `$setOnInsert`).
 
 **Auditado por:** `CHECKPOINTS.md` C3 (Control de Stock).
 
@@ -69,7 +91,7 @@
 
 **Mandatos:**
 1. `nextTouchupDate = serviceDate + service.defaultTouchupDays` (si `> 0`).
-2. Buscar servicerecord previo con mismo `client` + `service` + `touchupStatus: 'pending'` → set `touchupStatus: 'completed'`.
+2. Buscar servicerecord previo con mismo `tenantId` + `client` + `service` + `touchupStatus: 'pending'` → set `touchupStatus: 'completed'`.
 3. El servicerecord nuevo se crea con `touchupStatus: 'pending'`.
 
 **Auditado por:** `CHECKPOINTS.md` C3 (ningún checkpoint específico — regla de dominio pura).

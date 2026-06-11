@@ -12,10 +12,31 @@
 - **Soft delete:** Todas las colecciones (excepto `servicerecords`) tienen `isActive: Boolean` con `default: true`. Ningún documento se elimina físicamente.
 - **Índices:** Declarados con `index: true` en el schema o `Schema.index()` para compuestos.
 - **IDs:** `_id` es `ObjectId` generado por MongoDB (PK implícita).
+- **Multi-tenancy (Fase 2 / EP-08):** Toda colección de negocio (`admins`, `clients`, `services`, `products`, `servicerecords`) incluye `tenantId: ObjectId` (ref `Tenant`, required, indexado). Todos los queries de la API filtran por el `tenantId` inyectado por el middleware `checkTenantAccess`. Ver `docs/governance-rules.md` GOV-TENANT.
 
 ---
 
-## 5 Colecciones (Fase 1)
+## 6 Colecciones (Fase 1 + Fase 2)
+
+### `tenants`
+Centros de estética registrados (Fase 2 / EP-08). Cada tenant es un negocio independiente con datos completamente aislados.
+
+| Campo | Tipo Mongoose | Requerido | Índice | Descripción |
+|-------|--------------|-----------|--------|-------------|
+| `_id` | `ObjectId` | Auto | PK | ID interno de Mongo. Es el valor referenciado por `tenantId` en el resto de colecciones |
+| `name` | `String` | Sí | - | Nombre del negocio. `trim` |
+| `logo` | `String` | No | - | URL del logo del negocio (EP-10) |
+| `timezone` | `String` | No, default `'America/Argentina/Buenos_Aires'` | - | Zona horaria IANA (EP-10). Se usa para mostrar fechas y calcular retoques |
+| `currency` | `String` | No, default `'ARS'` | - | Código ISO 4217 de moneda (EP-10) |
+| `isActive` | `Boolean` | No, default `true` | - | Soft delete |
+| `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+| `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+
+**Reglas de negocio:**
+- Modelo mínimo creado en EP-08. EP-09 (registro autónomo) agregó el flujo de alta. EP-10 agregó configuración (logo, zona horaria, moneda) con endpoints GET/PUT /api/negocio protegidos por `checkAdminAccess` y `checkTenantAccess`.
+- Los datos legados (pre multi-tenant) requieren backfill manual de `tenantId` antes de desplegar.
+
+---
 
 ### `admins`
 Administradores del sistema. Autenticación delegada a Clerk; esta colección solo almacena el `externalId` de Clerk para verificación de acceso.
@@ -23,8 +44,9 @@ Administradores del sistema. Autenticación delegada a Clerk; esta colección so
 | Campo | Tipo Mongoose | Requerido | Índice | Descripción |
 |-------|--------------|-----------|--------|-------------|
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
-| `externalId` | `String` | Sí | Único, Indexado | ID de Clerk (`user_2Nf...`). Consultado en CADA request protegido |
-| `email` | `String` | Sí | Único | Email del administrador. `trim`, `lowercase` |
+| `externalId` | `String` | Sí | Único, Indexado | ID de Clerk (`user_2Nf...`). Consultado en CADA request protegido. Único GLOBAL (un usuario Clerk = un solo tenant) |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant al que pertenece el admin |
+| `email` | `String` | Sí | Único | Email del administrador. `trim`, `lowercase`. Único GLOBAL (decisión EP-08) |
 | `role` | `String` (enum) | No, default `'ADMIN'` | - | `'ADMIN'`, `'MANAGER'`, `'SUPERADMIN'` |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
@@ -32,6 +54,7 @@ Administradores del sistema. Autenticación delegada a Clerk; esta colección so
 
 **Reglas de negocio:**
 - El middleware `checkAdminAccess` busca al usuario por `externalId` en cada request autenticado. Si no existe → 403 Forbidden.
+- El middleware `checkTenantAccess` (corre después) lee `adminInfo.tenantId` y lo inyecta en `req.tenantId`; si el admin no tiene tenant → 403.
 - Las contraseñas NUNCA se almacenan. Clerk maneja autenticación.
 
 ---
@@ -42,6 +65,7 @@ Clientes del centro de estética. Perfil con datos de contacto y notas médicas.
 | Campo | Tipo Mongoose | Requerido | Índice | Descripción |
 |-------|--------------|-----------|--------|-------------|
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del cliente |
 | `firstName` | `String` | Sí | - | Nombre del cliente. `trim` |
 | `lastName` | `String` | Sí | - | Apellido del cliente. `trim` |
 | `phone` | `String` | No | - | Teléfono de contacto. `trim` |
@@ -62,6 +86,7 @@ Catálogo de servicios estéticos ofrecidos. Cada servicio tiene un período de 
 | Campo | Tipo Mongoose | Requerido | Índice | Descripción |
 |-------|--------------|-----------|--------|-------------|
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del servicio |
 | `name` | `String` | Sí | - | Nombre del servicio. Ej: 'Color + Corte'. `trim` |
 | `defaultTouchupDays` | `Number` | No | - | Días sugeridos para calcular automáticamente el próximo retoque |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
@@ -80,6 +105,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 | Campo | Tipo Mongoose | Requerido | Índice | Descripción |
 |-------|--------------|-----------|--------|-------------|
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del producto |
 | `name` | `String` | Sí | - | Nombre del producto. Ej: 'Oxidante 20 Vol'. `trim` |
 | `brand` | `String` | Sí | - | Marca. Ej: 'Wella'. `trim` |
 | `stock` | `Number` | Sí, default `0` | - | Cantidad disponible. `min: 0` (no negativo) |
@@ -102,7 +128,8 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 | Campo | Tipo Mongoose | Requerido | Índice | Descripción |
 |-------|--------------|-----------|--------|-------------|
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
-| `client` | `ObjectId` (ref: Client) | Sí | Indexado | Cliente atendido. `ref: 'Client'` |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del registro |
+| `client` | `ObjectId` (ref: Client) | Sí | Indexado | Cliente atendido. `ref: 'Client'`. Debe pertenecer al mismo tenant (validado en el controller) |
 | `service` | `ObjectId` (ref: Service) | Sí | - | Servicio realizado. `ref: 'Service'` |
 | `serviceDate` | `Date` | Sí | Indexado | Fecha del servicio |
 | `notes` | `String` | No | - | Notas del servicio. Ej: "Balayage rubio miel". `trim` |
@@ -116,7 +143,9 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 
 | Índice | Colección | Columnas | Propósito |
 |--------|-----------|----------|-----------|
-| `idx_touchup_status_date` | `servicerecords` | `touchupStatus: 1, nextTouchupDate: 1` | Consulta rápida de próximos retoques (Dashboard principal) |
+| - | `servicerecords` | `tenantId: 1, touchupStatus: 1, nextTouchupDate: 1` | Consulta rápida de próximos retoques (Dashboard principal, acotado por tenant) |
+| - | `servicerecords` | `tenantId: 1, client: 1, serviceDate: -1` | Historial de visitas por cliente dentro del tenant |
+| - | `servicerecords` | `tenantId: 1, createdAt: -1` | Últimos movimientos del tenant |
 
 **Reglas de negocio:**
 - Al crear un `servicerecord`, se descuenta `stock` de cada producto en `productsUsed`.
@@ -133,8 +162,11 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 ## Diagrama de Relaciones (Refs)
 
 ```
-admins (independiente, solo Clerk verification)
-  ─── (sin relaciones)
+tenants ──< admins.tenantId (ref)
+tenants ──< clients.tenantId (ref)
+tenants ──< services.tenantId (ref)
+tenants ──< products.tenantId (ref)
+tenants ──< servicerecords.tenantId (ref)
 
 clients ──< servicerecords.client (ref)
 services ──< servicerecords.service (ref)
@@ -149,13 +181,21 @@ products ──< servicerecords.productsUsed[].product (ref)
 
 | Colección | Campo(s) | Tipo | Propósito |
 |-----------|----------|------|-----------|
-| `admins` | `externalId` | Único | Lookup de autenticación por Clerk ID |
-| `admins` | `email` | Único | Unicidad de email |
+| `admins` | `externalId` | Único (global) | Lookup de autenticación por Clerk ID |
+| `admins` | `email` | Único (global) | Unicidad de email |
+| `admins` | `tenantId` | Simple | Resolución de tenant en `checkTenantAccess` |
+| `clients` | `tenantId: 1, isActive: 1, lastName: 1` | Compuesto | Listado de clientes del tenant ordenado por apellido |
+| `services` | `tenantId: 1, isActive: 1, name: 1` | Compuesto | Listado de servicios del tenant |
+| `products` | `tenantId: 1, isActive: 1, brand: 1, name: 1` | Compuesto | Listado de productos del tenant |
 | `servicerecords` | `client` | Simple | Historial de visitas por cliente |
 | `servicerecords` | `serviceDate` | Simple | Ordenamiento cronológico |
 | `servicerecords` | `nextTouchupDate` | Simple | Filtro de próximos retoques |
 | `servicerecords` | `touchupStatus` | Simple | Filtro por estado |
-| `servicerecords` | `touchupStatus: 1, nextTouchupDate: 1` | Compuesto | Dashboard: próximos retoques pendientes |
+| `servicerecords` | `tenantId: 1, touchupStatus: 1, nextTouchupDate: 1` | Compuesto | Dashboard: próximos retoques pendientes del tenant |
+| `servicerecords` | `tenantId: 1, client: 1, serviceDate: -1` | Compuesto | Historial por cliente dentro del tenant |
+| `servicerecords` | `tenantId: 1, createdAt: -1` | Compuesto | Últimos movimientos del tenant |
+
+> Nota: la unicidad de productos (`name + brand`) sigue siendo a nivel de aplicación (regex case-insensitive acotada por `tenantId` en `productController`). No existe índice unique compuesto porque no replicaría la insensibilidad a mayúsculas (requeriría collation).
 
 ---
 
@@ -170,3 +210,4 @@ products ──< servicerecords.productsUsed[].product (ref)
 7. **Soft deletes:** Propiedad `isActive` con `default: true`. NO usar `mongoose-delete`. Filtrar manualmente con `{ isActive: true }` en los servicios.
 8. **Refs:** Usar `{ type: Schema.Types.ObjectId, ref: 'ModelName' }`. Poblar con `.populate('field')`.
 9. **Validación:** Usar `required: [true, 'mensaje']` y `min`/`max` para números. No usar validadores personalizados a menos que sea indispensable.
+10. **Multi-tenancy (obligatorio desde Fase 2):** Todo modelo de negocio nuevo DEBE incluir `tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true }`. Todo query en controllers DEBE filtrar por `req.tenantId` (inyectado por `checkTenantAccess`). Los índices de consulta frecuente deben anteponerse con `tenantId`. Ver `docs/governance-rules.md` GOV-TENANT.

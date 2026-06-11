@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
 import {
     createService,
     getServices,
@@ -12,8 +12,9 @@ import { validateRequest } from '../middlewares/validateRequest';
 
 const router: Router = Router();
 
-// Proteger todas las rutas de servicios con el middleware de admin
+// Proteger todas las rutas de servicios con el middleware de admin y aislamiento por tenant
 router.use(checkAdminAccess);
+router.use(checkTenantAccess);
 
 // 1. Create (POST /api/servicios)
 router.post(

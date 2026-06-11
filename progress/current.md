@@ -1,20 +1,20 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-06-10
-- **Sesión:** Finalizada
-- **Feature en curso:** (Ninguna — completitud del harness)
+- **Última actualización:** 2026-06-11
+- **Sesión:** Activa — Fase 2
+- **Feature en curso:** *(ninguna — pending)*
 
 ## Plan de Acción
-<!-- Sesión de completitud del arnés — documentación y gobernanza -->
+*Pendiente de definición.*
 
-## Estado del Backlog
-<!-- Todas las features de Fase 1 (EP-01 a EP-07) en "done". Fases 2-6 (EP-08 a EP-25) en "pending". -->
+## Estado del Backlog (Fase 2)
+- EP-08 Multi-Tenant → done
+- EP-09 Registro autónomo de tenants → done
+- EP-10 Configuración básica del negocio → done
 
 ## Bloqueos y Riesgos Conocidos
-- (ninguno)
+- Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).
 
 ## Notas para la próxima sesión
-- El harness está completo y equivalente a `example/`. Listo para iniciar EP-08 (Multi-Tenant).
-- Ejecutar `init.sh` antes de la próxima sesión de implementación para verificar builds.
-- Consultar `docs/governance-rules.md` como fuente canónica antes de crear nuevas reglas.
+*(esta plantilla se completa al arrancar una nueva feature)*
