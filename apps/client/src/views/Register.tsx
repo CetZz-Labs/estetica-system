@@ -1,5 +1,4 @@
 import { SignUp } from "@clerk/react";
-import { Link } from "react-router";
 
 export default function Register() {
     return (
@@ -9,6 +8,7 @@ export default function Register() {
                     routing="path"
                     path="/registro"
                     fallbackRedirectUrl="/registro/completar"
+                    signInUrl="/login"
                     appearance={{
                         variables: {
                             colorPrimary: '#1A1A1A',
@@ -16,15 +16,6 @@ export default function Register() {
                         }
                     }}
                 />
-                <p className="text-sm text-gray-500 text-center">
-                    ¿Ya tenés cuenta?{" "}
-                    <Link
-                        to="/login"
-                        className="font-medium text-maison-text underline underline-offset-4 hover:text-black transition-colors"
-                    >
-                        Iniciá sesión
-                    </Link>
-                </p>
             </div>
         </div>
     );
