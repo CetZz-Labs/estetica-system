@@ -14,6 +14,7 @@ export interface IServiceRecord extends Document {
     productsUsed: IUsedProduct[];
     nextTouchupDate?: Date;
     touchupStatus: 'pending' | 'completed' | 'cancelled';
+    appointment?: Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -37,7 +38,8 @@ const ServiceRecordSchema: Schema = new Schema({
         enum: ['pending', 'completed', 'cancelled'],
         default: 'pending',
         index: true
-    }
+    },
+    appointment: { type: Schema.Types.ObjectId, ref: 'Appointment', default: null }
 }, {
     timestamps: true
 });

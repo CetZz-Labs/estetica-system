@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
-import type { ServiceRecord } from '../types';
+import { getPendingRegistration } from '../api/appointmentApi';
+import type { ServiceRecord, Appointment } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
 import { formatDate, getTimelineStatus } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
@@ -30,6 +31,12 @@ export default function Dashboard() {
     const { data: recientes, isLoading: isLoadingRecientes } = useQuery<ServiceRecord[]>({
         queryKey: ['recent-movements'],
         queryFn: getRecentRecords
+    });
+
+    const { data: pendingRegistration } = useQuery<Appointment[]>({
+        queryKey: ['pending-registration'],
+        queryFn: getPendingRegistration,
+        refetchInterval: 30000,
     });
 
     const handleOpenNewVisit = () => {
@@ -107,6 +114,23 @@ export default function Dashboard() {
                     </>
                 )}
             </div>
+
+            {!isDashboardLoading && pendingRegistration && pendingRegistration.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm">
+                    <div className="p-2.5 bg-amber-100 rounded-xl border border-amber-200 shrink-0">
+                        <FiAlertTriangle className="text-xl text-amber-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-amber-800">Turnos pendientes de registrar</h4>
+                        <p className="text-xs text-amber-700 mt-1 mb-3">
+                            {pendingRegistration.length} turno{pendingRegistration.length !== 1 ? 's' : ''} completado{pendingRegistration.length !== 1 ? 's' : ''} sin visita registrada.
+                        </p>
+                        <a href="/turnos" className="inline-block text-xs font-semibold text-amber-800 underline hover:text-amber-900 transition-colors">
+                            Ir a la agenda
+                        </a>
+                    </div>
+                </div>
+            )}
 
             {/* Columns */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

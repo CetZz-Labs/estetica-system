@@ -3,6 +3,7 @@ import { ServiceRecord } from '../models/ServiceRecord';
 import { Service } from '../models/Service';
 import { Product } from '../models/Product';
 import { Client } from '../models/Client';
+import { Appointment } from '../models/Appointment';
 
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
@@ -27,6 +28,21 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         if (!finalNextTouchupDate && foundService.defaultTouchupDays && foundService.defaultTouchupDays > 0) {
             const date = new Date(serviceDate);
             date.setDate(date.getDate() + foundService.defaultTouchupDays);
+
+            // Auto-asignamos el mismo horario del último turno completado de este cliente.
+            const lastAppointment = await Appointment.findOne({
+                tenantId,
+                client,
+                status: 'completed'
+            }).sort({ startTime: -1 });
+
+            if (lastAppointment) {
+                const lastStart = lastAppointment.startTime;
+                date.setHours(lastStart.getHours(), lastStart.getMinutes(), 0, 0);
+            }
+            // Si no existe ningún turno previo completado, la fecha queda sin hora
+            // explícita (fallback actual, medianoche), comportamiento aceptado.
+
             finalNextTouchupDate = date;
         }
 
@@ -78,6 +94,28 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         });
 
         const savedRecord = await newRecord.save();
+
+        // Auto-create next touchup appointment in calendar
+        if (finalNextTouchupDate) {
+            const touchupStart = new Date(finalNextTouchupDate);
+
+            const duration = foundService.duration || 60;
+            const touchupEnd = new Date(touchupStart.getTime() + duration * 60000);
+
+            await Appointment.create({
+                tenantId,
+                client,
+                service,
+                professional: req.adminInfo!._id,
+                startTime: touchupStart,
+                endTime: touchupEnd,
+                status: 'pending',
+                notes: 'Retoque programado automáticamente',
+                createdBy: req.adminInfo!._id,
+                isActive: true,
+            });
+        }
+
         return res.status(201).json(savedRecord);
 
     } catch (error) {

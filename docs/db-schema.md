@@ -16,7 +16,7 @@
 
 ---
 
-## 6 Colecciones (Fase 1 + Fase 2)
+## 7 Colecciones (Fase 1 + Fase 2 + Fase 4)
 
 ### `tenants`
 Centros de estética registrados (Fase 2 / EP-08). Cada tenant es un negocio independiente con datos completamente aislados.
@@ -159,6 +159,43 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 
 ---
 
+### `appointments`
+Turnos/agenda del centro de estética. Vincula cliente, servicio y profesional con validación de superposición horaria.
+
+| Campo | Tipo Mongoose | Requerido | Índice | Descripción |
+|-------|--------------|-----------|--------|-------------|
+| `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del turno |
+| `client` | `ObjectId` (ref: Client) | Sí | Indexado | Cliente agendado. `ref: 'Client'` |
+| `service` | `ObjectId` (ref: Service) | Sí | - | Servicio a realizar. `ref: 'Service'` |
+| `professional` | `ObjectId` (ref: Admin) | Sí | Indexado | Profesional que realiza el servicio (temporal hasta EP-11). `ref: 'Admin'` |
+| `startTime` | `Date` | Sí | - | Fecha y hora de inicio del turno |
+| `endTime` | `Date` | Sí | - | Fecha y hora de fin calculada: `startTime + service.duration` |
+| `status` | `String` (enum) | No, default `'pending'` | Indexado | `'pending'`, `'confirmed'`, `'cancelled'`, `'completed'` |
+| `notes` | `String` | No | - | Notas opcionales del turno. `trim` |
+| `cancelReason` | `String` | No | - | Motivo de cancelación. `trim` |
+| `cancelledAt` | `Date` | No | - | Fecha/hora de cancelación |
+| `cancelledBy` | `ObjectId` (ref: Admin) | No | - | Admin que canceló el turno |
+| `createdBy` | `ObjectId` (ref: Admin) | Sí | - | Admin que creó el turno |
+| `isActive` | `Boolean` | No, default `true` | - | Soft delete |
+| `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+| `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+
+**Índices compuestos:**
+
+| Índice | Colección | Columnas | Propósito |
+|--------|-----------|----------|-----------|
+| - | `appointments` | `tenantId: 1, startTime: 1, status: 1` | Consultas de calendario por rango de fechas y estado |
+| - | `appointments` | `tenantId: 1, client: 1, startTime: -1` | Historial de turnos del cliente (próximos y pasados) |
+| - | `appointments` | `tenantId: 1, professional: 1, startTime: 1, status: 1` | Validación de superposición y filtro por profesional |
+
+**Reglas de negocio:**
+- `endTime` se calcula automáticamente como `startTime + service.duration` (minutos).
+- Superposición: se valida que no exista otro turno `pending` o `confirmed` del mismo `professional` cuyas horas se superpongan.
+- Al cancelar, se registra `cancelledAt`, `cancelledBy` y opcionalmente `cancelReason`.
+
+---
+
 ## Diagrama de Relaciones (Refs)
 
 ```
@@ -167,10 +204,16 @@ tenants ──< clients.tenantId (ref)
 tenants ──< services.tenantId (ref)
 tenants ──< products.tenantId (ref)
 tenants ──< servicerecords.tenantId (ref)
+tenants ──< appointments.tenantId (ref)
 
 clients ──< servicerecords.client (ref)
+clients ──< appointments.client (ref)
 services ──< servicerecords.service (ref)
+services ──< appointments.service (ref)
 products ──< servicerecords.productsUsed[].product (ref)
+admins ──< appointments.professional (ref)
+admins ──< appointments.createdBy (ref)
+admins ──< appointments.cancelledBy (ref)
 ```
 
 > Nota: MongoDB no tiene FK con restricción CASCADE. La integridad referencial se gestiona a nivel de aplicación (soft delete impide eliminar clientes con historial).
@@ -194,6 +237,9 @@ products ──< servicerecords.productsUsed[].product (ref)
 | `servicerecords` | `tenantId: 1, touchupStatus: 1, nextTouchupDate: 1` | Compuesto | Dashboard: próximos retoques pendientes del tenant |
 | `servicerecords` | `tenantId: 1, client: 1, serviceDate: -1` | Compuesto | Historial por cliente dentro del tenant |
 | `servicerecords` | `tenantId: 1, createdAt: -1` | Compuesto | Últimos movimientos del tenant |
+| `appointments` | `tenantId: 1, startTime: 1, status: 1` | Compuesto | Consultas de calendario por rango de fechas y estado |
+| `appointments` | `tenantId: 1, client: 1, startTime: -1` | Compuesto | Historial de turnos del cliente |
+| `appointments` | `tenantId: 1, professional: 1, startTime: 1, status: 1` | Compuesto | Validación de superposición y filtro por profesional |
 
 > Nota: la unicidad de productos (`name + brand`) sigue siendo a nivel de aplicación (regex case-insensitive acotada por `tenantId` en `productController`). No existe índice unique compuesto porque no replicaría la insensibilidad a mayúsculas (requeriría collation).
 

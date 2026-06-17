@@ -9,6 +9,7 @@ import { getProducts } from "../api/productApi";
 import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { createServiceRecord, type ServiceRecordPayload } from "../api/serviceRecordApi";
+import { completeAppointment } from "../api/appointmentApi";
 import { handleApiError } from "../api/errorHandler";
 import type { Product, Client, Service } from "../types";
 import Modal from "./ui/Modal";
@@ -24,6 +25,8 @@ interface Props {
     onClose: () => void;
     preselectedClientId?: string;
     preselectedServiceId?: string;
+    appointmentId?: string;
+    preselectedServiceDate?: string;
 }
 
 // ⭐️ Constante para estilar los React-Select para que coincidan con tu tema "Maison"
@@ -47,7 +50,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     })
 };
 
-export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId }: Props) {
+export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, appointmentId, preselectedServiceDate }: Props) {
     const queryClient = useQueryClient();
 
     const { data: inventoryProducts } = useQuery<Product[]>({
@@ -85,7 +88,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         defaultValues: {
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
-            serviceDate: new Date().toISOString().split('T')[0],
+            serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
             notes: '',
             nextTouchupDate: '',
             productsUsed: []
@@ -105,19 +108,21 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             reset({
                 client: preselectedClientId || '',
                 service: preselectedServiceId || '',
-                serviceDate: new Date().toISOString().split('T')[0],
+                serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
                 notes: '',
                 nextTouchupDate: '',
                 productsUsed: []
             });
         }
-    }, [isOpen, preselectedClientId, preselectedServiceId, reset]);
+    }, [isOpen, preselectedClientId, preselectedServiceId, preselectedServiceDate, reset]);
 
     const { mutate, isPending } = useMutation({
-        mutationFn: (data: ServiceRecordPayload) => {
-            const payload = { ...data };
-            if (!payload.nextTouchupDate) delete payload.nextTouchupDate;
-            return createServiceRecord(payload);
+        mutationFn: async (data: ServiceRecordPayload) => {
+            if (appointmentId) {
+                await completeAppointment(appointmentId, data);
+            } else {
+                await createServiceRecord(data);
+            }
         },
         onSuccess: () => {
             toast.success('Servicio registrado. Stock actualizado.', {
@@ -127,6 +132,8 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-registration'] });
 
             handleCloseModal();
         },
@@ -217,7 +224,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase flex justify-between">
                             Próximo Retoque <span className="text-gray-400 font-normal normal-case">Opcional</span>
                         </label>
-                        <input type="date" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('nextTouchupDate')} />
+                        <input type="datetime-local" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('nextTouchupDate')} />
                     </div>
                 </div>
 

@@ -4,12 +4,13 @@ import { Service } from '../models/Service';
 // 1. Create (POST /api/servicios)
 export const createService = async (req: Request, res: Response) => {
     try {
-        const { name, defaultTouchupDays } = req.body;
+        const { name, defaultTouchupDays, duration } = req.body;
 
         const newService = new Service({
             tenantId: req.tenantId,
             name,
             defaultTouchupDays,
+            duration,
             isActive: true
         });
 
@@ -56,7 +57,7 @@ export const getServiceById = async (req: Request, res: Response) => {
 export const updateService = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, defaultTouchupDays } = req.body;
+        const { name, defaultTouchupDays, duration } = req.body;
 
         if (!req.body) {
             return res.status(400).json({ error: 'Bad request' });
@@ -67,7 +68,8 @@ export const updateService = async (req: Request, res: Response) => {
             {
                 $set: {
                     ...(name !== undefined && { name }),
-                    ...(defaultTouchupDays !== undefined && { defaultTouchupDays })
+                    ...(defaultTouchupDays !== undefined && { defaultTouchupDays }),
+                    ...(duration !== undefined && { duration })
                 }
             },
             { new: true, runValidators: true }

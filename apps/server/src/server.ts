@@ -11,6 +11,7 @@ import serviceRecordRoutes from './routes/serviceRecordRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import onboardingRoutes from './routes/onboardingRoutes';
 import tenantRoutes from './routes/tenantRoutes';
+import appointmentRoutes from './routes/appointmentRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -50,5 +51,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 
 app.use('/api/negocio', checkAdminAccess, checkTenantAccess, tenantRoutes);
+app.use('/api/turnos', checkAdminAccess, checkTenantAccess, appointmentRoutes);
 
 export default app

@@ -38,6 +38,7 @@ export interface ServiceRecord {
     productsUsed?: UsedProduct[];
     nextTouchupDate?: string; // ISO string
     touchupStatus: 'pending' | 'completed' | 'cancelled';
+    appointment?: string;
     createdAt: string; // ISO string
     updatedAt: string; // ISO string
     __v?: number;
@@ -57,7 +58,31 @@ export interface Client {
 export interface Service {
     _id: string;
     name: string;
+    duration: number;
     defaultTouchupDays: number;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface Appointment {
+    _id: string;
+    client: { _id: string; firstName: string; lastName: string; phone?: string };
+    service: { _id: string; name: string; duration: number };
+    professional: { _id: string; email?: string };
+    startTime: string;
+    endTime: string;
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+    notes?: string;
+    cancelReason?: string;
+    cancelledAt?: string;
+    cancelledBy?: string;
+    createdBy: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AdminSlim {
+    _id: string;
+    email: string;
 }

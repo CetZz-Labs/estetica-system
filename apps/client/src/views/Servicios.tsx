@@ -81,9 +81,16 @@ export default function Servicios() {
                                 </div>
                             </div>
                             <h4 className="text-xl font-serif text-maison-text mb-3">{servicio.name}</h4>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold uppercase tracking-widest text-gray-500">
-                                <FiClock />
-                                {servicio.defaultTouchupDays > 0 ? `Retoque en ${servicio.defaultTouchupDays} días` : 'Sin retoque'}
+                            <div className="flex flex-wrap gap-2">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold uppercase tracking-widest text-gray-500">
+                                    <FiClock />
+                                    {servicio.defaultTouchupDays > 0 ? `Retoque en ${servicio.defaultTouchupDays} días` : 'Sin retoque'}
+                                </div>
+                                {servicio.duration && (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold uppercase tracking-widest text-gray-500">
+                                        {servicio.duration} min
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}

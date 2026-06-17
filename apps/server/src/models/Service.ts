@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IService extends Document {
     tenantId: Types.ObjectId;
     name: string;
+    duration?: number;
     defaultTouchupDays?: number;
     isActive: boolean;
     createdAt: Date;
@@ -12,6 +13,7 @@ export interface IService extends Document {
 const ServiceSchema: Schema = new Schema({
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     name: { type: String, required: true, trim: true }, // Ej: 'Color + Corte', 'Tratamiento'
+    duration: { type: Number, default: 60 }, // Duración en minutos, usado para calcular fin del turno
     defaultTouchupDays: { type: Number }, // Días sugeridos para calcular automáticamente el próximo retoque
     isActive: { type: Boolean, default: true }
 }, {

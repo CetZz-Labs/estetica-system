@@ -170,6 +170,7 @@
             "phase": "Fase 3",
             "status": "pending",
             "description": "Invitación de usuarios al equipo con asignación de roles. Gestión de usuarios activos/inactivos con protección del último administrador.",
+            "post_ep14_hook": "Al implementar, corregir appointmentController.ts para que professional se seleccione del body en vez de usar req.adminInfo._id. Ver docs/migration-guides/professional-from-admin-to-ep11.md",
             "acceptance_criteria": [
                 "El administrador PUEDE invitar usuarios ingresando email y asignando rol",
                 "El usuario invitado recibe mail con link para crear contraseña",
@@ -197,7 +198,7 @@
             "name": "Calendario visual de turnos",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Calendario con vistas diaria y semanal. Turnos como bloques de color según estado. Filtro por profesional y navegación fluida.",
             "acceptance_criteria": [
                 "El calendario DEBE ofrecer vistas diaria y semanal",
@@ -211,7 +212,7 @@
             "name": "Crear y gestionar turnos",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "CRUD de turnos desde calendario o ficha del cliente. Validación de superposición de horarios. Cancelación con motivo.",
             "acceptance_criteria": [
                 "Al crear turno DEBE seleccionarse: cliente, servicio, profesional, fecha y hora",
@@ -225,7 +226,7 @@
             "name": "Conversión de turno a visita registrada",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Al marcar turno como completado, se abre el flujo de registro de visita con campos pre-completados. El turno queda vinculado a la visita.",
             "acceptance_criteria": [
                 "Al marcar turno como completado, DEBE abrirse flujo de registro de visita",

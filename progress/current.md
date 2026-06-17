@@ -1,20 +1,18 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-06-11
-- **Sesión:** Activa — Fase 2
-- **Feature en curso:** *(ninguna — pending)*
+- **Última actualización:** 2026-06-17
+- **Sesión:** Sin feature activa
+- **Feature en curso:** Ninguna
 
 ## Plan de Acción
-*Pendiente de definición.*
+_(vacío — esperando próxima tarea)_
 
-## Estado del Backlog (Fase 2)
-- EP-08 Multi-Tenant → done
-- EP-09 Registro autónomo de tenants → done
-- EP-10 Configuración básica del negocio → done
+## Estado del Backlog
+- UX-03 (bugfix/decisión de negocio, no está en feature_list.json) → cerrado (ver `progress/reviews/review_UX-03.md`)
+- EP-15 Conversión de turno a visita registrada → done
+- EP-14 Crear y gestionar turnos → done
 
 ## Bloqueos y Riesgos Conocidos
 - Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).
-
-## Notas para la próxima sesión
-*(esta plantilla se completa al arrancar una nueva feature)*
+- Edge case sin cobertura explícita: cliente sin ningún turno previo completado al crear un registro manual (no vía calendario) — la fecha de retoque auto-calculada queda sin hora explícita (medianoche), comportamiento aceptado como fallback razonable.

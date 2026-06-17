@@ -4,6 +4,7 @@ import type { Service } from '../types';
 export interface ServiceFormData {
     name: string;
     defaultTouchupDays: number;
+    duration?: number;
 }
 
 /** GET /api/servicios — Lista todos los servicios activos */

@@ -25,6 +25,10 @@ router.post(
             .optional()
             .isInt({ min: 1 }).withMessage('defaultTouchupDays debe ser un número entero positivo')
             .toInt(),
+        body('duration')
+            .optional()
+            .isInt({ min: 1 }).withMessage('duration debe ser un número entero positivo (minutos)')
+            .toInt(),
         validateRequest
     ],
     createService
@@ -52,6 +56,10 @@ router.put(
         body('defaultTouchupDays')
             .optional()
             .isInt({ min: 1 }).withMessage('defaultTouchupDays debe ser un número entero positivo')
+            .toInt(),
+        body('duration')
+            .optional()
+            .isInt({ min: 1 }).withMessage('duration debe ser un número entero positivo (minutos)')
             .toInt(),
         validateRequest
     ],

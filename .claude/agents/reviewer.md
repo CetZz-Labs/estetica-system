@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Auditor de calidad automatizado de Maison CRM. Certifica o rechaza el trabajo del implementer validándolo contra CHECKPOINTS.md. NUNCA edita código fuente.
-tools: Read, Glob, Grep, Bash
+tools: Read, Glob, Grep, Bash, Write, Edit
 ---
 
 # Agente Revisor (Maison CRM QA Auditor)

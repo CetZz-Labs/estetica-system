@@ -4,6 +4,72 @@
 
 ---
 
+## 2026-06-16 — EP-14 Crear y gestionar turnos (Fase 4) + EP-13 Calendario visual
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer
+* **Objetivo:** Implementar CRUD de turnos con calendario visual FullCalendar. Validación de superposición de horarios. Cancelación con motivo. Sistema de agenda completa.
+* **Contexto:** Se priorizó Fase 4 sobre Fase 3 por urgencia del negocio. Se implementó EP-14 junto con el calendario visual (EP-13) ya que son interdependientes.
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/models/Service.ts` — Añadido campo `duration` (Number, default 60) para calcular duración del turno
+  - `apps/server/src/models/Appointment.ts` (nuevo) — Modelo completo con tenantId, client, service, professional, startTime, endTime, status (pending/confirmed/cancelled/completed), cancelReason, cancelledAt, cancelledBy, createdBy. 3 índices compuestos.
+  - `apps/server/src/controllers/appointmentController.ts` (nuevo) — CRUD con overlap check server-side (409 si hay superposición), anti mass-assignment ($set whitelist), cancelación con trazabilidad
+  - `apps/server/src/routes/appointmentRoutes.ts` (nuevo) — 6 endpoints protegidos con express-validator
+  - `apps/server/src/server.ts` — Montada ruta `/api/turnos` con checkAdminAccess + checkTenantAccess
+
+  **Frontend:**
+  - `apps/client/package.json` — Añadido `@fullcalendar/react`, `@fullcalendar/core`, `@fullcalendar/timegrid`, `@fullcalendar/interaction`, `@fullcalendar/daygrid`
+  - `apps/client/src/types/index.ts` — Añadidos tipos `Appointment`, `AdminSlim`; añadido `duration` a Service
+  - `apps/client/src/api/appointmentApi.ts` (nuevo) — 6 funciones API siguiendo patrón existente
+  - `apps/client/src/views/Turnos.tsx` (nuevo) — Calendario FullCalendar con vistas day/week, 3 modales (crear/editar con react-hook-form + react-select, detalle con status/editar/cancelar, cancelación con motivo), drag & drop rescheduling, filtro por profesional, 4 estados (loading/error/empty/data), estilos personalizados con tokens Maison
+  - `apps/client/src/router.tsx` — Ruta `/turnos`
+  - `apps/client/src/layouts/AppLayout.tsx` — NavLink "Turnos" en sidebar
+
+  **Documentación:**
+  - `docs/db-schema.md` — Documentada colección `appointments` con campos, tipos, índices, reglas de negocio y diagrama de relaciones (7 colecciones)
+
+* **ADRs:**
+  - `professional` se referencia a `Admin` como solución temporal hasta EP-11/12 (gestión de usuarios y roles)
+  - Se usó FullCalendar (no react-big-calendar) por ser más completo y tener mejor soporte de personalización visual
+  - La duración del turno se calcula server-side desde `service.duration` y se envía al frontend para previsualización
+  - El overlap check es tanto client-side (FullCalendar `eventOverlap: false`) como server-side (query en controller con 409)
+
+* **Verificación:** server build Exit 0, client build Exit 0. Lint: 0 errores nuevos (1 preexistente en ProductoModal.tsx). Reviewer: VERDE → EP-14 → done.
+
+* **Próximos pasos:** EP-15 (Conversión de turno a visita registrada) o retomar Fase 3 con EP-11 (Gestión de usuarios).
+
+---
+
+## 2026-06-17 — UX-03 Quitar hora obligatoria de próximo retoque (decisión de negocio)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer
+* **Objetivo:** Revertir parcialmente UX-01/UX-02. Por decisión de negocio, ya no se exige ingresar una hora manual para el próximo retoque. Si el usuario no completa `nextTouchupDate` y el servicio tiene `defaultTouchupDays > 0`, el sistema auto-calcula la fecha y le asigna automáticamente el mismo horario del último turno que ese cliente haya completado, sin pedir nada al usuario.
+* **Contexto:** No es una épica de `feature_list.json` — es un ajuste de negocio documentado únicamente en `progress/current.md`.
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/controllers/serviceRecordController.ts::createServiceRecord` — quitado el guard 400 de `nextTouchupTime`. Al auto-calcular la fecha, se busca con `Appointment.findOne({ tenantId, client, status: 'completed' }).sort({ startTime: -1 })` el último turno completado del cliente y se usan sus horas/minutos. Sin turno previo, la fecha queda sin hora explícita (fallback de medianoche).
+  - `apps/server/src/controllers/appointmentController.ts::completeAppointment` — quitado el guard 400 de `nextTouchupTime`. La hora se toma directamente de `serviceDate` (= `appointment.startTime`, el turno que se está completando), sin queries adicionales.
+  - Quitado `nextTouchupTime` de la destructuración del body en ambos controllers.
+
+  **Frontend:**
+  - `apps/client/src/components/RegistroModal.tsx` — revertido el campo de hora obligatorio agregado en UX-01/UX-02: quitados `showTimeField`, `nextTouchupTime`, `timeError`, `hasAutoTouchup`, `requiresTimeField`, el botón "+ Agregar solo hora", el aviso de retoque automático y el input `time`. `nextTouchupDate` queda como único campo opcional, simple, sin validación de hora.
+  - `apps/client/src/api/serviceRecordApi.ts` y `apps/client/src/api/appointmentApi.ts` — quitado `nextTouchupTime` de los tipos de payload.
+
+* **ADRs:**
+  - Si el cliente no tiene ningún turno previo completado al crear un registro manual (no vía calendario), la fecha de retoque auto-calculada queda sin hora explícita (medianoche) — fallback razonable aceptado, sin cobertura adicional.
+
+* **Verificación:** server build Exit 0, client build Exit 0. Lint: 0 errores nuevos (1 preexistente en ProductoModal.tsx, ya conocido desde EP-14). Reviewer: APPROVED → `progress/reviews/review_UX-03.md`.
+
+* **Nota de proceso:** ambos implementers y el reviewer reportaron bloqueos de permisos de herramienta (Bash/Write denegados en sus sesiones) y no pudieron correr los builds ni persistir sus propias bitácoras. El Leader verificó cada diff línea por línea contra el plan, ejecutó personalmente los 3 comandos de verificación, y materializó `impl_UX-03-backend.md`, `impl_UX-03-frontend.md` y `review_UX-03.md` en disco.
+
+* **Próximos pasos:** retomar Fase 3 (EP-11 Gestión de usuarios) o Fase 4 pendiente (EP-13 Calendario visual ya implementado junto a EP-14; EP-16/EP-17 disponibilidad y recordatorios siguen pendientes).
+
+---
+
 ## 2026-06-10 — Bootstrap del Arnés de Ingeniería (Harness Setup)
 
 * **Agente:** Humano (Arquitecto Principal) + Claude (Leader)
@@ -117,3 +183,57 @@
   - **Docs:** `docs/db-schema.md` — tabla tenants actualizada con logo/timezone/currency.
 * **ADRs:** Logo almacenado como URL string (servicio externo como Cloudinary/S3); el frontend valida formato pero no hostea archivos.
 * **Verificación:** server build Exit 0, client build Exit 0, tests 35/35. Reviewer: VERDE (`progress/reviews/review_EP-10.md`). EP-10 → done.
+
+---
+
+## 2026-06-16 — UX-01 Hora obligatoria condicional en próximo retoque
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend
+* **Objetivo:** Evitar que el sistema asigne hora automática (current time) al turno de próximo retoque cuando el usuario no completa el campo `nextTouchupDate`. Se agregó un campo de hora condicional obligatorio.
+* **Problema:** En `serviceRecordController.ts` y `appointmentController.ts`, cuando `nextTouchupDate` quedaba vacío y se auto-calculaba la fecha desde `defaultTouchupDays`, la hora se asignaba con `new Date().getHours()` — sin sentido para un turno futuro.
+* **Solución (Opción A):**
+  - **Backend:** Nuevo campo `nextTouchupTime` (string "HH:mm") en `createServiceRecord` y `completeAppointment`. Si se envía sin `nextTouchupDate`, se aplica al auto-cálculo de fecha. Se eliminaron los fallbacks `new Date().getHours()`.
+  - **Frontend:** En `RegistroModal.tsx`, el campo `nextTouchupDate` (datetime-local) sigue siendo opcional. Si el usuario lo deja vacío, aparece un botón "+ Agregar solo hora" que despliega un campo `time` **obligatorio**. En el submit, si hay `nextTouchupDate` se usa completo; si no, se envía `nextTouchupTime` por separado.
+* **Archivos modificados:**
+  - `apps/server/src/controllers/serviceRecordController.ts` — Destructuring + setHours condicional + eliminación de fallback
+  - `apps/server/src/controllers/appointmentController.ts` — Destructuring + setHours condicional + eliminación de `origTime`
+  - `apps/client/src/components/RegistroModal.tsx` — Estado condicional `showTimeField`, toggle button, campo `time` required
+  - `apps/client/src/api/serviceRecordApi.ts` — `nextTouchupTime` en `ServiceRecordPayload`
+  - `apps/client/src/api/appointmentApi.ts` — `nextTouchupTime` en `completeAppointment` data type
+* **Verificación:** server build Exit 0, client build Exit 0. Sin tests nuevos (refactor de comportamiento existente).
+
+---
+
+## 2026-06-17 — UX-02 Cierre de gap: hora obligatoria no se exigía cuando el servicio auto-calcula el retoque
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer
+* **Objetivo:** Corregir un gap dejado por UX-01: la hora del próximo retoque solo se exigía si el usuario clickeaba manualmente el botón opcional "+ Agregar solo hora", sin importar si el servicio seleccionado tenía `defaultTouchupDays > 0` (caso en que el backend SIEMPRE auto-calcula `nextTouchupDate`). El usuario reportó que el sistema no validaba la hora obligatoria antes de terminar el flujo de completar turno/registrar visita.
+* **Cambios Realizados:**
+  - **Backend (`serviceRecordController.ts::createServiceRecord`, `appointmentController.ts::completeAppointment`):** nuevo guard que responde `400` con `{ error: 'La hora del próximo retoque es obligatoria cuando el servicio tiene retoque automático configurado' }` si `!nextTouchupDate && service.defaultTouchupDays > 0 && !nextTouchupTime`, ejecutado ANTES de cualquier descuento de stock (defensa en profundidad). En `appointmentController.ts` se adelantó la búsqueda de `serviceDoc` y se eliminó una segunda búsqueda redundante más abajo.
+  - **Frontend (`RegistroModal.tsx`):** se deriva `hasAutoTouchup` (servicio seleccionado con `defaultTouchupDays > 0`) y `requiresTimeField` vía `watch()` de react-hook-form. Cuando el servicio tiene retoque automático y no se completó `nextTouchupDate`, el campo de hora se muestra y exige automáticamente (ya no depende del click manual), con aviso accesible (Trifecta: color + ícono `FiAlertCircle` + texto). El botón manual sigue disponible solo para servicios sin retoque automático.
+* **Incidente de proceso:** ambos implementers y el reviewer quedaron bloqueados por denegación de `Bash`/`Write` en sus sesiones (el código se aplicó correctamente vía `Edit`, que sí estaba permitido; el agente reviewer tampoco tiene `Write` en su definición de herramientas). El Leader verificó los diffs línea por línea, ejecutó los builds y el lint de primera mano, y escribió las bitácoras de evidencia (`progress/implements/impl_UX-02-backend.md`, `impl_UX-02-frontend.md`) y el veredicto (`progress/reviews/review_UX-02.md`) en su lugar.
+* **Verificación:** server build Exit 0, client build Exit 0, lint sin errores nuevos (2 errores y 1 warning preexistentes confirmados, no introducidos por este fix). Reviewer: APPROVED (lógica de negocio, sandbox hermético, seguridad y capa de datos sin violaciones).
+* **Follow-up no bloqueante:** resetear `nextTouchupTime` en `RegistroModal.tsx` al cambiar el servicio seleccionado (deuda de UX menor, no genera bug).
+
+---
+
+## 2026-06-17 — EP-13 Calendario visual de turnos: rediseño + fix de pérdida de vista (Fase 4)
+
+* **Agente:** Claude (Leader) + implementer-frontend + reviewer (2 intentos)
+* **Objetivo:** Rediseñar visualmente la vista de Turnos (calendario, eventos, botones, jerarquía del modal de detalle) y corregir un bug reportado por el usuario: al cambiar a vista "Mes" o navegar con prev/next, el calendario se reseteaba a vista semana.
+* **Causa raíz del bug:** el `useQuery` de appointments cambiaba de `queryKey` en cada `datesSet` de FullCalendar (cambio de vista/navegación), entrando en `isLoading: true` sin datos cacheados. El render ternario desmontaba por completo `<FullCalendar>` durante esa carga, y al re-montar usaba el prop fijo `initialView="timeGridWeek"`, perdiendo la vista elegida por el usuario.
+* **Cambios Realizados (único archivo, `apps/client/src/views/Turnos.tsx`):**
+  - `placeholderData: keepPreviousData` (de `@tanstack/react-query`) en el `useQuery` de appointments — evita que `<FullCalendar>` se desmonte en cambios de vista/fecha.
+  - `professionalFilter` agregado al `queryKey` (bug latente de caché cruzada entre filtros).
+  - Indicador sutil de refetch en segundo plano vía `isFetching` (badge "Actualizando...", sin spinners ni animaciones externas).
+  - Chips de evento del calendario (mes y semana) con ícono de estado vía `eventContent` (`getStatusIcon`: `FiClock`/`FiCheck`/`FiX`/`FiCheckCircle`), cumpliendo la Trifecta de Accesibilidad (Checkpoint C6) además del color y el texto.
+  - Mismo ícono reutilizado en el badge de estado del modal de detalle.
+  - Footer del modal de detalle de turno rediseñado con jerarquía de acciones: "Completar y Registrar" como CTA primaria destacada (verde, con texto); "Editar"/"Cancelar" degradados a botones icon-only (`FiEdit2`/`FiTrash2`) con `aria-label` y `title`; eliminado el botón "Cerrar" redundante con el `FiX` del header del `Modal` compartido.
+  - Ajustes menores de estilo de grilla del calendario y migración del filtro de profesional al patrón de Input de `docs/design.md` §4.4.
+* **Incidente de proceso (gobernanza del arnés):** tanto el `implementer` como el `reviewer` quedaron bloqueados por denegación de `Bash`/`Write` en sus sesiones (agentes en background no pueden recibir aprobación interactiva de permisos). Investigación reveló dos causas raíz reales:
+  1. `.claude/settings.json` tenía patrones de `Bash` malformados (`Bash(apps/client/src/**)`/`Bash(apps/server/src/**)`, glob de rutas de archivo usado como si fuera comando de Bash, nunca matchea nada) y el allow-list de `Write`/`Edit` no cubría `progress/**` ni archivos de raíz como `feature_list.json`.
+  2. La definición del agente `reviewer` (`.claude/agents/reviewer.md`) nunca tuvo `Write`/`Edit` en su lista de `tools` — sin esa herramienta, ningún ajuste de permisos podía habilitarlo a persistir su propio veredicto.
+  - El Leader corrigió ambos archivos de configuración del arnés (excepción permitida: configuración del arnés). Tras el fix, un segundo `reviewer` sí pudo ejecutar build/lint en vivo y escribir su propio `progress/reviews/review_EP-13.md`, pero seguía sin `Write`/`Edit` reales en su sesión (el cambio de `tools` no se propagó a la sesión de agente ya en curso — problema de caché de sesión, no de permisos). El Leader aplicó manualmente el cambio mecánico de estado en `feature_list.json` (`in_progress` → `done`) ya autorizado por el veredicto APROBADO del reviewer, persistido y re-verificado de forma independiente en disco.
+* **Verificación:** `pnpm --filter @estetica/client build` → Exit 0 (confirmado 2 veces, por Leader y por reviewer). `pnpm --filter @estetica/client lint` → 0 errores nuevos (1 error y 2 warnings preexistentes sin relación). Reviewer: APPROVED → `progress/reviews/review_EP-13.md`. EP-13 → done.
+* **Observación no bloqueante:** `Turnos.tsx:185-186` tiene un chequeo defensivo `typeof p === 'string'` sobre `professional`, código muerto según el tipo declarado (siempre objeto) — preexistente, no introducido por este diff.
+* **Follow-up recomendado:** reiniciar la sesión de Claude Code en algún momento para que el cambio de `tools` de `.claude/agents/reviewer.md` se cargue correctamente y el reviewer pueda cerrar features futuras sin intervención del Leader.

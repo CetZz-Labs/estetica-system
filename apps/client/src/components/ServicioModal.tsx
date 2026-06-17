@@ -20,14 +20,14 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
     const queryClient = useQueryClient();
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<ServiceFormData>({
-        defaultValues: { name: '', defaultTouchupDays: 0 }
+        defaultValues: { name: '', defaultTouchupDays: 0, duration: 60 }
     });
 
     useEffect(() => {
         if (serviceToEdit && isOpen) {
-            reset({ name: serviceToEdit.name, defaultTouchupDays: serviceToEdit.defaultTouchupDays });
+            reset({ name: serviceToEdit.name, defaultTouchupDays: serviceToEdit.defaultTouchupDays, duration: serviceToEdit.duration || 60 });
         } else if (isOpen) {
-            reset({ name: '', defaultTouchupDays: 0 });
+            reset({ name: '', defaultTouchupDays: 0, duration: 60 });
         }
     }, [serviceToEdit, isOpen, reset]);
 
@@ -104,6 +104,29 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                     />
                     <p className="text-xs text-gray-400 mt-1">
                         Poné 0 si este servicio no requiere retoque.
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Duración (minutos) *</label>
+                    <input
+                        type="number"
+                        min="1"
+                        placeholder="Ej. 60"
+                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        {...register('duration', {
+                            required: 'Requerido',
+                            valueAsNumber: true,
+                            min: { value: 1, message: 'La duración debe ser al menos 1 minuto' }
+                        })}
+                    />
+                    {errors.duration && (
+                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <FiAlertCircle /> {errors.duration.message}
+                        </span>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                        Tiempo estimado del servicio. Se usa para calcular el fin del turno en la agenda.
                     </p>
                 </div>
 

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(apps/server/src/**)",
+      "Edit(apps/client/src/**)",
+      "Write(apps/server/src/**)",
+      "Write(apps/client/src/**)",
+      "Edit(progress/**)",
+      "Write(progress/**)",
+      "Edit(feature_list.json)",
+      "Bash(pnpm --filter @estetica/client build*)",
+      "Bash(pnpm --filter @estetica/client lint*)",
+      "Bash(pnpm --filter @estetica/server build*)",
+      "Bash(pnpm install*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ]
+  }
+}

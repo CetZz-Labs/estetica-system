@@ -106,6 +106,17 @@ export default function AppLayout() {
                     </NavLink>
 
                     <NavLink
+                        to="/turnos"
+                        onClick={closeMenu}
+                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
+                            ? 'bg-maison-bg text-maison-text border border-maison-border'
+                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
+                            }`}
+                    >
+                        Turnos
+                    </NavLink>
+
+                    <NavLink
                         to="/configuracion/negocio"
                         onClick={closeMenu}
                         className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
