@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, type ReactElement } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { FiPlus, FiAlertCircle, FiCalendar, FiClock, FiUser, FiPhone, FiCheck, FiX, FiCheckCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiAlertCircle, FiAlertTriangle, FiCalendar, FiClock, FiUser, FiPhone, FiCheck, FiX, FiCheckCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { toast } from 'sonner';
 import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select';
@@ -40,13 +40,16 @@ const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     })
 };
 
-function getStatusColor(status: string): string {
-    switch (status) {
-        case 'confirmed': return '#54A885';
-        case 'cancelled': return '#E06B5E';
-        case 'completed': return '#6B7280';
-        default: return '#9CA3AF';
-    }
+const STATUS_PALETTE: Record<string, { bg: string; border: string; text: string }> = {
+    confirmed: { bg: '#ECFDF5', border: '#BBF7D0', text: '#54A885' },
+    cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
+    completed: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
+    pending: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
+    overdue: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
+};
+
+function getStatusPalette(status: string): { bg: string; border: string; text: string } {
+    return STATUS_PALETTE[status] || STATUS_PALETTE.pending;
 }
 
 function getStatusLabel(status: string): string {
@@ -55,6 +58,7 @@ function getStatusLabel(status: string): string {
         case 'confirmed': return 'Confirmado';
         case 'cancelled': return 'Cancelado';
         case 'completed': return 'Completado';
+        case 'overdue': return 'Atrasado';
         default: return status;
     }
 }
@@ -64,8 +68,17 @@ function getStatusIcon(status: string): ReactElement {
         case 'confirmed': return <FiCheck />;
         case 'cancelled': return <FiX />;
         case 'completed': return <FiCheckCircle />;
+        case 'overdue': return <FiAlertTriangle />;
         default: return <FiClock />;
     }
+}
+
+function isOverduePending(appointment: Appointment): boolean {
+    return appointment.status === 'pending' && new Date(appointment.endTime) < new Date();
+}
+
+function getRenderStatus(appointment: Appointment): string {
+    return isOverduePending(appointment) ? 'overdue' : appointment.status;
 }
 
 interface AppointmentFormData {
@@ -163,17 +176,20 @@ export default function Turnos() {
     });
 
     const events = useMemo(() => {
-        return (appointments || []).map(a => ({
-            id: `appt-${a._id}`,
-            title: `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`,
-            start: a.startTime,
-            end: a.endTime,
-            extendedProps: { appointment: a, type: 'appointment' as const },
-            backgroundColor: getStatusColor(a.status),
-            borderColor: getStatusColor(a.status),
-            textColor: '#2C2A29',
-            classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : ''].filter(Boolean),
-        }));
+        return (appointments || []).map(a => {
+            const palette = getStatusPalette(getRenderStatus(a));
+            return {
+                id: `appt-${a._id}`,
+                title: `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`,
+                start: a.startTime,
+                end: a.endTime,
+                extendedProps: { appointment: a, type: 'appointment' as const },
+                backgroundColor: palette.bg,
+                borderColor: palette.border,
+                textColor: palette.text,
+                classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : ''].filter(Boolean),
+            };
+        });
     }, [appointments]);
 
     const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })), [clientsData]);
@@ -316,7 +332,7 @@ export default function Turnos() {
                         <FiEdit2 className="text-lg" />
                     </button>
                     <button onClick={() => handleCompleteAppointment(selectedAppointment)}
-                        className="bg-maison-green hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+                        className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
                         <FiCheck /> Completar y Registrar
                     </button>
                 </>
@@ -402,7 +418,7 @@ export default function Turnos() {
                         .fc { font-family: 'Inter', sans-serif; background-color: #FFFFFF; border-radius: 16px; border: none; }
                         .fc .fc-toolbar-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: #2C2A29; }
                         .fc .fc-button-primary { background-color: #FFFFFF; border: 1px solid #EAE6DF; color: #4B5563; border-radius: 9999px; padding: 6px 16px; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
-                        .fc .fc-button-primary:hover { background-color: #F9FAF8; border-color: #D1D5DB; }
+                        .fc .fc-button-primary:hover { background-color: #F9FAF8; border-color: #D1D5DB; color: #2C2A29; }
                         .fc .fc-button-primary:disabled { opacity: 0.5; }
                         .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #1A1A1A; border-color: #1A1A1A; color: #FFFFFF; }
                         .fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today { background-color: #FDFBF7; }
@@ -422,8 +438,7 @@ export default function Turnos() {
                         .appointment-event-content { display: flex; align-items: center; gap: 4px; overflow: hidden; }
                         .appointment-event-content .event-icon { display: flex; align-items: center; flex-shrink: 0; font-size: 0.85em; }
                         .appointment-event-content .event-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .fc-timegrid-event .appointment-event-content { white-space: normal; align-items: flex-start; }
-                        .fc-timegrid-event .appointment-event-content .event-title { white-space: normal; }
+                        .fc-timegrid-event .fc-event-main { overflow: hidden; }
                     `}</style>
                     {isFetching && (
                         <span className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border border-maison-border rounded-full">
@@ -450,7 +465,7 @@ export default function Turnos() {
                             const appointment = arg.event.extendedProps.appointment as Appointment;
                             return (
                                 <div className="appointment-event-content">
-                                    <span className="event-icon">{getStatusIcon(appointment.status)}</span>
+                                    <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
                                     <span className="event-title">{arg.event.title}</span>
                                 </div>
                             );
@@ -548,13 +563,14 @@ export default function Turnos() {
                     <div className="space-y-5">
                         <div className="flex items-center gap-2">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
-                                selectedAppointment.status === 'confirmed' ? 'bg-green-50 text-maison-green border-green-200' :
-                                selectedAppointment.status === 'cancelled' ? 'bg-red-50 text-maison-red border-red-200' :
-                                selectedAppointment.status === 'completed' ? 'bg-gray-50 text-gray-500 border-gray-200' :
+                                getRenderStatus(selectedAppointment) === 'confirmed' ? 'bg-green-50 text-maison-green border-green-200' :
+                                getRenderStatus(selectedAppointment) === 'cancelled' ? 'bg-red-50 text-maison-red border-red-200' :
+                                getRenderStatus(selectedAppointment) === 'overdue' ? 'bg-red-50 text-maison-red border-red-200' :
+                                getRenderStatus(selectedAppointment) === 'completed' ? 'bg-gray-50 text-gray-500 border-gray-200' :
                                 'bg-gray-50 text-gray-500 border-gray-200'
                             }`}>
-                                {getStatusIcon(selectedAppointment.status)}
-                                {getStatusLabel(selectedAppointment.status)}
+                                {getStatusIcon(getRenderStatus(selectedAppointment))}
+                                {getStatusLabel(getRenderStatus(selectedAppointment))}
                             </span>
                         </div>
 

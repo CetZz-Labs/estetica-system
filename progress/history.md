@@ -237,3 +237,17 @@
 * **Verificación:** `pnpm --filter @estetica/client build` → Exit 0 (confirmado 2 veces, por Leader y por reviewer). `pnpm --filter @estetica/client lint` → 0 errores nuevos (1 error y 2 warnings preexistentes sin relación). Reviewer: APPROVED → `progress/reviews/review_EP-13.md`. EP-13 → done.
 * **Observación no bloqueante:** `Turnos.tsx:185-186` tiene un chequeo defensivo `typeof p === 'string'` sobre `professional`, código muerto según el tipo declarado (siempre objeto) — preexistente, no introducido por este diff.
 * **Follow-up recomendado:** reiniciar la sesión de Claude Code en algún momento para que el cambio de `tools` de `.claude/agents/reviewer.md` se cargue correctamente y el reviewer pueda cerrar features futuras sin intervención del Leader.
+
+---
+
+## 2026-06-17 — Pulido visual de Turnos (post EP-13, sin reapertura de épica)
+
+* **Agente:** Claude (Leader) + implementer-frontend (3 rondas)
+* **Objetivo:** Tres rondas de feedback visual del usuario sobre `apps/client/src/views/Turnos.tsx`, ya cerrado como EP-13 "done". No se reabrió la épica en `feature_list.json` — es pulido incremental sobre una feature ya entregada.
+* **Cambios Realizados (todos en el único archivo `Turnos.tsx`):**
+  - Unificado el estilo de los chips de evento entre vista semana y mes (se quitaron los overrides `.fc-timegrid-event` que envolvían el texto en semana).
+  - Corregido hover ilegible en los botones del toolbar del calendario (faltaba `color` explícito en `.fc-button-primary:hover`, heredaba blanco de FullCalendar sobre fondo claro).
+  - Botón "Completar y Registrar" cambiado de verde (`bg-maison-green`) al token Primario negro (`bg-maison-primary hover:bg-black`), consistente con el resto de CTAs de la app.
+  - Reemplazado el relleno sólido y saturado de los eventos del calendario (`getStatusColor`) por la paleta pastel `STATUS_PALETTE` (fondo claro + borde + texto de color), igual al patrón de badges ya usado en el modal de detalle — resuelve que los turnos pendientes/completados se vieran con un gris oscuro pesado, sobre todo en vista semana.
+  - Agregado distingo visual de "Atrasado" para turnos `pending` cuya fecha ya pasó (`isOverduePending`/`getRenderStatus`): paleta roja + ícono `FiAlertTriangle` (distinto del `FiX` de cancelado) + label "Atrasado", aplicado en el chip del calendario y en el badge del modal de detalle. No modifica el campo `status` real — es derivado solo para presentación. Decisión de producto: se mantienen los turnos pasados visibles en el calendario (comportamiento estándar de cualquier agenda) en vez de moverlos a una sección de "historial" separada, ya que el historial real de visitas ya existe vía `ServiceRecord` (EP-15) y el perfil del cliente (EP-07).
+* **Verificación:** `pnpm --filter @estetica/client build` → Exit 0 en cada ronda (confirmado por Leader). Lint sin errores nuevos (1 error y 2 warnings preexistentes sin relación, ya conocidos). Sin reviewer formal — alcance trivial de 1 archivo, feedback visual iterativo de bajo riesgo.
