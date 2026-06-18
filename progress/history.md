@@ -251,3 +251,15 @@
   - Reemplazado el relleno sólido y saturado de los eventos del calendario (`getStatusColor`) por la paleta pastel `STATUS_PALETTE` (fondo claro + borde + texto de color), igual al patrón de badges ya usado en el modal de detalle — resuelve que los turnos pendientes/completados se vieran con un gris oscuro pesado, sobre todo en vista semana.
   - Agregado distingo visual de "Atrasado" para turnos `pending` cuya fecha ya pasó (`isOverduePending`/`getRenderStatus`): paleta roja + ícono `FiAlertTriangle` (distinto del `FiX` de cancelado) + label "Atrasado", aplicado en el chip del calendario y en el badge del modal de detalle. No modifica el campo `status` real — es derivado solo para presentación. Decisión de producto: se mantienen los turnos pasados visibles en el calendario (comportamiento estándar de cualquier agenda) en vez de moverlos a una sección de "historial" separada, ya que el historial real de visitas ya existe vía `ServiceRecord` (EP-15) y el perfil del cliente (EP-07).
 * **Verificación:** `pnpm --filter @estetica/client build` → Exit 0 en cada ronda (confirmado por Leader). Lint sin errores nuevos (1 error y 2 warnings preexistentes sin relación, ya conocidos). Sin reviewer formal — alcance trivial de 1 archivo, feedback visual iterativo de bajo riesgo.
+
+---
+
+## 2026-06-18 — UX-04: Rebranding Maison → Shaer + saludo dinámico con usuario Clerk
+
+* **Agente:** Claude (Leader) + implementer-frontend (1 ronda)
+* **Objetivo:** El nombre comercial del producto cambió de "Maison" a "Shaer". Solicitud directa del usuario, no está en `feature_list.json` (mismo patrón que UX-03).
+* **Cambios Realizados:**
+  - `apps/client/src/layouts/AppLayout.tsx`: las dos ocurrencias del texto de marca "Maison" en el sidebar (header móvil y sidebar desktop) cambiadas a "Shaer". Las clases del sistema de diseño (`bg-maison-*`, `text-maison-*`) quedaron intactas — son tokens, no texto de marca.
+  - `apps/client/src/views/Dashboard.tsx`: el saludo estático `"Buen día, Maison ✿"` fue reemplazado por un saludo dinámico. Se agregó `getGreeting()` (basada en `new Date().getHours()`: <12 "Buenos días", 12–18 "Buenas tardes", ≥19 "Buenas noches") y se usa `useUser()` de `@clerk/react` (el paquete instalado en este monorepo es `@clerk/react`, no `@clerk/clerk-react`) para mostrar el nombre del usuario logueado (`username` → `firstName` → `fullName` → vacío como fallback). Se usa `isLoaded` de Clerk para no mostrar texto roto/parpadeo mientras carga el usuario.
+* **Verificación:** `pnpm --filter @estetica/client build` → Exit 0 (confirmado por Leader). Lint con 1 error y 2 warnings preexistentes sin relación a los archivos tocados (`ProductoModal.tsx`, `Negocio.tsx`, `Turnos.tsx`) — sin errores nuevos en `AppLayout.tsx` ni `Dashboard.tsx`. Sin reviewer formal — alcance trivial de 2 archivos, sin lógica de negocio ni acceso a DB.
+* **Bitácora del implementer:** `progress/implements/impl_UX-04-frontend.md`.

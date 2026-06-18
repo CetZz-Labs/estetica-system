@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@clerk/react';
 import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
@@ -12,8 +13,17 @@ import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
 import { Link } from 'react-router';
 
+const getGreeting = (): string => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+};
+
 export default function Dashboard() {
     const [isRegistroModalOpen, setIsRegistroModalOpen] = useState(false);
+    const { isLoaded, user } = useUser();
+    const displayName = user?.username || user?.firstName || user?.fullName || '';
 
     const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
     const [prefillService, setPrefillService] = useState<string | undefined>(undefined);
@@ -77,7 +87,9 @@ export default function Dashboard() {
             <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
                 <div>
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Panel Principal</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Buen día, Maison ✿</h3>
+                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">
+                        {isLoaded ? `${getGreeting()}${displayName ? `, ${displayName}` : ''} ✿` : getGreeting()}
+                    </h3>
                 </div>
                 <div className="flex gap-3">
                     <Link to="/clientes" className="bg-white border border-gray-200 hover:border-gray-300 text-gray-600 px-4 py-2.5 sm:px-5 rounded-full text-sm font-medium transition-colors shadow-sm">Directorio</Link>
