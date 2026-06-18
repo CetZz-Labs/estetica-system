@@ -1,7 +1,7 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-06-17
+- **Última actualización:** 2026-06-18
 - **Sesión:** Sin feature activa
 - **Feature en curso:** Ninguna
 
@@ -9,6 +9,7 @@
 _(vacío — esperando próxima tarea)_
 
 ## Estado del Backlog
+- UX-04 Rebranding Maison → Shaer + saludo dinámico Clerk (no está en feature_list.json) → cerrado (ver `progress/history.md`, entrada 2026-06-18)
 - UX-03 (bugfix/decisión de negocio, no está en feature_list.json) → cerrado (ver `progress/reviews/review_UX-03.md`)
 - EP-15 Conversión de turno a visita registrada → done
 - EP-14 Crear y gestionar turnos → done
