@@ -23,7 +23,7 @@ connectDB()
 const app: Express = express()
 
 app.use(cors({
-    origin: ['https://blade-system-client.vercel.app', 'http://localhost:5173'],
+    origin: ['https://estetica-system.vercel.app', 'http://localhost:5173'],
     credentials: true
 }));
 
