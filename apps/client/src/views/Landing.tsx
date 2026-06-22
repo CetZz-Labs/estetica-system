@@ -182,7 +182,7 @@ const steps = [
     {
         number: '02',
         title: 'Carga clientes y servicios',
-        description: 'Importa tus datos o créalos desde cero. Define servicios con precios, duración y frecuencia de retoque.'
+        description: 'Importa tus datos o créalos desde cero. Define servicios con duración y frecuencia de retoque.'
     },
     {
         number: '03',
@@ -332,10 +332,10 @@ export default function Landing() {
                             </motion.div>
                             <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-serif text-maison-text leading-tight">
                                 El sistema que{' '}
-                                <span className="relative">
+                                <span className="relative inline-block pb-3">
                                     simplifica
-                                    <svg className="absolute -bottom-1 left-0 w-full h-3 text-maison-green/30" viewBox="0 0 200 12" preserveAspectRatio="none">
-                                        <path d="M0 10 Q 50 0, 100 10 T 200 10" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
+                                    <svg className="absolute bottom-0 left-0 w-full h-4 text-maison-green/40" viewBox="0 0 240 16" preserveAspectRatio="none" overflow="visible">
+                                        <path d="M4 8 Q 32 2, 60 8 T 120 8 T 180 8 T 236 8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </span>{' '}
                                 tu centro de estética
@@ -404,7 +404,7 @@ export default function Landing() {
                 whileInView="visible"
                 viewport={{ once: true, margin: '-80px' }}
                 variants={stagger}
-                className="relative py-16 sm:py-24 bg-maison-card border-t border-maison-border overflow-hidden"
+                className="relative py-16 sm:py-24 bg-maison-card border-t border-maison-border overflow-hidden scroll-mt-20"
             >
                 {/* Decorative background circles */}
                 <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-maison-primary/[0.015] pointer-events-none" />
@@ -545,7 +545,7 @@ export default function Landing() {
                 whileInView="visible"
                 viewport={{ once: true, margin: '-80px' }}
                 variants={stagger}
-                className="py-16 sm:py-24 bg-maison-card border-t border-maison-border"
+                className="py-16 sm:py-24 bg-maison-card border-t border-maison-border scroll-mt-20"
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div variants={fadeUp} className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
