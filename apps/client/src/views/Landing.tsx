@@ -1,4 +1,4 @@
-import { useAuth, useUser } from '@clerk/react';
+import { useAuth } from '@clerk/react';
 import { Navigate, Link } from 'react-router';
 import { useState, useEffect } from 'react';
 import { motion, type Variants } from 'motion/react';
@@ -193,7 +193,6 @@ const steps = [
 
 export default function Landing() {
     const { isLoaded, userId } = useAuth();
-    const { user } = useUser();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -204,8 +203,6 @@ export default function Landing() {
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    const displayName = user?.firstName || user?.username || '';
 
     if (!isLoaded) {
         return (
