@@ -11,17 +11,19 @@ import Servicios from "./views/Servicios";
 import Turnos from "./views/Turnos";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
+import Landing from "./views/Landing";
 
 export default function Router() {
     return (
         <BrowserRouter>
             <Routes>
+                <Route path="/" element={<Landing />} />
                 <Route path="/login/*" element={<Login />} />
                 <Route path="/registro/completar" element={<CompletarRegistro />} />
                 <Route path="/registro/*" element={<Register />} />
 
                 <Route element={<AppLayout />}>
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/clientes" element={<Clients />} />
                     <Route path="/clientes/:id" element={<ProfileClient />} />
                     <Route path="/servicios" element={<Servicios />} />

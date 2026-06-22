@@ -61,8 +61,7 @@ export default function AppLayout() {
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
                     <NavLink
-                        to="/"
-                        end
+                        to="/dashboard"
                         onClick={closeMenu}
                         className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
                             ? 'bg-maison-bg text-maison-text border border-maison-border'
