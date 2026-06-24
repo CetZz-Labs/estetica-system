@@ -6,9 +6,12 @@
 
 * **Sandbox de Ejecución:** Tu contexto está restringido al directorio `apps/server`.
 * **Prohibición de Alcance Global:** Prohibido alterar configuraciones del monorepo o interactuar con `apps/client`.
+* **Bloqueo de Dependencias:** No inventes, sugieras ni instales librerías externas (`pnpm add`, `npm install`) sin aprobación explícita del usuario humano. Usá exclusivamente las dependencias ya resueltas en el workspace.
 * **Stack Tecnológico:** Node.js 21+, Express 4.21, TypeScript 6, Mongoose 9.6, Clerk Express 2.1, express-validator 7.3, cors, ts-node + nodemon (dev).
 
 ## 2. ARQUITECTURA DE CARPETAS
+
+> **Catálogo de patrones:** antes de implementar un listado paginado, un lookup tenant-scoped, una ruta validada, un ajuste de stock, una carga masiva o un registro de visita, consultá [`docs/patterns-backend.md`](../../docs/patterns-backend.md) — son templates copy-paste extraídos de código ya auditado. No reinventes ni copy-pastees de un controller cerrado.
 
 La API sigue una estructura de capas:
 
@@ -80,6 +83,16 @@ export const Client = mongoose.model<IClient>('Client', ClientSchema);
 * **CORS:** Configurado en `server.ts` con orígenes permitidos.
 * **Soft Delete:** Clientes, servicios y productos usan `isActive: false`. No eliminar físicamente.
 * **Control de Stock:** Validar stock >= 0 antes de egresos. Actualizar con `$inc` o cálculo manual.
+* **Multi-tenancy (Fase 2+):** Todo query de negocio filtra por `req.tenantId`. Reemplazá `findById`/`findByIdAndUpdate`/`findByIdAndDelete` por `findOne`/`findOneAndUpdate`/`findOneAndDelete` con `{ _id, tenantId }`. Un recurso de otro tenant → **404**, nunca 403. Prohibido aceptar `tenantId` del body. Regla canónica: [`governance-rules.md#gov-tenant`](../../docs/governance-rules.md#gov-tenant--aislamiento-multi-tenant). Patrón en [`patterns-backend.md § P2`](../../docs/patterns-backend.md#p2--lookup-tenant-scoped-anti-idor).
+
+### Paginación Obligatoria en Listados (CRÍTICO — Escalabilidad)
+
+> **Compuerta:** el `reviewer` rechaza cualquier endpoint que devuelva una colección de filas de negocio **potencialmente ilimitada** sin paginar. Patrón completo en [`patterns-backend.md § P1`](../../docs/patterns-backend.md#p1--listado-paginado-con-multi-tenancy).
+
+* **Mandato:** todo listado de negocio (clientes, visitas, productos, turnos) pagina a **7 ítems/página** (page-size estándar). Prohibido devolver un array plano sin `skip`/`limit`.
+* **Server-side:** el filtrado y la búsqueda se resuelven en la query Mongo (`$regex`, `$or`), nunca delegados al cliente. Los query params (`page`, `limit`, `search`) se validan con `express-validator`.
+* **Contrato de salida:** `{ data: T[], meta: { total, page, limit, totalPages } }`. El `total` viene de `countDocuments(filter)` sobre el dataset filtrado **y por tenant**.
+* **Exenciones (NO paginar):** widgets de dashboard con `limit` fijo (recientes → 10), catálogos cortos (selects), rankings top-N, agregaciones/KPIs.
 
 ## 4. CONVENCIONES DE NAMING
 
@@ -115,7 +128,13 @@ Formato de error: `{ error: 'mensaje descriptivo' }`.
 
 ## 7. REGLAS DE GOBERNANZA TRANSVERSALES
 
-* **Fuente Canónica:** Todo subagente DEBE consultar `docs/governance-rules.md` como fuente única de verdad para reglas de seguridad, autenticación, soft deletes, control de stock y registro de visitas. Este archivo solo referencia — nunca redefine — esas reglas.
+* **Fuente Canónica:** Todo subagente DEBE consultar `docs/governance-rules.md` como fuente única de verdad. Este archivo solo referencia — nunca redefine — esas reglas. Anclas relevantes:
+  * Autenticación → [`#gov-auth`](../../docs/governance-rules.md#gov-auth--autenticación-y-control-de-acceso)
+  * Multi-tenancy → [`#gov-tenant`](../../docs/governance-rules.md#gov-tenant--aislamiento-multi-tenant)
+  * Soft deletes → [`#gov-db`](../../docs/governance-rules.md#gov-db--soft-deletes-e-integridad-referencial)
+  * Control de stock → [`#gov-stock`](../../docs/governance-rules.md#gov-stock--control-de-inventario-y-stock)
+  * Registro de visitas → [`#gov-visit`](../../docs/governance-rules.md#gov-visit--registro-de-visitas-y-retoques)
+* **RBAC (Fase 3 — EP-11/EP-12):** Cuando se introduzcan roles (`ADMIN`, `PROFESSIONAL`, `RECEPTIONIST`), los endpoints restringidos verifican `req.adminInfo.role` mediante un middleware `requireRole(...)`. La tabla de permisos por rol está en el SRS §6.2. Hasta Fase 3, el único rol es el administrador único.
 
 ## 8. ESQUEMA DE BASE DE DATOS (DOCUMENTACIÓN CANÓNICA)
 

@@ -24,12 +24,15 @@
 | `docs/conventions.md` | Convenciones de tipado, imports, naming y errores. | Antes de escribir o refactorizar código. |
 | `docs/db-schema.md` | Esquema canónico MongoDB: colecciones, campos, índices, reglas. | **Lectura obligatoria** antes de crear o modificar modelos Mongoose. |
 | `docs/design.md` | Sistema de diseño visual: tokens, componentes, accesibilidad, iconos. | **Lectura obligatoria** antes de implementar o modificar componentes React. |
-| `docs/governance-rules.md` | Fuente canónica única de reglas de seguridad y gobernanza. | Al crear o modificar reglas transversales (auth, stock, accesibilidad). |
+| `docs/governance-rules.md` | Fuente canónica única de reglas de seguridad y gobernanza. | Al crear o modificar reglas transversales (auth, multi-tenant, stock, accesibilidad). |
+| `docs/patterns-backend.md` | Catálogo de patrones backend copy-paste ya auditados: listado paginado multi-tenant, lookup anti-IDOR, ruta validada, control de stock, carga masiva, registro de visita con auto-retoque. | Antes de implementar un listado, lookup, ruta, ajuste de stock o registro de visita — copiar el patrón en vez de reinventar. |
+| `docs/patterns-frontend.md` | Catálogo de patrones frontend copy-paste: función de API, query/mutation en vista, consumo de listado paginado, 4 estados async + trifecta, modal con react-hook-form, tabla + paginación. | Antes de crear una función de API, consumir un listado paginado, armar una tabla o un modal. |
 | `docs/migration-guides/` | Guías de migración para breaking changes de API. | Cuando se depreca o elimina un endpoint/campo. |
 | `CHECKPOINTS.md` | Compuertas de calidad inmutables (Quality Gates). | Para autoevaluación del `implementer` y auditoría del `reviewer`. |
-| `.claude/rules/backend.md` | Reglas de backend: Express, Mongoose, Clerk middleware. | Al operar dentro de `apps/server/`. |
-| `.claude/rules/frontend.md` | Reglas de frontend: React, Vite, TanStack Query, Clerk. | Al operar dentro de `apps/client/`. |
-| `.claude/agents/` | Definiciones de roles para subagentes. | Cuando actúas como orquestador. |
+| `.claude/rules/backend.md` | Reglas de backend: Express, Mongoose, Clerk middleware, paginación obligatoria. | Al operar dentro de `apps/server/`. |
+| `.claude/rules/frontend.md` | Reglas de frontend: React, Vite, TanStack Query, Clerk, HTML semántico, trifecta. | Al operar dentro de `apps/client/`. |
+| `.claude/skills/ui-ux-pro-max/` | Skill de inteligencia de diseño UI/UX (estilos, paletas, tipografías, charts) con CLI de búsqueda en Python. | Antes de diseñar/implementar una vista, landing o componente visual nuevo. |
+| `.claude/agents/` | Definiciones de roles para subagentes (`leader`, `implementer`, `reviewer`, `explorer`). | Cuando actúas como orquestador. |
 | `apps/client/` | Código fuente del Frontend (React SPA). Sandbox cerrado. | Al implementar UI. |
 | `apps/server/` | Código fuente del Backend (Express API). Sandbox cerrado. | Al implementar lógica de negocio. |
 
@@ -70,6 +73,16 @@ Todo subagente que altere código fuente debe respetar los siguientes invariante
 * Ningún componente visual debe delegar la comunicación de un estado sensible únicamente a un código de color.
 * Es obligatorio: **Color semántico + Icono descriptivo (react-icons/fi) + Texto descriptivo claro**.
 
+### 3.8 Aislamiento Multi-Tenant (Fase 2+ — EP-08)
+* Cada centro de estética es un tenant con datos completamente aislados. Todo modelo de negocio incluye `tenantId` (ObjectId, ref `Tenant`, required, indexado).
+* **Todo query de la API filtra por el `tenantId` del usuario autenticado**, resuelto server-side desde `req.adminInfo` vía `checkTenantAccess`. Prohibido aceptar `tenantId` desde el body/query/params.
+* Un `_id` de otro tenant retorna **404**, nunca 403. Regla canónica completa en [`docs/governance-rules.md#gov-tenant`](docs/governance-rules.md#gov-tenant--aislamiento-multi-tenant).
+
+### 3.9 Agenda y Turnos (Fase 4 — EP-13+)
+* Los turnos (`appointments`) se pintan por estado: **pendiente (gris), confirmado (verde), cancelado (rojo tachado)** (SRS §7.1 RF-038).
+* La duración del turno se calcula según la duración configurada del servicio. El sistema alerta visualmente superposiciones del mismo profesional.
+* Al completar un turno, se abre el flujo de registro de visita con campos pre-completados (cliente, servicio, fecha) — ver EP-15.
+
 ---
 
 ## 4. Reglas Duras (No Negociables)
@@ -100,7 +113,8 @@ Todo subagente que altere código fuente debe respetar los siguientes invariante
 2. Asegúrate de que el `reviewer` haya escrito `progress/reviews/review_<id>.md` y cambiado la feature a `"done"`.
 3. Vuelca el resumen al final de `progress/history.md` (append-only).
 4. Limpia `progress/current.md` a su plantilla vacía.
-5. Elimina logs de depuración y `console.log()` sueltos.
+5. Extrae lo reutilizable de los `impl_*.md` hacia `docs/patterns-*.md` y archiva las bitácoras de la feature cerrada en `progress/{implements,explores}/_archive/` con `git mv`.
+6. Elimina logs de depuración y `console.log()` sueltos.
 
 ---
 

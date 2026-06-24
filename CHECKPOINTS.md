@@ -33,18 +33,24 @@
 - [ ] **Estructura Limpia:** Todo código en `apps/server/src/` pertenece a `controllers/`, `models/`, `routes/`, `middlewares/` o `config/`.
 - [ ] **Autenticación Obligatoria:** Todo endpoint protegido usa `checkAdminAccess` middleware. Las rutas públicas (health check) están explícitamente excluidas.
 - [ ] **Validación de Entrada:** Todo POST y PUT usa `express-validator` para sanitizar datos.
-- [ ] **Manejo de Errores:** Cada controller maneja sus errores con try/catch y responde con códigos HTTP adecuados (400, 404, 500).
+- [ ] **Manejo de Errores:** Cada controller maneja sus errores con try/catch y responde con códigos HTTP adecuados (400, 404, 500). Los stack traces de Mongoose nunca se propagan al cliente.
 - [ ] **Soft Deletes:** Clientes, servicios y productos usan `isActive: false` para preservar historial.
 - [ ] **Control de Stock:** Las operaciones de egreso validan stock suficiente antes de descontar.
+- [ ] **Paginación Obligatoria:** Todo endpoint que devuelve una colección de filas de negocio potencialmente ilimitada (clientes, visitas, productos, turnos) responde paginado `{ data, meta }` con `skip`/`limit` y page-size **7**, filtrando y buscando server-side. Exenciones: widgets de dashboard, catálogos cortos, rankings top-N y agregaciones/KPIs. Patrón en `docs/patterns-backend.md` § P1.
+- [ ] **Multi-tenancy en Queries:** Todo query Mongoose de negocio filtra por `tenantId` (resuelto desde `req.tenantId`, nunca del body). `findById`/`findByIdAndUpdate`/`findByIdAndDelete` reemplazados por `findOne`/`findOneAndUpdate`/`findOneAndDelete` con `{ _id, tenantId }`. Ver `docs/governance-rules.md#gov-tenant`.
 
 ### Frontend (React + Vite)
 
 - [ ] **Desacoplamiento de Datos:** Los componentes no contienen llamadas HTTP directas. Los datos se consumen a través de funciones API en `src/api/` y hooks de TanStack Query.
 - [ ] **Manejo de Estados:** Todo componente cubre los 4 estados: loading (skeleton), error (toast/trifecta), empty (mensaje), data.
+- [ ] **Sin Filtrado Client-Side de Listados Ilimitados:** Prohibido traer la colección completa con `useQuery` y filtrar/buscar/paginar en memoria con `useMemo`. La paginación, filtrado y búsqueda se delegan al servidor; la `queryKey` incluye page + todos los filtros activos. Patrón en `docs/patterns-frontend.md` § P3.
+- [ ] **HTML Semántico:** Ninguna acción usa `<div>`/`<span>` con `onClick` o `role="button"`. Acción → `<button>`, navegación → `<Link>`. Todo `<button>` clickeable lleva `cursor-pointer`.
+- [ ] **Formateo de Fechas con Helper Compartido:** Toda fecha en la UI usa el helper compartido de fechas (`formatCalendarDate` para date-only con `timeZone: 'UTC'`, `formatDateTime` para timestamps reales). Prohibido reimplementar `toLocaleDateString`/`toLocaleString` ad-hoc (gotcha: date-only corre un día atrás en UTC-3).
 - [ ] **Instancia Axios Centralizada:** `src/libs/axios.ts` es la única fuente de peticiones HTTP. Tiene interceptor JWT de Clerk.
 - [ ] **Notificaciones via Sonner:** Todos los errores de API se muestran con `toast.error()` via `handleApiError()`.
 - [ ] **Componentes con `export default`:** Todos los componentes y vistas usan default export.
 - [ ] **Tipado Explícito:** Cada `useQuery<T>` tiene tipo genérico explícito. Las props usan interface `Props` local.
+- [ ] **Refactoring-UI (Gates de Rechazo):** En tarjetas de KPI, la etiqueta es más pequeña/clara/liviana que el dato principal (no jerarquía invertida). Las cards del dashboard respetan padding mínimo `p-6`.
 
 ### Transversal
 
@@ -77,15 +83,33 @@
 - [ ] **Naming:** Archivos en PascalCase (`Client.ts`). Interfaces prefijadas con `I` (`IClient`).
 - [ ] **Timestamps:** Todos los esquemas usan `{ timestamps: true }`.
 - [ ] **Soft Delete:** Clientes, servicios y productos tienen `isActive: Boolean` con `default: true`.
-- [ ] **Índices:** Los campos de búsqueda frecuente tienen `index: true` o índices compuestos declarados.
+- [ ] **Índices:** Los campos de búsqueda frecuente tienen `index: true` o índices compuestos declarados. Los índices de consulta frecuente se anteponen con `tenantId`.
 - [ ] **Referencias:** Las relaciones entre colecciones usan `Schema.Types.ObjectId` con `ref`.
+- [ ] **Multi-tenancy en Modelos (Fase 2+):** Todo modelo de negocio (todos excepto `Tenant`) declara `tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true }`. Los índices únicos de negocio son compuestos con `tenantId` (excepción documentada: `admins.externalId`/`admins.email` son únicos globales). Ver `docs/governance-rules.md#gov-tenant`.
 
 ---
 
 ## C7 — Security Gate
 
-- [ ] **SEC-A (Auth):** Todo endpoint protegido tiene middleware `checkAdminAccess`.
-- [ ] **SEC-B (Clerk JWT):** El token JWT se extrae via `getAuth(req)` de `@clerk/express`.
-- [ ] **SEC-C (CORS):** Solo orígenes permitidos definidos en configuración.
-- [ ] **SEC-D (Validación):** `express-validator` usado en todos los endpoints POST/PUT.
-- [ ] **SEC-E (Sin `dangerouslySetInnerHTML`):** Prohibido en frontend.
+- [ ] **SEC-A (Auth):** Todo endpoint protegido tiene middleware `checkAdminAccess` (heredado a nivel de router o por ruta). Las rutas públicas (health check) están explícitamente exceptuadas.
+- [ ] **SEC-B (IDOR cross-tenant):** Ningún endpoint busca un recurso por `_id` sin filtrar también por `tenantId`. Un `_id` de otro tenant retorna **404 Not Found**, nunca 403 (no revelar existencia). Las referencias del body (client/service/product) se validan contra el tenant antes de usarse.
+- [ ] **SEC-C (Clerk JWT):** El token JWT se extrae via `getAuth(req)` de `@clerk/express`.
+- [ ] **SEC-D (CORS):** Solo orígenes permitidos definidos en configuración (`FRONTEND_URL` + `localhost:5173`). Prohibido `origin: '*'`.
+- [ ] **SEC-E (Validación):** `express-validator` usado en todos los endpoints POST/PUT con `validateRequest` como último elemento del array.
+- [ ] **SEC-F (Soft-delete + unicidad):** Al reactivar un recurso soft-deleted, se verifica ausencia de duplicados activos (mismo nombre+marca de producto, o externalId de admin) en el tenant antes de restaurar.
+- [ ] **SEC-G (Sin `dangerouslySetInnerHTML`):** Prohibido en frontend.
+- [ ] **SEC-H (Variables sensibles):** `CLERK_SECRET_KEY`, `MONGODB_URI`, `VITE_CLERK_PUBLISHABLE_KEY` nunca se hardcodean. El backend falla al arranque si falta una variable crítica (no degrada silenciosamente). Ver `docs/governance-rules.md` → GOV-ENV.
+
+---
+
+## C8 — Estabilidad de Contratos de API (API Stability)
+
+> **Quién lo verifica:** el `reviewer` en toda tarea que modifique estructuras de respuesta, renombre fields, remueva endpoints o cambie tipos. **Rationale:** sin política de deprecation, los cambios de API rompen clientes silenciosamente (web actual, móvil futuro, integraciones).
+
+- [ ] **Cambios documentados:** Si la feature modifica la estructura de respuesta (field renombrado, tipo cambiado, field removido), existe entrada en `CHANGELOG.md` bajo `## [Unreleased]` con descripción clara.
+- [ ] **Deprecation vs. Breaking:** Una *deprecation* mantiene el field viejo en paralelo con aviso `@deprecated` durante un período de gracia. Un *breaking* solo se permite si la feature está `"in_progress"` o es hotfix pre-producción.
+- [ ] **Migration Guide:** Todo breaking change va acompañado de un archivo en `docs/migration-guides/<descripción>.md` con before/after y pasos de actualización.
+
+---
+
+**Cómo usar este archivo:** cada vez que el `implementer` notifica la culminación de una tarea, el `reviewer` ejecuta los comandos de C4 y recorre los checkpoints C2–C8 en orden. Si algún checkbox se evalúa como `[ ]` (falso), la sesión se declara en estado `CHANGES_REQUESTED` y el arnés bloquea el avance hasta resolución explícita.

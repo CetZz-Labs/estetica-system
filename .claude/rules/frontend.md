@@ -10,9 +10,20 @@
 
 ## 2. ARQUITECTURA DE CAPAS Y FLUJO DE DATOS
 
+> **Catálogo de patrones:** antes de crear una función de API, consumir un listado paginado, armar una tabla o un modal, consultá [`docs/patterns-frontend.md`](../../docs/patterns-frontend.md) — templates copy-paste extraídos de código ya auditado.
+
 * **Capa de API (`src/api/`)**: Funciones async que llaman a la instancia centralizada de Axios. Cada recurso tiene su propio archivo (`clientApi.ts`, `serviceApi.ts`, etc.). Las interfaces de formulario se co-ubican aquí.
-* **Capa de Estado Asíncrono**: TanStack Query para fetching. Los hooks `useQuery`/`useMutation` se usan directamente en las vistas (no hay carpeta `hooks/` separada con wrappers).
+* **Capa de Estado Asíncrono**: TanStack Query para fetching. Los hooks `useQuery`/`useMutation` se usan directamente en las vistas (no hay carpeta `hooks/` separada con wrappers). **Esta es una convención deliberada de Maison — no introducir la estructura `hooks/<dominio>/` de otros proyectos.**
 * **Capa de Presentación**: Componentes en `src/views/` y `src/components/`. Consumen hooks de TanStack Query directamente.
+
+### Consumo de Listados Paginados (CRÍTICO — Escalabilidad)
+
+> **Gate de rechazo:** el `reviewer` rechaza cualquier tabla de negocio que descargue la colección completa y la filtre/busque/pagine en el navegador con `useMemo`. Patrón completo en [`patterns-frontend.md § P3`](../../docs/patterns-frontend.md#p3--consumo-de-listado-paginado).
+
+* **Delegado al servidor:** la paginación, el filtrado y la búsqueda de listados de negocio se delegan al backend (`{ data, meta }`). Page-size estándar: **7** (debe coincidir con el backend).
+* **`queryKey` completa:** incluye `page`, `limit` y **todos** los filtros activos (`search` debounced 300ms, etc.) para cachear/invalidar por combinación.
+* **Transiciones suaves:** `placeholderData: keepPreviousData` para que la tabla no parpadee al cambiar de página. Cambiar cualquier filtro **resetea `page` a 1**.
+* **Contador total:** se lee de `meta.total`, NUNCA de `data.length`.
 
 ### Patrón de Consumo de API
 
@@ -65,6 +76,10 @@ const { mutate, isPending } = useMutation({
 * Definir `footer` como variable JSX inline (no componente separado).
 * Usar el componente `<Modal>` compartido de `src/components/ui/Modal.tsx`.
 
+### HTML Semántico e Interacción (Gate de Rechazo)
+* **Prohibido** usar `<div>`/`<span>`/`<p>` con `onClick` o `role="button"` para simular controles. Usá el elemento nativo: acción → `<button type="button">`, navegación → `<Link>`/`<a>`, selección → `<input>`, submit → `<button type="submit">` dentro de `<form>`. Única excepción: un widget ARIA compuesto sin equivalente nativo (con manejo de teclado completo).
+* Todo `<button>` clickeable lleva la clase `cursor-pointer`. La excepción es `disabled`, donde `disabled:cursor-not-allowed` sobreescribe.
+
 ## 3.5. REGLAS DE GOBERNANZA TRANSVERSALES
 
 * **Fuente Canónica:** Todo subagente DEBE consultar `docs/governance-rules.md` como fuente única de verdad para reglas de accesibilidad (Trifecta GOV-ACCESS) y seguridad frontend (GOV-CLIENT). Este archivo solo referencia — nunca redefine — esas reglas.
@@ -80,11 +95,25 @@ const { mutate, isPending } = useMutation({
 * **Componentes:** Usar el componente compartido `<Modal>` de `src/components/ui/Modal.tsx`. Seguir patrones de botones, cards, inputs y tablas documentados en `docs/design.md` §4.
 * **Trifecta de Accesibilidad (C6):** Todo estado crítico DEBE incluir Color + Icono + Texto. Ver `docs/design.md` §6.
 
-## 5. ERROR HANDLING
+### Criterios Refactoring-UI (Gates de Rechazo automático)
 
-* Siempre usar `handleApiError(error, fallbackMessage)` de `src/api/errorHandler.ts`.
-* No mostrar `alert()` ni `console.error()` al usuario.
-* Los errores de formulario se manejan con `react-hook-form` + `errors` del formulario.
+* **Jerarquía de KPIs:** prohibido que la etiqueta de una tarjeta de métrica compita en peso/tamaño/color con el dato principal. La etiqueta es siempre más pequeña, clara y liviana (ej. label `text-xs uppercase tracking-widest text-maison-text/50` + valor `font-serif text-4xl`).
+* **Aire en cards:** padding interno mínimo `p-6` (rango `p-6`–`p-8` en alta densidad). Padding inferior a `p-4` queda prohibido — si falta espacio, se reduce el número de ítems, no el padding.
+
+### Formateo de Fechas: Helper Compartido Obligatorio
+
+> **Gate de rechazo:** cualquier `toLocaleDateString`/`toLocaleString` nuevo que no delegue en el helper compartido se rechaza, aunque compile.
+
+* **Regla:** toda fecha mostrada usa un helper compartido (`formatCalendarDate` para fechas date-only — vencimientos, retoques, fechas de visita capturadas con `<input type="date">` — que fuerza `timeZone: 'UTC'`; `formatDateTime` para timestamps reales `createdAt`/eventos de agenda).
+* **Gotcha:** un string date-only (`YYYY-MM-DD`) parseado con `new Date(string)` ancla a medianoche UTC; sin fijar `timeZone: 'UTC'` la fecha corre **un día hacia atrás** en Argentina (UTC-3). Prohibido reimplementar el formateo ad-hoc en cada componente.
+
+## 5. ERROR HANDLING Y NOTIFICACIONES (SONNER)
+
+* Siempre usar `handleApiError(error, fallbackMessage)` de `src/api/errorHandler.ts` para errores de API/red, canalizado a `toast.error()`.
+* `sonner` es la **única** librería de toasts. El `<Toaster position="top-right" />` se registra **una sola vez** en el root. Prohibido instanciar otro `<Toaster>`.
+* Confirmaciones de acción exitosa: `toast.success('...')` únicamente cuando el feedback en pantalla no alcance.
+* **Prohibido** duplicar el mismo error en un `<div>` de alerta inline Y en un toast. Elegí uno: errores de API → toast; errores de validación de formulario → mensajes inline por campo (react-hook-form + `errors`).
+* No mostrar `alert()`, `confirm()` ni `console.error()` al usuario.
 
 ## 6. ARNÉS DE VERIFICACIÓN
 
