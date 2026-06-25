@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createProfessional,
     getProfessionals,
@@ -17,10 +17,11 @@ const router: Router = Router();
 router.use(checkAdminAccess);
 router.use(checkTenantAccess);
 
-// 1. Create (POST /api/profesionales)
+// 1. Create (POST /api/profesionales) — solo ADMIN (SRS §6.2)
 router.post(
     '/',
     [
+        requireRole('ADMIN'),
         body('name').notEmpty().withMessage('El nombre (name) es obligatorio').isString().trim(),
         body('color')
             .notEmpty().withMessage('El color es obligatorio')
@@ -54,10 +55,11 @@ router.get(
     getProfessionalById
 );
 
-// 5. Update (PUT /api/profesionales/:id)
+// 5. Update (PUT /api/profesionales/:id) — solo ADMIN (SRS §6.2)
 router.put(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID proporcionado no es válido'),
         body('name').optional().notEmpty().withMessage('El nombre no puede estar vacío').isString().trim(),
         body('color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('El color debe tener formato hexadecimal #RRGGBB'),
@@ -68,10 +70,11 @@ router.put(
     updateProfessional
 );
 
-// 6. Delete (DELETE /api/profesionales/:id) - Soft Delete con guard de turnos futuros
+// 6. Delete (DELETE /api/profesionales/:id) - Soft Delete con guard de turnos futuros — solo ADMIN (SRS §6.2)
 router.delete(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID proporcionado no es válido'),
         body('confirm').optional().isBoolean().withMessage('confirm debe ser booleano'),
         validateRequest

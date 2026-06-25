@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createService,
     getServices,
@@ -16,10 +16,11 @@ const router: Router = Router();
 router.use(checkAdminAccess);
 router.use(checkTenantAccess);
 
-// 1. Create (POST /api/servicios)
+// 1. Create (POST /api/servicios) — solo ADMIN (SRS §6.2)
 router.post(
     '/',
     [
+        requireRole('ADMIN'),
         body('name').notEmpty().withMessage('El nombre (name) es obligatorio').isString().trim(),
         body('defaultTouchupDays')
             .optional()
@@ -47,10 +48,11 @@ router.get(
     getServiceById
 );
 
-// 4. Update (PUT /api/servicios/:id)
+// 4. Update (PUT /api/servicios/:id) — solo ADMIN (SRS §6.2)
 router.put(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID proporcionado no es válido'),
         body('name').optional().notEmpty().withMessage('El nombre no puede estar vacío').isString().trim(),
         body('defaultTouchupDays')
@@ -66,10 +68,11 @@ router.put(
     updateService
 );
 
-// 5. Delete (DELETE /api/servicios/:id) - Soft Delete
+// 5. Delete (DELETE /api/servicios/:id) - Soft Delete — solo ADMIN (SRS §6.2)
 router.delete(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID proporcionado no es válido'),
         validateRequest
     ],

@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).
+* **Objetivo:** Implementar sistema de roles ADMIN / PROFESSIONAL / RECEPTIONIST con middleware `requireRole`, protección granular de endpoints y sidebar dinámico en el frontend.
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/models/Admin.ts` — enum corregido de `['ADMIN','MANAGER','SUPERADMIN']` → `['ADMIN','PROFESSIONAL','RECEPTIONIST']` (SRS §6.2). Interfaz `IAdmin` actualizada.
+  - `apps/server/src/middlewares/authMiddleware.ts` — `checkAdminAccess` ahora filtra `isActive: true` (fix de seguridad: admins desactivados ya no pasan). Nuevo export `requireRole(...roles)` factory middleware + `AdminRole` type.
+  - `apps/server/src/routes/clientRoutes.ts` — `requireRole('ADMIN')` en DELETE.
+  - `apps/server/src/routes/serviceRoutes.ts` — `requireRole('ADMIN')` en POST/PUT/DELETE.
+  - `apps/server/src/routes/productRoutes.ts` — `requireRole('ADMIN','PROFESSIONAL')` en GET; `requireRole('ADMIN')` en POST/PUT/DELETE/stock/bulk.
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — `requireRole('ADMIN','PROFESSIONAL')` en POST.
+  - `apps/server/src/routes/professionalRoutes.ts` — `requireRole('ADMIN')` en POST/PUT/DELETE.
+  - `apps/server/src/server.ts` — `requireRole('ADMIN')` en `/api/negocio`; fix de double middleware en `/api/turnos` (se corrigió la duplicación de `checkAdminAccess + checkTenantAccess` que hacía 2 queries Mongo por request).
+
+  **Frontend:**
+  - `apps/client/src/types/index.ts` — `AdminRole` type + `AdminInfo` interface.
+  - `apps/client/src/api/adminApi.ts` (nuevo) — `getMe()` → `GET /api/admin`.
+  - `apps/client/src/layouts/AppLayout.tsx` — `useQuery<AdminInfo>(['admin-me'])` con `staleTime: 5min`; sidebar dinámico: Inventario oculto para RECEPTIONIST; Profesionales y Configuración solo para ADMIN.
+  - `apps/client/src/router.tsx` — `ProtectedRoute` con `useEffect` para toast (toast en `useEffect([isDenied])`, no en render directo — previene doble disparo en StrictMode); rutas `/profesionales`, `/inventario`, `/configuracion/negocio` protegidas por rol.
+
+  **Documentación:**
+  - `CHANGELOG.md` — entrada EP-12 documentando cambio de enum `Admin.role` y nuevos middlewares.
+  - `docs/patterns-backend.md` — P8: patrón `requireRole` con gotcha de double middleware.
+  - `docs/patterns-frontend.md` — P7: patrón `ProtectedRoute` + sidebar dinámico con gotcha del toast en render.
+
+* **ADRs:**
+  - Enum migration: `MANAGER`/`SUPERADMIN` nunca se usaron (onboarding EP-09 siempre asignó `'ADMIN'` por defecto). Riesgo: nulo. No se requirió script de migración.
+  - Rol obtenido de `GET /api/admin` (MongoDB), no de Clerk metadata — Clerk no tiene noción del rol del negocio.
+  - Cache `['admin-me']` compartida entre `AppLayout` y `ProtectedRoute` → TanStack Query deduplica la request; sin doble fetch.
+  - Fallback de rol a `'ADMIN'` durante carga inicial en `AppLayout` → previene flash de items ocultos del sidebar.
+
+* **Review:** 2 rondas. 1ª ronda: CHANGES_REQUESTED (3 defectos TypeScript + CHANGELOG faltante). Correcciones aplicadas. 2ª ronda: **APPROVED** → `progress/reviews/review_EP-12.md`. EP-12 → **done**.
+
+---
+
 ## 2026-06-16 — EP-14 Crear y gestionar turnos (Fase 4) + EP-13 Calendario visual
 
 * **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer

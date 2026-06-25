@@ -185,7 +185,7 @@
             "name": "Acceso diferenciado por rol",
             "module": "RBAC",
             "phase": "Fase 3",
-            "status": "pending",
+            "status": "done",
             "description": "Implementación de roles (Administrador, Profesional, Recepcionista) con permisos diferenciados por módulo. Middleware de autorización y UI adaptativa.",
             "acceptance_criteria": [
                 "El rol Administrador tiene acceso completo a todos los módulos",

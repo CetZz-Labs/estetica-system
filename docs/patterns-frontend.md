@@ -286,4 +286,84 @@ export default function Pagination({ page, total, pageSize, onChange }: Paginati
 
 ---
 
+## P7 — Control de acceso por rol (ProtectedRoute + sidebar dinámico)
+
+> **Regla canónica:** SRS §6.2 (tabla de permisos). Implementado en EP-12.
+
+**Mandato:** el rol del usuario autenticado se obtiene de `GET /api/admin` (cacheado con `queryKey: ['admin-me']`, `staleTime: 5min`). La misma query se usa en `AppLayout` (para el sidebar) y en `ProtectedRoute` (para los guards de ruta) — TanStack Query deduplica la request.
+
+```typescript
+// api/adminApi.ts
+import api from '../libs/axios';
+import type { AdminInfo } from '../types';
+
+export const getMe = async (): Promise<AdminInfo> => {
+    const { data } = await api.get('/admin');
+    return data;
+};
+
+// types/index.ts
+export type AdminRole = 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
+export interface AdminInfo {
+    _id: string;
+    email: string;
+    role: AdminRole;
+    tenantId: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// router.tsx — ProtectedRoute (toast en useEffect, no en render)
+import { useEffect, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Navigate } from 'react-router';
+import { toast } from 'sonner';
+import { getMe } from './api/adminApi';
+import type { AdminInfo, AdminRole } from './types';
+
+interface Props {
+    roles: AdminRole[];
+    children: ReactNode;
+}
+
+function ProtectedRoute({ roles, children }: Props) {
+    const { data: adminInfo, isLoading } = useQuery<AdminInfo>({
+        queryKey: ['admin-me'],
+        queryFn: getMe,
+    });
+
+    const isDenied = !isLoading && (!adminInfo || !roles.includes(adminInfo.role));
+
+    useEffect(() => {
+        if (isDenied) {
+            toast.error('No tienes permisos para acceder a esta sección.');
+        }
+    }, [isDenied]);
+
+    if (isLoading) return null;
+    if (isDenied) return <Navigate to="/dashboard" replace />;
+
+    return <>{children}</>;
+}
+
+// layouts/AppLayout.tsx — sidebar condicional (fallback 'ADMIN' para evitar flash)
+const { data: adminInfo } = useQuery<AdminInfo>({
+    queryKey: ['admin-me'],
+    queryFn: getMe,
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+});
+const role: AdminRole = adminInfo?.role ?? 'ADMIN';
+
+// En JSX del sidebar:
+{role !== 'RECEPTIONIST' && <NavLink to="/inventario">Inventario</NavLink>}
+{role === 'ADMIN' && <NavLink to="/profesionales">Profesionales</NavLink>}
+{role === 'ADMIN' && <NavLink to="/configuracion/negocio">Configuración</NavLink>}
+```
+
+**Gotcha — toast en render:** nunca llamar `toast.error()` directamente en el cuerpo del componente (side effect en render, doble disparo en StrictMode). Delegarlo a `useEffect([isDenied])` como en el patrón de arriba.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

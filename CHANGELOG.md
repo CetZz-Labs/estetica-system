@@ -10,6 +10,10 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 
 ### Changed
 
+- EP-12: `Admin.role` enum cambiado de `ADMIN | MANAGER | SUPERADMIN` → `ADMIN | PROFESSIONAL | RECEPTIONIST` (SRS §6.2). El campo `role` de `GET /api/admin` devuelve ahora únicamente uno de los tres nuevos valores. Los valores `MANAGER` y `SUPERADMIN` nunca se usaron en producción (default siempre fue `ADMIN`).
+- EP-12: `checkAdminAccess` ahora filtra `isActive: true`. Admins desactivados reciben 403 en todas las rutas protegidas.
+- EP-12: Nuevo middleware `requireRole(...roles)` aplicado a endpoints específicos según SRS §6.2 (ver tabla de permisos por rol).
+
 - `[BREAKING]` (permitido — feature `in_progress`) **`POST /api/turnos`**: `professional` (MongoId de `Professional`) pasa a ser **requerido**. Antes el backend lo derivaba de `req.adminInfo._id`; los clientes ahora DEBEN enviarlo. Ver `docs/migration-guides/professional-from-admin-to-ep11.md`.
 - `[BREAKING]` (permitido — feature `in_progress`) **`POST /api/registros`**: `professional` (MongoId de `Professional`) pasa a ser **requerido**. Se persiste en el `ServiceRecord` y se propaga al turno de retoque auto-creado.
 - `[BREAKING]` (permitido — feature `in_progress`) **Forma de respuesta de `professional`**: el populate cambió de `{ _id, email }` a `{ _id, name, color }` en `GET /api/turnos`, `GET /api/turnos/:id`, `GET /api/turnos/client/:clientId`. Además `GET /api/registros/cliente/:clientId` ahora incluye `professional { _id, name, color }` (poblado; ausente en registros legacy).

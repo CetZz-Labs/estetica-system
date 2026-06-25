@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { useAuth, UserButton } from "@clerk/react";
 import { Navigate, NavLink, Outlet } from "react-router";
-import { FiMenu, FiX, FiUsers } from "react-icons/fi"; // Asegurate de tener react-icons instalado
+import { FiMenu, FiX, FiUsers } from "react-icons/fi";
+import { useQuery } from '@tanstack/react-query';
+import { getMe } from '../api/adminApi';
+import type { AdminInfo, AdminRole } from '../types';
 
 export default function AppLayout() {
     const { isLoaded, userId } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const { data: adminInfo } = useQuery<AdminInfo>({
+        queryKey: ['admin-me'],
+        queryFn: getMe,
+        enabled: !!userId,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const role: AdminRole = adminInfo?.role ?? 'ADMIN';
 
     if (!isLoaded) {
         return (
@@ -21,6 +33,12 @@ export default function AppLayout() {
 
     // Función auxiliar para cerrar el menú al hacer clic en un enlace (solo en móvil)
     const closeMenu = () => setIsMobileMenuOpen(false);
+
+    const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+        `block p-3 rounded-lg font-medium transition-colors ${isActive
+            ? 'bg-maison-bg text-maison-text border border-maison-border'
+            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
+        }`;
 
     return (
         <div className="flex flex-col md:flex-row min-h-screen bg-maison-bg text-maison-text font-sans">
@@ -60,85 +78,49 @@ export default function AppLayout() {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
-                    <NavLink
-                        to="/dashboard"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
+                    <NavLink to="/dashboard" onClick={closeMenu} className={navLinkClass}>
                         Inicio
                     </NavLink>
 
-                    <NavLink
-                        to="/clientes"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
+                    <NavLink to="/clientes" onClick={closeMenu} className={navLinkClass}>
                         Clientes
                     </NavLink>
-                    
-                    <NavLink
-                        to="/servicios"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
+
+                    <NavLink to="/servicios" onClick={closeMenu} className={navLinkClass}>
                         Servicios
                     </NavLink>
-                    
-                    <NavLink
-                        to="/inventario"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
-                        Inventario
-                    </NavLink>
 
-                    <NavLink
-                        to="/turnos"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
+                    {role !== 'RECEPTIONIST' && (
+                        <NavLink to="/inventario" onClick={closeMenu} className={navLinkClass}>
+                            Inventario
+                        </NavLink>
+                    )}
+
+                    <NavLink to="/turnos" onClick={closeMenu} className={navLinkClass}>
                         Turnos
                     </NavLink>
 
-                    <div className="pt-4 mt-2 border-t border-maison-border">
-                        <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>
-                        <NavLink
-                            to="/profesionales"
-                            onClick={closeMenu}
-                            className={({ isActive }) => `flex items-center gap-3 p-3 rounded-lg font-medium transition-colors ${isActive
-                                ? 'bg-maison-bg text-maison-text border border-maison-border'
-                                : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                                }`}
-                        >
-                            <FiUsers className="shrink-0" /> Profesionales
-                        </NavLink>
-                    </div>
+                    {role === 'ADMIN' && (
+                        <div className="pt-4 mt-2 border-t border-maison-border">
+                            <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>
+                            <NavLink
+                                to="/profesionales"
+                                onClick={closeMenu}
+                                className={({ isActive }) => `flex items-center gap-3 p-3 rounded-lg font-medium transition-colors ${isActive
+                                    ? 'bg-maison-bg text-maison-text border border-maison-border'
+                                    : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
+                                    }`}
+                            >
+                                <FiUsers className="shrink-0" /> Profesionales
+                            </NavLink>
+                        </div>
+                    )}
 
-                    <NavLink
-                        to="/configuracion/negocio"
-                        onClick={closeMenu}
-                        className={({ isActive }) => `block p-3 rounded-lg font-medium transition-colors ${isActive
-                            ? 'bg-maison-bg text-maison-text border border-maison-border'
-                            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                            }`}
-                    >
-                        Configuración
-                    </NavLink>
+                    {role === 'ADMIN' && (
+                        <NavLink to="/configuracion/negocio" onClick={closeMenu} className={navLinkClass}>
+                            Configuración
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className="p-4 border-t border-maison-border flex items-center gap-3">

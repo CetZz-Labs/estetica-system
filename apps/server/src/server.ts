@@ -3,7 +3,7 @@ import cors from 'cors'
 import { connectDB } from './config/db'
 import { clerkMiddleware } from '@clerk/express'
 import adminRouter from './routes/adminRouter'
-import { checkAdminAccess, checkTenantAccess } from './middlewares/authMiddleware'
+import { checkAdminAccess, checkTenantAccess, requireRole } from './middlewares/authMiddleware'
 import clientRoutes from './routes/clientRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import productRoutes from './routes/productRoutes';
@@ -52,7 +52,9 @@ app.use('/api/dashboard', dashboardRoutes);
 // Onboarding (EP-09): sin checkAdminAccess/checkTenantAccess — el admin aún no existe (excepción documentada)
 app.use('/api/onboarding', onboardingRoutes);
 
-app.use('/api/negocio', checkAdminAccess, checkTenantAccess, tenantRoutes);
-app.use('/api/turnos', checkAdminAccess, checkTenantAccess, appointmentRoutes);
+// EP-12: /api/negocio restringido solo a rol ADMIN (SRS §6.2)
+app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), tenantRoutes);
+// EP-12 fix: appointmentRoutes aplica checkAdminAccess+checkTenantAccess internamente — sin doble middleware
+app.use('/api/turnos', appointmentRoutes);
 
 export default app

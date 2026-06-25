@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createClient,
     getClients,
@@ -56,10 +56,11 @@ router.put(
     updateClient
 );
 
-// 5. Delete (DELETE /api/clientes/:id) - Soft Delete
+// 5. Delete (DELETE /api/clientes/:id) - Soft Delete — solo ADMIN (SRS §6.2)
 router.delete(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID proporcionado no es válido'),
         validateRequest
     ],

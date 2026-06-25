@@ -1,3 +1,15 @@
+export type AdminRole = 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
+
+export interface AdminInfo {
+    _id: string;
+    email: string;
+    role: AdminRole;
+    tenantId: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Product {
     _id: string;
     name: string;

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { checkAdminAccess, checkTenantAccess } from '../middlewares/authMiddleware';
+import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createServiceRecord,
     getClientRecords,
@@ -39,10 +39,11 @@ router.get(
 // Rutas Base (CRUD Estándar)
 // ==========================================
 
-// 1. Create (POST /api/registros)
+// 1. Create (POST /api/registros) — ADMIN y PROFESSIONAL (SRS §6.2)
 router.post(
     '/',
     [
+        requireRole('ADMIN', 'PROFESSIONAL'),
         body('client').isMongoId().withMessage('El ID del cliente (client) es obligatorio y debe ser válido'),
         body('service').isMongoId().withMessage('El ID del servicio (service) es obligatorio y debe ser válido'),
         body('professional').isMongoId().withMessage('El ID de la profesional (professional) es obligatorio y debe ser válido'),

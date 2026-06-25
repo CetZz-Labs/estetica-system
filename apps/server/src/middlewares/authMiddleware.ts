@@ -23,7 +23,7 @@ export const checkAdminAccess = async (req: Request, res: Response, next: NextFu
         }
 
         // Buscamos al admin en Mongoose usando el ID de Clerk
-        const admin = await Admin.findOne({ externalId: userId });
+        const admin = await Admin.findOne({ externalId: userId, isActive: true });
 
         if (!admin) {
             return res.status(403).json({
@@ -39,6 +39,20 @@ export const checkAdminAccess = async (req: Request, res: Response, next: NextFu
         console.error('Error verificando admin en BD:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
+};
+
+// EP-12: Middleware factory de autorización por rol.
+// Siempre corre DESPUÉS de checkAdminAccess (que inyecta req.adminInfo).
+export type AdminRole = 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
+
+export const requireRole = (...roles: AdminRole[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const role = req.adminInfo?.role as AdminRole | undefined;
+        if (!role || !roles.includes(role)) {
+            return res.status(403).json({ error: 'No tienes permisos para realizar esta acción.' });
+        }
+        next();
+    };
 };
 
 // 3. Capa Multi-Tenant: corre DESPUÉS de checkAdminAccess.

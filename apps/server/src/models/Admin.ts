@@ -4,7 +4,7 @@ export interface IAdmin extends Document {
     externalId: string; // El ID que te entrega Clerk (ej. user_2Nf...)
     tenantId: Types.ObjectId; // Tenant (centro de estética) al que pertenece el admin
     email: string;
-    role: 'ADMIN' | 'MANAGER' | 'SUPERADMIN'; // Puedes expandir esto a futuro
+    role: 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -34,7 +34,9 @@ const AdminSchema: Schema = new Schema({
     },
     role: {
         type: String,
-        enum: ['ADMIN', 'MANAGER', 'SUPERADMIN'],
+        // EP-08 ADR: externalId y email únicos globales (un usuario Clerk = un solo tenant)
+        // EP-12: enum corregido a SRS §6.2 (MANAGER/SUPERADMIN nunca se usaron — ver explore_EP-12.md)
+        enum: ['ADMIN', 'PROFESSIONAL', 'RECEPTIONIST'],
         default: 'ADMIN'
     },
     isActive: {

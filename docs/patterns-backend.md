@@ -360,4 +360,43 @@ export const someController = async (req: Request, res: Response) => {
 
 ---
 
+## P8 — Middleware de autorización por rol (RBAC)
+
+> **Regla canónica:** [`governance-rules.md#gov-auth`](governance-rules.md#gov-auth--autenticación-y-control-de-acceso). Implementado en EP-12.
+
+**Mandato:** `requireRole` es un middleware factory que corre **siempre después de `checkAdminAccess`** (que inyecta `req.adminInfo`). Devuelve 403 si el rol no está en la lista permitida. Se aplica a handlers individuales dentro del route file (no al router completo) para permitir granularidad por verbo HTTP.
+
+```typescript
+// middlewares/authMiddleware.ts
+export type AdminRole = 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
+
+export const requireRole = (...roles: AdminRole[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const role = req.adminInfo?.role as AdminRole | undefined;
+        if (!role || !roles.includes(role)) {
+            return res.status(403).json({ error: 'No tienes permisos para realizar esta acción.' });
+        }
+        next();
+    };
+};
+
+// routes/clientRoutes.ts — ejemplo de uso por verbo
+router.delete(
+    '/:id',
+    [
+        requireRole('ADMIN'),          // ← primero, antes de validators
+        param('id').isMongoId()...,
+        validateRequest
+    ],
+    deleteClient
+);
+
+// server.ts — uso en mount global de ruta completa
+app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), tenantRoutes);
+```
+
+**Gotcha — double middleware:** si una ruta aplica `checkAdminAccess + checkTenantAccess` en `server.ts` Y el route file también los aplica con `router.use(...)`, cada request corre dos queries Mongo. Patrón canónico: el middleware de auth va **solo en el route file** (`router.use(checkAdminAccess)`); `server.ts` monta la ruta sin middleware (`app.use('/api/ruta', routes)`). La excepción es cuando se necesita `requireRole` a nivel de ruta entera — ahí sí va en `server.ts` en la cadena de montaje.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón, gotcha o workaround genuinamente nuevo y reutilizable (no cubierto aquí ni en `architecture.md`/`conventions.md`), el `leader` lo promueve a este archivo durante el cierre de sesión. No duplicar patrones que solo reafirman una convención ya documentada.
