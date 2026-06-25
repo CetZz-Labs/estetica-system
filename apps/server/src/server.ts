@@ -12,6 +12,7 @@ import dashboardRoutes from './routes/dashboardRoutes';
 import onboardingRoutes from './routes/onboardingRoutes';
 import tenantRoutes from './routes/tenantRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
+import professionalRoutes from './routes/professionalRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -44,6 +45,7 @@ app.get('/api', (req, res) => {
 app.use('/api/admin', checkAdminAccess, checkTenantAccess, adminRouter)
 app.use('/api/clientes', clientRoutes);
 app.use('/api/servicios', serviceRoutes);
+app.use('/api/profesionales', professionalRoutes);
 app.use('/api/productos', productRoutes);
 app.use('/api/registros', serviceRecordRoutes);
 app.use('/api/dashboard', dashboardRoutes);

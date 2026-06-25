@@ -39,6 +39,7 @@ export interface ServiceRecord {
     nextTouchupDate?: string; // ISO string
     touchupStatus: 'pending' | 'completed' | 'cancelled';
     appointment?: string;
+    professional?: { _id: string; name: string; color: string };
     createdAt: string; // ISO string
     updatedAt: string; // ISO string
     __v?: number;
@@ -64,11 +65,21 @@ export interface Service {
     updatedAt: string;
 }
 
+export interface Professional {
+    _id: string;
+    name: string;
+    color: string;
+    isActive: boolean;
+    linkedAdmin?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Appointment {
     _id: string;
     client: { _id: string; firstName: string; lastName: string; phone?: string };
     service: { _id: string; name: string; duration: number };
-    professional: { _id: string; email?: string };
+    professional: { _id: string; name: string; color: string };
     startTime: string;
     endTime: string;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';

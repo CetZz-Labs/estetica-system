@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2, FiUser } from 'react-icons/fi';
 
 import { getClientById, deleteClient as deleteClientApi } from '../api/clientApi';
 import { getClientRecords } from '../api/serviceRecordApi';
@@ -138,6 +138,17 @@ export default function PerfilCliente() {
                                             <div>
                                                 <h4 className="text-base sm:text-lg font-medium text-maison-text">{registro.service.name}</h4>
                                                 <p className="text-sm font-semibold tracking-widest text-gray-400 uppercase mt-1 flex items-center gap-1.5"><FiCalendar /> {formatDate(registro.serviceDate)}</p>
+                                                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1.5">
+                                                    <FiUser className="text-gray-400 shrink-0" />
+                                                    {registro.professional ? (
+                                                        <span className="flex items-center gap-1.5">
+                                                            <span className="h-2.5 w-2.5 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: registro.professional.color }} aria-hidden />
+                                                            {registro.professional.name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">Sin asignar</span>
+                                                    )}
+                                                </p>
                                             </div>
                                             {registro.touchupStatus === 'completed' && (
                                                 <span className="bg-green-50 text-maison-green border border-green-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Listo</span>

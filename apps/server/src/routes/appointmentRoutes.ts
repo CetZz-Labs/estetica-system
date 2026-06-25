@@ -23,6 +23,7 @@ router.post(
     [
         body('client').isMongoId().withMessage('El ID del cliente no es válido'),
         body('service').isMongoId().withMessage('El ID del servicio no es válido'),
+        body('professional').isMongoId().withMessage('El ID del profesional no es válido'),
         body('startTime').isISO8601().withMessage('La fecha de inicio debe ser una fecha ISO válida'),
         body('notes').optional().isString().trim(),
         validateRequest

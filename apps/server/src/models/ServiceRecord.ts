@@ -9,6 +9,7 @@ export interface IServiceRecord extends Document {
     tenantId: Types.ObjectId;
     client: Types.ObjectId;
     service: Types.ObjectId;
+    professional?: Types.ObjectId;
     serviceDate: Date;
     notes?: string;
     productsUsed: IUsedProduct[];
@@ -23,6 +24,9 @@ const ServiceRecordSchema: Schema = new Schema({
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     client: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
     service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
+    // Profesional que realizó la visita. Sin 'required' en schema: requerido en nuevos
+    // registros vía controller, pero opcional para datos legacy (anteriores a EP-11).
+    professional: { type: Schema.Types.ObjectId, ref: 'Professional', index: true },
     serviceDate: { type: Date, required: true, index: true },
 
     notes: { type: String, trim: true }, // Ej: "Balayage rubio miel, corte en capas"

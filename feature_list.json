@@ -165,18 +165,19 @@
         },
         {
             "id": "EP-11",
-            "name": "Gestión de usuarios del negocio",
-            "module": "Users",
+            "name": "Gestión de Profesionales agendables",
+            "module": "Professionals",
             "phase": "Fase 3",
-            "status": "pending",
-            "description": "Invitación de usuarios al equipo con asignación de roles. Gestión de usuarios activos/inactivos con protección del último administrador.",
+            "status": "done",
+            "description": "Profesionales como perfiles agendables (nombre, color, estado) desacoplados del login, con vínculo opcional a un usuario. Toda visita, turno y retoque queda asociado a una profesional (professional_id). Baja con preservación de historial y aviso de turnos futuros a reasignar. El flujo de invitación de usuarios por Clerk y los roles quedan para EP-12.",
             "post_ep14_hook": "Al implementar, corregir appointmentController.ts para que professional se seleccione del body en vez de usar req.adminInfo._id. Ver docs/migration-guides/professional-from-admin-to-ep11.md",
             "acceptance_criteria": [
-                "El administrador PUEDE invitar usuarios ingresando email y asignando rol",
-                "El usuario invitado recibe mail con link para crear contraseña",
-                "El link de invitación DEBE tener validez de 48 horas",
-                "El administrador PUEDE cambiar rol y desactivar usuarios",
-                "El sistema DEBE impedir que el último admin sea degradado o desactivado"
+                "Existe una sección 'Profesionales' (separada de Usuarios) para dar de alta con nombre, color identificador y estado activa/inactiva, sin requerir mail ni contraseña",
+                "Al crear un turno o registrar una visita, el campo 'Profesional' lista únicamente profesionales activas (con o sin usuario vinculado)",
+                "Toda visita, turno y retoque queda asociado a una profesional (professional_id), permitiendo filtrar historial/stock/reportes por profesional",
+                "El administrador puede desactivar una profesional sin eliminarla; sus turnos y visitas históricas se conservan intactas y deja de aparecer como opción para nuevos turnos",
+                "Si una profesional desactivada tenía turnos futuros, el sistema alerta para reasignarlos antes de confirmar la desactivación",
+                "Migración idempotente: por cada Admin referenciado en appointments existentes se crea una Professional equivalente (vinculada) y se remapean los turnos"
             ]
         },
         {

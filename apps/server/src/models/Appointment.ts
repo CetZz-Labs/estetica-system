@@ -22,7 +22,7 @@ const AppointmentSchema: Schema = new Schema({
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-    professional: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+    professional: { type: Schema.Types.ObjectId, ref: 'Professional', required: true },
     startTime: { type: Date, required: true },
     endTime: { type: Date, required: true },
     status: {

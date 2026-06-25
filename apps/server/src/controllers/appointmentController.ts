@@ -3,20 +3,23 @@ import { Appointment } from '../models/Appointment';
 import { Service } from '../models/Service';
 import { ServiceRecord } from '../models/ServiceRecord';
 import { Product } from '../models/Product';
+import { Professional } from '../models/Professional';
 
 export const createAppointment = async (req: Request, res: Response) => {
     try {
-        const { client, service, startTime, notes } = req.body;
+        const { client, service, professional, startTime, notes } = req.body;
 
-        if (!client || !service || !startTime) {
-            return res.status(400).json({ error: 'Faltan campos obligatorios: client, service, startTime' });
+        if (!client || !service || !professional || !startTime) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios: client, service, professional, startTime' });
         }
 
-        // TEMPORAL (EP-14): se asigna el admin autenticado como profesional.
-        // Cuando se implemente EP-11/12 (gestión de usuarios), esto debe cambiarse
-        // para leer `professional` del body y validar que pertenece al tenant.
-        // Ver docs/migration-guides/professional-from-admin-to-ep11.md
-        const professionalId = req.adminInfo!._id;
+        // EP-11: la profesional agendable se lee del body y se valida que pertenezca
+        // al tenant y esté activa (anti-IDOR cruzado).
+        const professionalDoc = await Professional.findOne({ _id: professional, tenantId: req.tenantId, isActive: true });
+        if (!professionalDoc) {
+            return res.status(400).json({ error: 'Profesional no válida para este negocio' });
+        }
+        const professionalId = professionalDoc._id;
 
         const serviceDoc = await Service.findOne({ _id: service, tenantId: req.tenantId, isActive: true });
         if (!serviceDoc) {
@@ -87,7 +90,7 @@ export const getAppointments = async (req: Request, res: Response) => {
         const appointments = await Appointment.find(filter)
             .populate('client', 'firstName lastName')
             .populate('service', 'name duration')
-            .populate('professional', 'email')
+            .populate('professional', 'name color')
             .sort({ startTime: 1 });
 
         return res.status(200).json(appointments);
@@ -104,7 +107,7 @@ export const getAppointmentById = async (req: Request, res: Response) => {
         const appointment = await Appointment.findOne({ _id: id, tenantId: req.tenantId })
             .populate('client', 'firstName lastName')
             .populate('service', 'name duration')
-            .populate('professional', 'email');
+            .populate('professional', 'name color');
 
         if (!appointment || !appointment.isActive) {
             return res.status(404).json({ error: 'Turno no encontrado' });
@@ -125,6 +128,14 @@ export const updateAppointment = async (req: Request, res: Response) => {
         const existing = await Appointment.findOne({ _id: id, tenantId: req.tenantId, isActive: true });
         if (!existing) {
             return res.status(404).json({ error: 'Turno no encontrado' });
+        }
+
+        // EP-11: si se reasigna la profesional, validar pertenencia al tenant + activa
+        if (professional) {
+            const professionalDoc = await Professional.findOne({ _id: professional, tenantId: req.tenantId, isActive: true });
+            if (!professionalDoc) {
+                return res.status(400).json({ error: 'Profesional no válida para este negocio' });
+            }
         }
 
         let newEndTime: Date | undefined;
@@ -363,7 +374,7 @@ export const getClientAppointments = async (req: Request, res: Response) => {
 
         const appointments = await Appointment.find(filter)
             .populate('service', 'name')
-            .populate('professional', 'email')
+            .populate('professional', 'name color')
             .sort({ startTime: -1 });
 
         return res.status(200).json(appointments);

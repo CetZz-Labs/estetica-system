@@ -45,6 +45,7 @@ router.post(
     [
         body('client').isMongoId().withMessage('El ID del cliente (client) es obligatorio y debe ser válido'),
         body('service').isMongoId().withMessage('El ID del servicio (service) es obligatorio y debe ser válido'),
+        body('professional').isMongoId().withMessage('El ID de la profesional (professional) es obligatorio y debe ser válido'),
         body('serviceDate').isISO8601().withMessage('La fecha del servicio (serviceDate) es obligatoria y debe tener formato ISO 8601').toDate(),
         body('notes').optional().isString().trim(),
 

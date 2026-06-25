@@ -8,10 +8,11 @@ import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos r
 import { getProducts } from "../api/productApi";
 import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
+import { getProfessionals } from "../api/professionalApi";
 import { createServiceRecord, type ServiceRecordPayload } from "../api/serviceRecordApi";
 import { completeAppointment } from "../api/appointmentApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Product, Client, Service } from "../types";
+import type { Product, Client, Service, Professional } from "../types";
 import Modal from "./ui/Modal";
 
 interface SelectOption {
@@ -25,6 +26,7 @@ interface Props {
     onClose: () => void;
     preselectedClientId?: string;
     preselectedServiceId?: string;
+    preselectedProfessionalId?: string;
     appointmentId?: string;
     preselectedServiceDate?: string;
 }
@@ -50,7 +52,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     })
 };
 
-export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, appointmentId, preselectedServiceDate }: Props) {
+export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate }: Props) {
     const queryClient = useQueryClient();
 
     const { data: inventoryProducts } = useQuery<Product[]>({
@@ -71,9 +73,16 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         enabled: isOpen
     });
 
+    const { data: professionals } = useQuery<Professional[]>({
+        queryKey: ['professionals', 'active'],
+        queryFn: () => getProfessionals(),
+        enabled: isOpen
+    });
+
     // ⭐️ Formateamos los datos para que react-select los entienda ({ label, value })
     const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
+    const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
     const productOptions = inventoryProducts?.map(p => ({
         value: p._id,
         label: `${p.name} (${p.brand}) - Stock: ${p.stock}`,
@@ -88,6 +97,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         defaultValues: {
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
+            professional: preselectedProfessionalId || '',
             serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
             notes: '',
             nextTouchupDate: '',
@@ -108,13 +118,14 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             reset({
                 client: preselectedClientId || '',
                 service: preselectedServiceId || '',
+                professional: preselectedProfessionalId || '',
                 serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
                 notes: '',
                 nextTouchupDate: '',
                 productsUsed: []
             });
         }
-    }, [isOpen, preselectedClientId, preselectedServiceId, preselectedServiceDate, reset]);
+    }, [isOpen, preselectedClientId, preselectedServiceId, preselectedProfessionalId, preselectedServiceDate, reset]);
 
     const { mutate, isPending } = useMutation({
         mutationFn: async (data: ServiceRecordPayload) => {
@@ -213,6 +224,27 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         />
                         {errors.service && <span className="text-[10px] text-maison-red">{errors.service.message}</span>}
                     </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional *</label>
+                    <Controller
+                        name="professional"
+                        control={control}
+                        rules={{ required: 'Seleccionar una profesional es obligatorio' }}
+                        render={({ field }) => (
+                            <Select
+                                {...field}
+                                options={professionalOptions}
+                                placeholder="Buscar profesional..."
+                                styles={selectStyles}
+                                noOptionsMessage={() => "No hay profesionales activas"}
+                                value={professionalOptions.find(p => p.value === field.value) || null}
+                                onChange={(val) => field.onChange(val?.value)}
+                            />
+                        )}
+                    />
+                    {errors.professional && <span className="text-[10px] text-maison-red">{errors.professional.message}</span>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

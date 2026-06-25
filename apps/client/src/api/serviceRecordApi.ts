@@ -4,6 +4,7 @@ import type { ServiceRecord } from '../types';
 export interface ServiceRecordPayload {
     client: string;
     service: string;
+    professional: string;
     serviceDate: string;
     notes?: string;
     nextTouchupDate?: string;

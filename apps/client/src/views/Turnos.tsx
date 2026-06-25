@@ -15,10 +15,11 @@ import esLocale from '@fullcalendar/core/locales/es';
 import { getAppointments, createAppointment, updateAppointment, cancelAppointment } from '../api/appointmentApi';
 import { getClients } from '../api/clientApi';
 import { getServices } from '../api/serviceApi';
+import { getProfessionals } from '../api/professionalApi';
 
 import { handleApiError } from '../api/errorHandler';
 import type { AxiosError } from 'axios';
-import type { Appointment, Client, Service } from '../types';
+import type { Appointment, Client, Service, Professional } from '../types';
 import Modal from '../components/ui/Modal';
 import RegistroModal from '../components/RegistroModal';
 
@@ -84,6 +85,7 @@ function getRenderStatus(appointment: Appointment): string {
 interface AppointmentFormData {
     client: string;
     service: string;
+    professional: string;
     startTime: string;
     notes?: string;
 }
@@ -103,6 +105,7 @@ export default function Turnos() {
     const [completedAppointmentId, setCompletedAppointmentId] = useState<string | undefined>(undefined);
     const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
     const [prefillService, setPrefillService] = useState<string | undefined>(undefined);
+    const [prefillProfessional, setPrefillProfessional] = useState<string | undefined>(undefined);
     const [prefillServiceDate, setPrefillServiceDate] = useState<string | undefined>(undefined);
 
     const { data: appointments, isLoading, isError, isFetching } = useQuery<Appointment[]>({
@@ -124,6 +127,11 @@ export default function Turnos() {
     const { data: servicesData } = useQuery<Service[]>({
         queryKey: ['services'],
         queryFn: getServices,
+    });
+
+    const { data: professionalsData } = useQuery<Professional[]>({
+        queryKey: ['professionals', 'active'],
+        queryFn: () => getProfessionals(),
     });
 
     const { mutate: createMutate, isPending: isCreating } = useMutation({
@@ -178,14 +186,15 @@ export default function Turnos() {
     const events = useMemo(() => {
         return (appointments || []).map(a => {
             const palette = getStatusPalette(getRenderStatus(a));
+            const professionalColor = a.professional && typeof a.professional === 'object' ? a.professional.color : undefined;
             return {
                 id: `appt-${a._id}`,
                 title: `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`,
                 start: a.startTime,
                 end: a.endTime,
-                extendedProps: { appointment: a, type: 'appointment' as const },
+                extendedProps: { appointment: a, type: 'appointment' as const, professionalColor },
                 backgroundColor: palette.bg,
-                borderColor: palette.border,
+                borderColor: professionalColor || palette.border,
                 textColor: palette.text,
                 classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : ''].filter(Boolean),
             };
@@ -194,21 +203,9 @@ export default function Turnos() {
 
     const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })), [clientsData]);
     const serviceOptions = useMemo(() => (servicesData || []).map(s => ({ value: s._id, label: `${s.name} (${s.duration} min)` })), [servicesData]);
+    const professionalOptions = useMemo(() => (professionalsData || []).map(p => ({ value: p._id, label: p.name })), [professionalsData]);
 
-    const professionals = useMemo(() => {
-        const map = new Map<string, { _id: string; email: string }>();
-        (appointments || []).forEach(a => {
-            const p = a.professional;
-            const id = typeof p === 'string' ? p : p._id;
-            if (!map.has(id)) {
-                map.set(id, {
-                    _id: id,
-                    email: typeof p === 'string' ? '' : (p.email || '')
-                });
-            }
-        });
-        return Array.from(map.values());
-    }, [appointments]);
+    const professionals = professionalsData || [];
 
     const { register, handleSubmit, control, formState: { errors }, reset, watch } = useForm<AppointmentFormData>();
 
@@ -222,6 +219,7 @@ export default function Turnos() {
         reset({
             client: '',
             service: '',
+            professional: '',
             startTime: selectInfo.startStr.slice(0, 16),
             notes: ''
         });
@@ -266,6 +264,7 @@ export default function Turnos() {
         reset({
             client: appointment.client._id,
             service: appointment.service._id,
+            professional: appointment.professional?._id || '',
             startTime: new Date(appointment.startTime).toISOString().slice(0, 16),
             notes: appointment.notes || ''
         });
@@ -284,6 +283,7 @@ export default function Turnos() {
         setCompletedAppointmentId(appointment._id);
         setPrefillClient(appointment.client._id);
         setPrefillService(appointment.service._id);
+        setPrefillProfessional(appointment.professional?._id);
         setPrefillServiceDate(new Date(appointment.startTime).toISOString().split('T')[0]);
         setIsDetailModalOpen(false);
         setIsRegistroModalOpen(true);
@@ -294,6 +294,7 @@ export default function Turnos() {
         setCompletedAppointmentId(undefined);
         setPrefillClient(undefined);
         setPrefillService(undefined);
+        setPrefillProfessional(undefined);
         setPrefillServiceDate(undefined);
     };
 
@@ -372,6 +373,7 @@ export default function Turnos() {
                     reset({
                         client: '',
                         service: '',
+                        professional: '',
                         startTime: new Date().toISOString().slice(0, 16),
                         notes: ''
                     });
@@ -386,10 +388,10 @@ export default function Turnos() {
                 <div className="mb-4 flex items-center gap-3">
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
                     <select value={professionalFilter} onChange={e => setProfessionalFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all">
-                        <option value="">Todos</option>
+                        className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
+                        <option value="">Todas</option>
                         {professionals.map(p => (
-                            <option key={p._id} value={p._id}>{p.email || p._id}</option>
+                            <option key={p._id} value={p._id}>{p.name}</option>
                         ))}
                     </select>
                 </div>
@@ -531,6 +533,26 @@ export default function Turnos() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional *</label>
+                        <Controller
+                            name="professional"
+                            control={control}
+                            rules={{ required: 'Seleccionar una profesional es obligatorio' }}
+                            render={({ field }) => (
+                                <Select
+                                    options={professionalOptions}
+                                    placeholder="Buscar profesional..."
+                                    styles={selectStyles}
+                                    noOptionsMessage={() => "No hay profesionales activas"}
+                                    value={professionalOptions.find(p => p.value === field.value) || null}
+                                    onChange={(val) => field.onChange(val?.value)}
+                                />
+                            )}
+                        />
+                        {errors.professional && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.professional.message}</span>}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha y Hora *</label>
                         <input type="datetime-local"
                             className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.startTime ? 'border-maison-red' : 'border-maison-border'}`}
@@ -596,6 +618,18 @@ export default function Turnos() {
                             </div>
                         </div>
 
+                        {selectedAppointment.professional && typeof selectedAppointment.professional === 'object' && (
+                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                    <FiUser className="text-lg" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="h-3 w-3 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: selectedAppointment.professional.color }} aria-hidden />
+                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.professional.name}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
                             <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
                                 <FiClock className="text-lg" />
@@ -654,6 +688,7 @@ export default function Turnos() {
                 onClose={handleRegistroModalClose}
                 preselectedClientId={prefillClient}
                 preselectedServiceId={prefillService}
+                preselectedProfessionalId={prefillProfessional}
                 preselectedServiceDate={prefillServiceDate}
                 appointmentId={completedAppointmentId}
             />

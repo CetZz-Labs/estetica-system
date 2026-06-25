@@ -8,6 +8,7 @@ import Dashboard from "./views/Dashboard";
 import Clients from "./views/Clients";
 import ProfileClient from "./views/ProfileClient";
 import Servicios from "./views/Servicios";
+import Profesionales from "./views/Profesionales";
 import Turnos from "./views/Turnos";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
@@ -27,6 +28,7 @@ export default function Router() {
                     <Route path="/clientes" element={<Clients />} />
                     <Route path="/clientes/:id" element={<ProfileClient />} />
                     <Route path="/servicios" element={<Servicios />} />
+                    <Route path="/profesionales" element={<Profesionales />} />
                     <Route path="/turnos" element={<Turnos />} />
                     <Route path="/inventario" element={<Inventario />} />
                     <Route path="/configuracion/negocio" element={<Negocio />} />

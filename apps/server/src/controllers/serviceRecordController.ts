@@ -4,11 +4,12 @@ import { Service } from '../models/Service';
 import { Product } from '../models/Product';
 import { Client } from '../models/Client';
 import { Appointment } from '../models/Appointment';
+import { Professional } from '../models/Professional';
 
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
     try {
-        const { client, service, serviceDate, notes, productsUsed, nextTouchupDate } = req.body;
+        const { client, service, professional, serviceDate, notes, productsUsed, nextTouchupDate } = req.body;
         const tenantId = req.tenantId;
 
         // 0. VALIDACIÓN MULTI-TENANT: el cliente del body debe pertenecer al tenant autenticado
@@ -21,6 +22,16 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         const foundService = await Service.findOne({ _id: service, tenantId });
         if (!foundService) {
             return res.status(404).json({ error: 'Servicio no encontrado' });
+        }
+
+        // 0.c. EP-11: la profesional es requerida en visitas nuevas y debe pertenecer
+        // al tenant + estar activa (legacy queda sin professional, ver schema).
+        if (!professional) {
+            return res.status(400).json({ error: 'La profesional (professional) es obligatoria' });
+        }
+        const foundProfessional = await Professional.findOne({ _id: professional, tenantId, isActive: true });
+        if (!foundProfessional) {
+            return res.status(400).json({ error: 'Profesional no válida para este negocio' });
         }
 
         // 1. Lógica de fecha de retoque
@@ -86,6 +97,7 @@ export const createServiceRecord = async (req: Request, res: Response) => {
             tenantId,
             client,
             service,
+            professional,
             serviceDate,
             notes,
             productsUsed,
@@ -106,7 +118,7 @@ export const createServiceRecord = async (req: Request, res: Response) => {
                 tenantId,
                 client,
                 service,
-                professional: req.adminInfo!._id,
+                professional,
                 startTime: touchupStart,
                 endTime: touchupEnd,
                 status: 'pending',
@@ -131,6 +143,7 @@ export const getClientRecords = async (req: Request, res: Response) => {
 
         const records = await ServiceRecord.find({ tenantId: req.tenantId, client: clientId })
             .populate('service', 'name') // Solo traemos el nombre del servicio
+            .populate('professional', 'name color')
             .populate('productsUsed.product', 'name')
             .sort({ serviceDate: -1 }); // El más reciente primero (descendente)
 
