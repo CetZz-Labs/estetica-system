@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { FiAlertCircle } from 'react-icons/fi';
+import { FiAlertCircle, FiMail } from 'react-icons/fi';
 
 import {
     createProfessional,
@@ -27,7 +27,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
     const queryClient = useQueryClient();
 
     const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ProfessionalFormData>({
-        defaultValues: { name: '', color: '#1A1A1A', linkedAdmin: '' },
+        defaultValues: { name: '', color: '#1A1A1A', linkedAdmin: '', inviteEmail: '' },
     });
 
     const { data: linkableAdmins } = useQuery<LinkableAdmin[]>({
@@ -42,9 +42,10 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                 name: professionalToEdit.name,
                 color: professionalToEdit.color || '#1A1A1A',
                 linkedAdmin: professionalToEdit.linkedAdmin || '',
+                inviteEmail: '',
             });
         } else if (isOpen) {
-            reset({ name: '', color: '#1A1A1A', linkedAdmin: '' });
+            reset({ name: '', color: '#1A1A1A', linkedAdmin: '', inviteEmail: '' });
         }
     }, [professionalToEdit, isOpen, reset]);
 
@@ -53,14 +54,24 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
             const payload: ProfessionalFormData = {
                 name: data.name,
                 color: data.color,
+                // linkedAdmin tiene prioridad; inviteEmail solo si no hay linkedAdmin
                 ...(data.linkedAdmin ? { linkedAdmin: data.linkedAdmin } : {}),
+                ...(!data.linkedAdmin && data.inviteEmail ? { inviteEmail: data.inviteEmail } : {}),
             };
             return professionalToEdit
                 ? updateProfessional(professionalToEdit._id, payload)
                 : createProfessional(payload);
         },
-        onSuccess: () => {
-            toast.success(professionalToEdit ? 'Profesional actualizada' : 'Profesional creada exitosamente');
+        onSuccess: (result) => {
+            // El backend puede devolver _inviteWarning si el mail de Clerk falló
+            const r = result as unknown as Record<string, string | undefined>;
+            if (r._inviteWarning) {
+                toast.error(r._inviteWarning);
+            } else if (!professionalToEdit && r.pendingInviteEmail) {
+                toast.success('Profesional creada e invitación enviada por mail');
+            } else {
+                toast.success(professionalToEdit ? 'Profesional actualizada' : 'Profesional creada exitosamente');
+            }
             queryClient.invalidateQueries({ queryKey: ['professionals'] });
             onClose();
         },
@@ -160,6 +171,36 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                     </select>
                     <p className="text-xs text-gray-400 mt-1">Asociá la profesional a una cuenta con login para futuros accesos.</p>
                 </div>
+
+                {!professionalToEdit && (
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
+                            <span className="flex items-center gap-1.5">
+                                <FiMail size={12} /> Invitar por mail
+                            </span>
+                            <span className="text-gray-400 font-normal normal-case">Si no tiene cuenta</span>
+                        </label>
+                        <input
+                            type="email"
+                            placeholder="profesional@ejemplo.com"
+                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.inviteEmail ? 'border-maison-red' : 'border-maison-border'}`}
+                            {...register('inviteEmail', {
+                                validate: (val) => {
+                                    if (!val) return true;
+                                    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Ingresá un correo válido';
+                                }
+                            })}
+                        />
+                        {errors.inviteEmail && (
+                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                                <FiAlertCircle /> {errors.inviteEmail.message}
+                            </span>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                            Recibirá un mail para crear su cuenta y unirse al equipo.
+                        </p>
+                    </div>
+                )}
 
             </form>
         </Modal>

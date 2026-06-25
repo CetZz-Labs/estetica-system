@@ -6,6 +6,7 @@ export interface ProfessionalFormData {
     name: string;
     color: string;
     linkedAdmin?: string;
+    inviteEmail?: string;
 }
 
 export interface LinkableAdmin {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth, UserButton } from "@clerk/react";
 import { Navigate, NavLink, Outlet } from "react-router";
-import { FiMenu, FiX, FiUsers } from "react-icons/fi";
+import { FiMenu, FiX } from "react-icons/fi";
 import { useQuery } from '@tanstack/react-query';
 import { getMe } from '../api/adminApi';
 import type { AdminInfo, AdminRole } from '../types';
@@ -103,15 +103,8 @@ export default function AppLayout() {
                     {role === 'ADMIN' && (
                         <div className="pt-4 mt-2 border-t border-maison-border">
                             <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>
-                            <NavLink
-                                to="/profesionales"
-                                onClick={closeMenu}
-                                className={({ isActive }) => `flex items-center gap-3 p-3 rounded-lg font-medium transition-colors ${isActive
-                                    ? 'bg-maison-bg text-maison-text border border-maison-border'
-                                    : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
-                                    }`}
-                            >
-                                <FiUsers className="shrink-0" /> Profesionales
+                            <NavLink to="/profesionales" onClick={closeMenu} className={navLinkClass}>
+                                Profesionales
                             </NavLink>
                         </div>
                     )}

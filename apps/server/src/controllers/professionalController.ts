@@ -1,19 +1,55 @@
 import { Request, Response } from 'express';
+import { randomBytes } from 'crypto';
+import { clerkClient } from '@clerk/express';
 import { Professional } from '../models/Professional';
 import { Admin } from '../models/Admin';
+import { Tenant } from '../models/Tenant';
 import { Appointment } from '../models/Appointment';
 
 // 1. Create (POST /api/profesionales)
 export const createProfessional = async (req: Request, res: Response) => {
     try {
-        const { name, color, linkedAdmin } = req.body;
+        const { name, color, linkedAdmin, inviteEmail } = req.body;
 
-        // Si se provee un vínculo a usuario, validar que el Admin pertenece al tenant
+        // Si se provee un vínculo a usuario existente, validar que el Admin pertenece al tenant
         if (linkedAdmin) {
             const admin = await Admin.findOne({ _id: linkedAdmin, tenantId: req.tenantId });
             if (!admin) {
                 return res.status(400).json({ error: 'El usuario a vincular no pertenece a este negocio' });
             }
+            // Verificar unicidad: un Admin solo puede estar vinculado a UN Profesional activo
+            const duplicate = await Professional.findOne({
+                tenantId: req.tenantId,
+                linkedAdmin,
+                isActive: true,
+            });
+            if (duplicate) {
+                return res.status(409).json({
+                    error: `Este usuario ya está vinculado a la profesional "${duplicate.name}". Un usuario solo puede estar vinculado a una profesional a la vez.`
+                });
+            }
+        }
+
+        // Si se provee inviteEmail (sin linkedAdmin), validar y preparar invitación
+        let inviteToken: string | null = null;
+        let inviteTokenExpiry: Date | null = null;
+        let pendingInviteEmail: string | null = null;
+
+        if (inviteEmail && !linkedAdmin) {
+            const emailLower = (inviteEmail as string).toLowerCase().trim();
+
+            // El email no puede pertenecer a un Admin ya registrado
+            const existingAdmin = await Admin.findOne({ email: emailLower });
+            if (existingAdmin) {
+                return res.status(409).json({
+                    error: 'Este correo ya pertenece a un usuario registrado. Pedile que inicie sesión y vinculalo desde el selector de usuarios.'
+                });
+            }
+
+            // Generar token seguro (64 chars hex)
+            inviteToken = randomBytes(32).toString('hex');
+            inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+            pendingInviteEmail = emailLower;
         }
 
         const newProfessional = new Professional({
@@ -21,10 +57,32 @@ export const createProfessional = async (req: Request, res: Response) => {
             name,
             color,
             linkedAdmin: linkedAdmin || null,
-            isActive: true
+            isActive: true,
+            ...(inviteToken ? { inviteToken, inviteTokenExpiry, pendingInviteEmail } : {}),
         });
 
         const saved = await newProfessional.save();
+
+        // Enviar invitación Clerk DESPUÉS de guardar (si falla el mail, la profesional existe y se puede reintentar)
+        if (inviteToken && pendingInviteEmail) {
+            try {
+                const tenant = await Tenant.findById(req.tenantId);
+                const redirectUrl = `${process.env.FRONTEND_URL}/unirse?token=${inviteToken}`;
+                await clerkClient.invitations.createInvitation({
+                    emailAddress: pendingInviteEmail,
+                    redirectUrl,
+                    publicMetadata: { tenantName: tenant?.name ?? 'el negocio' },
+                });
+            } catch (inviteError) {
+                // Si falla el envío del mail, no revertimos la creación — la profesional existe
+                // pero sin invitación activa. El admin puede reintentarlo.
+                console.error('Error al enviar la invitación Clerk:', inviteError);
+                return res.status(201).json({
+                    ...saved.toObject(),
+                    _inviteWarning: 'La profesional fue creada pero no se pudo enviar el mail de invitación. Intentá nuevamente desde el panel.'
+                });
+            }
+        }
 
         return res.status(201).json(saved);
     } catch (error) {
@@ -90,6 +148,18 @@ export const updateProfessional = async (req: Request, res: Response) => {
             const admin = await Admin.findOne({ _id: linkedAdmin, tenantId: req.tenantId });
             if (!admin) {
                 return res.status(400).json({ error: 'El usuario a vincular no pertenece a este negocio' });
+            }
+            // Verificar unicidad excluyendo el profesional actual
+            const duplicate = await Professional.findOne({
+                tenantId: req.tenantId,
+                linkedAdmin,
+                isActive: true,
+                _id: { $ne: id },
+            });
+            if (duplicate) {
+                return res.status(409).json({
+                    error: `Este usuario ya está vinculado a la profesional "${duplicate.name}". Un usuario solo puede estar vinculado a una profesional a la vez.`
+                });
             }
         }
 

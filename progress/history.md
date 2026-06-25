@@ -42,6 +42,40 @@
 
 ---
 
+## 2026-06-25 — UX-05: Sistema de invitaciones de Profesionales + unicidad Admin→Profesional
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer
+* **Objetivo:** Tres mejoras al módulo de Profesionales (EP-11/EP-12): (1) eliminar ícono `FiUsers` del sidebar; (2) impedir que un Admin quede vinculado a más de una Profesional activa; (3) flujo guiado de invitación por email para incorporar usuarios nuevos como PROFESSIONAL.
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/models/Professional.ts` — 3 campos nuevos: `pendingInviteEmail`, `inviteToken` (índice sparse), `inviteTokenExpiry`.
+  - `apps/server/src/controllers/professionalController.ts` — Validación de unicidad Admin→Profesional en `createProfessional` y `updateProfessional` (409 con nombre del profesional ya vinculado). Flujo `inviteEmail` en `createProfessional`: genera token `randomBytes(32)`, registra expiración de 7 días, llama a Clerk invitation API con `FRONTEND_URL/unirse?token=...`. Degradación graceful: si Clerk falla, la profesional se crea igual con `_inviteWarning` en la respuesta.
+  - `apps/server/src/routes/professionalRoutes.ts` — Validador `body('inviteEmail').optional().isEmail()` en POST.
+  - `apps/server/src/controllers/invitationController.ts` (nuevo) — `validateInvitation` (GET público) y `acceptInvitation` (POST semi-público: Clerk auth via `getAuth` pero sin Admin en MongoDB). `acceptInvitation` crea Admin con `tenantId` del profesional invitante (sin crear nuevo Tenant). Limpia token, expiración y email pendiente tras éxito. Idempotente: segunda llamada → 200.
+  - `apps/server/src/routes/invitationRoutes.ts` (nuevo) — Excepción documentada: sin `checkAdminAccess` (patrón idéntico a onboarding EP-09). `clerkMiddleware()` global sigue activo.
+  - `apps/server/src/server.ts` — Monta `app.use('/api/invitacion', invitationRoutes)`.
+
+  **Frontend:**
+  - `apps/client/src/layouts/AppLayout.tsx` — NavLink Profesionales usa `navLinkClass` estándar sin `FiUsers` ni `flex items-center gap-3`. `FiUsers` eliminado del import.
+  - `apps/client/src/api/professionalApi.ts` — `inviteEmail?: string` en `ProfessionalFormData`.
+  - `apps/client/src/components/ProfesionalModal.tsx` — Sección de invitación por email (solo en modo creación, `!professionalToEdit`). Exclusión mutua `linkedAdmin`/`inviteEmail` en payload: `linkedAdmin` tiene prioridad. `_inviteWarning` de respuesta elevado a `toast.error`.
+  - `apps/client/src/api/invitacionApi.ts` (nuevo) — `validateInvitation(token)` y `acceptInvitation(token)`.
+  - `apps/client/src/views/AceptarInvitacion.tsx` (nuevo) — Vista pública `/unirse`. 4 estados: token ausente, loading, error de token expirado/inválido, datos con bifurcación auth/no-auth. `retry: false` para no reintentar tokens inválidos. Botón confirmar llama `acceptInvitation` → `toast.success` → redirect `/dashboard`.
+  - `apps/client/src/router.tsx` — Ruta `/unirse` registrada fuera del bloque `<AppLayout>` (sin sidebar ni auth guard).
+
+* **ADRs:**
+  - `acceptInvitation` NO crea un nuevo Tenant — la Profesional ya tiene `tenantId`. Esto diferencia el flujo de invitación del onboarding estándar.
+  - Email del invitado se obtiene de Clerk (no del body) y se compara en lowercase con `pendingInviteEmail` almacenado — previene suplantación vía body manipulation.
+  - Opción considerada: filtrar admins ya vinculados en `getLinkableAdmins` para UX proactiva. Descartada por complejidad del edge case (admin vinculado al profesional actual desaparece en edit). La validación 409 del backend con mensaje descriptivo es suficiente.
+
+* **Observación no bloqueante (reviewer):** `GET /api/profesionales` devuelve `inviteToken` e `inviteTokenExpiry` en el documento completo. Solo accesible a admins autenticados del mismo tenant. Candidato a `select('-inviteToken -inviteTokenExpiry')` en listados futuros.
+
+* **Verificación:** server build Exit 0, client build Exit 0. Lint: 0 errores nuevos (1 preexistente `ProductoModal.tsx:37`; 1 warning nuevo `ProfesionalModal.tsx:83` sobre `watch()` — no bloquea). Reviewer: **APPROVED** → `progress/reviews/review_UX-05.md`. UX-05 → **cerrado** (sin entrada en `feature_list.json`, patrón consistente con UX-01..UX-04).
+
+---
+
 ## 2026-06-16 — EP-14 Crear y gestionar turnos (Fase 4) + EP-13 Calendario visual
 
 * **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer

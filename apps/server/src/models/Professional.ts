@@ -6,6 +6,9 @@ export interface IProfessional extends Document {
     color: string;
     isActive: boolean;
     linkedAdmin?: Types.ObjectId | null;
+    pendingInviteEmail?: string | null;
+    inviteToken?: string | null;
+    inviteTokenExpiry?: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -20,8 +23,12 @@ const ProfessionalSchema: Schema = new Schema({
         match: [/^#[0-9A-Fa-f]{6}$/, 'El color debe tener formato hexadecimal #RRGGBB']
     },
     isActive: { type: Boolean, default: true },
-    // Vínculo opcional a un usuario con login (Admin). EP-12 expandirá el flujo de invitación.
-    linkedAdmin: { type: Schema.Types.ObjectId, ref: 'Admin', default: null }
+    // Vínculo opcional a un usuario con login (Admin). UX-05 añade flujo de invitación.
+    linkedAdmin: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+    // Campos de invitación (UX-05): se limpian al aceptar la invitación
+    pendingInviteEmail: { type: String, default: null },
+    inviteToken: { type: String, index: true, sparse: true, default: null },
+    inviteTokenExpiry: { type: Date, default: null }
 }, {
     timestamps: true
 });

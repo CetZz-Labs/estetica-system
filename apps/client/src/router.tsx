@@ -15,6 +15,7 @@ import Turnos from "./views/Turnos";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
 import Landing from "./views/Landing";
+import AceptarInvitacion from "./views/AceptarInvitacion";
 import { getMe } from './api/adminApi';
 import type { AdminInfo, AdminRole } from './types';
 
@@ -51,6 +52,7 @@ export default function Router() {
                 <Route path="/login/*" element={<Login />} />
                 <Route path="/registro/completar" element={<CompletarRegistro />} />
                 <Route path="/registro/*" element={<Register />} />
+                <Route path="/unirse" element={<AceptarInvitacion />} />
 
                 <Route element={<AppLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />

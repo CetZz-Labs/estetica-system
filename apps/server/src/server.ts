@@ -13,6 +13,7 @@ import onboardingRoutes from './routes/onboardingRoutes';
 import tenantRoutes from './routes/tenantRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import professionalRoutes from './routes/professionalRoutes';
+import invitationRoutes from './routes/invitationRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -51,6 +52,8 @@ app.use('/api/registros', serviceRecordRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 // Onboarding (EP-09): sin checkAdminAccess/checkTenantAccess — el admin aún no existe (excepción documentada)
 app.use('/api/onboarding', onboardingRoutes);
+// Invitaciones (UX-05): sin checkAdminAccess — el invitado no tiene Admin todavía (excepción documentada)
+app.use('/api/invitacion', invitationRoutes);
 
 // EP-12: /api/negocio restringido solo a rol ADMIN (SRS §6.2)
 app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), tenantRoutes);

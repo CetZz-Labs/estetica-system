@@ -399,4 +399,109 @@ app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'
 
 ---
 
+## P9 — Flujo de invitación por token (incorporación a tenant existente)
+
+> **Regla canónica:** [`governance-rules.md#gov-tenant`](governance-rules.md#gov-tenant--aislamiento-multi-tenant). Implementado en UX-05.
+
+**Mandato:** cuando un usuario externo debe unirse a un tenant existente sin crear uno nuevo (a diferencia del onboarding), usar el patrón token + expiración en el documento destino. La ruta de aceptación es **semi-pública**: `clerkMiddleware()` global activo, pero sin `checkAdminAccess` (el invitado no tiene `Admin` en MongoDB todavía). Patrón de excepción idéntico al de `onboardingRoutes`.
+
+**Modelo — campos del token (en el documento destino, no en una colección separada):**
+```typescript
+// models/Professional.ts — añadir a interfaz y schema
+pendingInviteEmail?: string | null;
+inviteToken?: string | null;       // { type: String, index: true, sparse: true, default: null }
+inviteTokenExpiry?: Date | null;
+
+// Razón del índice sparse: permite lookup eficiente por token sin indexar los null.
+```
+
+**Controller — generar e invalidar el token:**
+```typescript
+import { randomBytes } from 'crypto';
+import { clerkClient } from '@clerk/express';
+
+// Generar token criptográficamente seguro + expiración de 7 días
+const token = randomBytes(32).toString('hex'); // 64 chars hex — NO usar Math.random
+const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+// Guardar ANTES de llamar a Clerk (si Clerk falla, el doc existe para reintentar)
+await Document.create({ ..., inviteToken: token, inviteTokenExpiry: expiry, pendingInviteEmail: emailLower });
+
+// Llamada a Clerk con degradación graceful
+try {
+    await clerkClient.invitations.createInvitation({
+        emailAddress: emailLower,
+        redirectUrl: `${process.env.FRONTEND_URL}/unirse?token=${token}`,
+    });
+} catch (inviteError) {
+    console.error('Error al enviar invitación Clerk:', inviteError);
+    // No revertir la creación — el admin puede reintentar desde el panel
+    return res.status(201).json({ ...saved, _inviteWarning: 'Profesional creada, pero no se pudo enviar el mail.' });
+}
+```
+
+**Controller — aceptar invitación (semi-público):**
+```typescript
+import { getAuth, clerkClient } from '@clerk/express';
+
+export const acceptInvitation = async (req: Request, res: Response) => {
+    try {
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ error: 'Debés iniciar sesión.' });
+
+        const { token } = req.body;
+        const doc = await Document.findOne({ inviteToken: token, inviteTokenExpiry: { $gt: new Date() } });
+        if (!doc) return res.status(404).json({ error: 'Invitación no válida o expirada.' });
+
+        // Email desde Clerk (nunca del body) — previene suplantación
+        const clerkUser = await clerkClient.users.getUser(userId);
+        const primary = clerkUser.emailAddresses.find(a => a.id === clerkUser.primaryEmailAddressId);
+        const email = primary!.emailAddress.toLowerCase().trim();
+
+        if (email !== doc.pendingInviteEmail) {
+            return res.status(403).json({ error: `Invitación enviada a ${doc.pendingInviteEmail}.` });
+        }
+
+        // Idempotencia: segunda llamada → 200
+        const existing = await Admin.findOne({ externalId: userId });
+        if (existing) return res.status(200).json({ message: 'Ya formas parte del equipo.', admin: existing });
+
+        // Crear Admin en el tenant EXISTENTE (sin crear Tenant nuevo)
+        const admin = await Admin.create({ externalId: userId, email, tenantId: doc.tenantId, role: 'PROFESSIONAL' });
+
+        // Limpiar token — atomicidad: hacer en el mismo save que el vínculo
+        doc.linkedAdmin = admin._id;
+        doc.inviteToken = null;
+        doc.inviteTokenExpiry = null;
+        doc.pendingInviteEmail = null;
+        await doc.save();
+
+        return res.status(201).json({ message: 'Te uniste al equipo.', admin });
+    } catch (error) {
+        console.error('Error al aceptar invitación:', error);
+        return res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+};
+```
+
+**Route — excepción de auth documentada:**
+```typescript
+// routes/invitationRoutes.ts
+// EXCEPCIÓN: sin checkAdminAccess — el invitado no tiene Admin en MongoDB todavía.
+// clerkMiddleware() global sigue activo; la lógica del controller verifica userId.
+const router: Router = Router();
+router.get('/validate', [query('token').notEmpty(), validateRequest], validateInvitation);
+router.post('/aceptar', [body('token').notEmpty(), validateRequest], acceptInvitation);
+export default router;
+
+// server.ts — montar sin checkAdminAccess en la cadena
+app.use('/api/invitacion', invitationRoutes);
+```
+
+**Gotcha — email comparación:** almacenar `pendingInviteEmail` siempre en lowercase (`emailLower`). En `acceptInvitation`, normalizar el email de Clerk con `.toLowerCase().trim()` antes de comparar — Clerk puede devolver el email con capitalización original.
+
+**Gotcha — proyección en listados:** el campo `inviteToken` queda en el documento MongoDB. En endpoints de listado (admin-accesibles), considerar `select('-inviteToken -inviteTokenExpiry')` para no exponer el token de invitación activo, aunque solo sea accesible a admins autenticados del mismo tenant.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón, gotcha o workaround genuinamente nuevo y reutilizable (no cubierto aquí ni en `architecture.md`/`conventions.md`), el `leader` lo promueve a este archivo durante el cierre de sesión. No duplicar patrones que solo reafirman una convención ya documentada.

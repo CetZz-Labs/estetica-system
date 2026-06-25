@@ -27,6 +27,7 @@ router.post(
             .notEmpty().withMessage('El color es obligatorio')
             .matches(/^#[0-9A-Fa-f]{6}$/).withMessage('El color debe tener formato hexadecimal #RRGGBB'),
         body('linkedAdmin').optional({ nullable: true }).isMongoId().withMessage('El usuario a vincular no es válido'),
+        body('inviteEmail').optional({ nullable: true }).isEmail().withMessage('El correo de invitación debe ser válido').trim(),
         validateRequest
     ],
     createProfessional
