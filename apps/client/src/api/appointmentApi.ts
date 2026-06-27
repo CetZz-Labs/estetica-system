@@ -59,3 +59,8 @@ export const getPendingRegistration = async (): Promise<Appointment[]> => {
     const { data } = await api.get('/turnos/pending-registration');
     return data;
 };
+
+export const getUpcomingAppointments = async (): Promise<Appointment[]> => {
+    const { data } = await api.get('/turnos/proximos');
+    return data;
+};

@@ -243,16 +243,6 @@ export const completeAppointment = async (req: Request, res: Response) => {
             }
         }
 
-        // Calculate nextTouchupDate from service if not provided.
-        // serviceDate es appointment.startTime, el turno que se está completando ahora,
-        // que por construcción ES el último turno realizado por este cliente.
-        if (!finalNextTouchupDate && serviceDoc && serviceDoc.defaultTouchupDays && serviceDoc.defaultTouchupDays > 0) {
-            const date = new Date(serviceDate);
-            date.setDate(date.getDate() + serviceDoc.defaultTouchupDays);
-            date.setHours(serviceDate.getHours(), serviceDate.getMinutes(), 0, 0);
-            finalNextTouchupDate = date;
-        }
-
         // Auto-complete previous pending touchups for this client+service
         await ServiceRecord.updateMany(
             {
@@ -381,5 +371,29 @@ export const getClientAppointments = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error al obtener los turnos del cliente:', error);
         return res.status(500).json({ error: 'Error interno del servidor al obtener los turnos del cliente' });
+    }
+};
+
+export const getUpcomingAppointments = async (req: Request, res: Response) => {
+    try {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        const appointments = await Appointment.find({
+            tenantId: req.tenantId,
+            isActive: true,
+            status: { $in: ['pending', 'confirmed'] },
+            startTime: { $gte: now, $lte: thirtyDaysFromNow }
+        })
+            .populate('client', 'firstName lastName phone')
+            .populate('service', 'name duration')
+            .populate('professional', 'name color')
+            .sort({ startTime: 1 })
+            .limit(7);
+
+        return res.status(200).json(appointments);
+    } catch (error) {
+        console.error('Error al obtener próximos turnos:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
     }
 };

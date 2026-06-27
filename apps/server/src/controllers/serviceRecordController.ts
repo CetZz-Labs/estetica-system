@@ -34,28 +34,8 @@ export const createServiceRecord = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Profesional no válida para este negocio' });
         }
 
-        // 1. Lógica de fecha de retoque
-        let finalNextTouchupDate = nextTouchupDate;
-        if (!finalNextTouchupDate && foundService.defaultTouchupDays && foundService.defaultTouchupDays > 0) {
-            const date = new Date(serviceDate);
-            date.setDate(date.getDate() + foundService.defaultTouchupDays);
-
-            // Auto-asignamos el mismo horario del último turno completado de este cliente.
-            const lastAppointment = await Appointment.findOne({
-                tenantId,
-                client,
-                status: 'completed'
-            }).sort({ startTime: -1 });
-
-            if (lastAppointment) {
-                const lastStart = lastAppointment.startTime;
-                date.setHours(lastStart.getHours(), lastStart.getMinutes(), 0, 0);
-            }
-            // Si no existe ningún turno previo completado, la fecha queda sin hora
-            // explícita (fallback actual, medianoche), comportamiento aceptado.
-
-            finalNextTouchupDate = date;
-        }
+        // 1. Lógica de fecha de retoque — el usuario tiene control total: no hay auto-cálculo.
+        const finalNextTouchupDate = nextTouchupDate;
 
         // 2. LÓGICA DE DESCUENTO DE STOCK (solo productos del tenant)
         if (productsUsed && Array.isArray(productsUsed) && productsUsed.length > 0) {
@@ -165,7 +145,8 @@ export const getUpcomingTouchups = async (req: Request, res: Response) => {
         })
             .populate('client', 'firstName lastName phone')
             .populate('service', 'name')
-            .sort({ nextTouchupDate: 1 }); // Ascendente: los más urgentes (fechas más tempranas) primero
+            .sort({ nextTouchupDate: 1 }) // Ascendente: los más urgentes (fechas más tempranas) primero
+            .limit(7);
 
         return res.status(200).json(records);
     } catch (error) {

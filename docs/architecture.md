@@ -117,4 +117,4 @@
 **Estado:** Activo. Todo endpoint POST/PUT usa validación inline con `express-validator` + middleware `validateRequest`.
 
 ### ADR-005 — Auto-cálculo de Retoques
-**Estado:** Activo. El `nextTouchupDate` se calcula como `serviceDate + service.defaultTouchupDays` si no se provee manualmente. El auto-completado de retoques pendientes se hace con `updateMany` sobre el mismo `client + service`.
+**Estado:** Revisado (UX-09, 2026-06-26). El auto-cálculo del backend fue eliminado: el backend ya no calcula `nextTouchupDate` automáticamente. El frontend ofrece el botón "Usar fecha sugerida" (`serviceDate + service.defaultTouchupDays`) — el usuario elige si aplicarlo. El auto-completado de retoques pendientes (`updateMany` sobre `client + service`) se mantiene intacto. Ver [GOV-VISIT](governance-rules.md#gov-visit--registro-de-visitas-y-retoques).

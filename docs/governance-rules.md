@@ -85,12 +85,12 @@
 
 ## GOV-VISIT — Registro de Visitas y Retoques
 
-**Regla:** Al registrar una visita (servicerecord), el sistema descuenta stock de los productos consumidos, genera automáticamente un próximo retoque pendiente (basado en `service.defaultTouchupDays`), y auto-completa el retoque anterior del mismo cliente+servicio.
+**Regla:** Al registrar una visita (servicerecord), el sistema descuenta stock de los productos consumidos, opcionalmente registra un próximo retoque (fecha definida explícitamente por el usuario), y auto-completa el retoque anterior del mismo cliente+servicio.
 
-**Por qué:** En un centro de estética, un cliente vuelve periódicamente por el mismo servicio (coloración, corte, etc.). El retoque anterior debe marcarse como completado automáticamente para mantener el timeline limpio y no acumular retoques pendientes fantasma.
+**Por qué:** En un centro de estética, un cliente vuelve periódicamente por el mismo servicio (coloración, corte, etc.). El retoque anterior debe marcarse como completado automáticamente para mantener el timeline limpio y no acumular retoques pendientes fantasma. El control explícito de la fecha de retoque evita crear citas automáticas no deseadas.
 
 **Mandatos:**
-1. `nextTouchupDate = serviceDate + service.defaultTouchupDays` (si `> 0`).
+1. `nextTouchupDate` es un campo **opcional controlado por el usuario**. El frontend ofrece un botón "Usar fecha sugerida" que calcula `serviceDate + service.defaultTouchupDays` en el cliente, pero el backend acepta el valor enviado sin auto-cálculo propio. Si el usuario no provee `nextTouchupDate`, no se genera retoque automático. _(Modificado en UX-09, 2026-06-26: el auto-cálculo fue movido al cliente para dar control explícito al usuario.)_
 2. Buscar servicerecord previo con mismo `tenantId` + `client` + `service` + `touchupStatus: 'pending'` → set `touchupStatus: 'completed'`.
 3. El servicerecord nuevo se crea con `touchupStatus: 'pending'`.
 

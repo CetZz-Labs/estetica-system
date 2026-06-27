@@ -216,11 +216,20 @@ export default function Turnos() {
     const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
         if (!selectInfo.view || !selectInfo.view.calendar) return;
         setEditingAppointment(null);
+
+        let startTime = selectInfo.startStr.slice(0, 16);
+        if (!startTime.includes('T')) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            startTime = `${startTime}T${hh}:${mm}`;
+        }
+
         reset({
             client: '',
             service: '',
             professional: '',
-            startTime: selectInfo.startStr.slice(0, 16),
+            startTime,
             notes: ''
         });
         setIsFormModalOpen(true);
@@ -370,11 +379,14 @@ export default function Turnos() {
                 </div>
                 <button onClick={() => {
                     setEditingAppointment(null);
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    const localNow = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
                     reset({
                         client: '',
                         service: '',
                         professional: '',
-                        startTime: new Date().toISOString().slice(0, 16),
+                        startTime: localNow,
                         notes: ''
                     });
                     setIsFormModalOpen(true);
@@ -451,12 +463,12 @@ export default function Turnos() {
                         plugins={[timeGridPlugin, interactionPlugin, dayGridPlugin]}
                         initialView="timeGridWeek"
                         headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
-                        slotMinTime="08:00"
-                        slotMaxTime="20:00"
+                        slotMinTime="06:00"
+                        slotMaxTime="22:00"
                         slotDuration="00:30"
                         allDaySlot={false}
                         locale={esLocale}
-                        height="auto"
+                        contentHeight={560}
                         selectable={true}
                         selectMirror={true}
                         editable={true}
@@ -465,10 +477,12 @@ export default function Turnos() {
                         events={events}
                         eventContent={(arg) => {
                             const appointment = arg.event.extendedProps.appointment as Appointment;
+                            const startDate = new Date(appointment.startTime);
+                            const timeStr = startDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
                             return (
                                 <div className="appointment-event-content">
                                     <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
-                                    <span className="event-title">{arg.event.title}</span>
+                                    <span className="event-title">{timeStr} · {arg.event.title}</span>
                                 </div>
                             );
                         }}

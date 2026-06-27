@@ -70,3 +70,10 @@ export const getTimelineStatus = (dateString: string) => {
         pillClass: 'bg-gray-50 text-gray-500 border border-gray-200',
     };
 };
+
+export const formatDateTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    const timePart = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${datePart} · ${timePart}`;
+};

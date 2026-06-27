@@ -9,7 +9,8 @@ import {
     completeAppointment,
     getPendingRegistration,
     cancelAppointment,
-    getClientAppointments
+    getClientAppointments,
+    getUpcomingAppointments
 } from '../controllers/appointmentController';
 import { validateRequest } from '../middlewares/validateRequest';
 
@@ -68,10 +69,15 @@ router.post(
         body('productsUsed.*.quantity')
             .isNumeric().withMessage('La cantidad debe ser un número')
             .custom(value => value > 0).withMessage('La cantidad debe ser mayor a 0'),
-        body('nextTouchupDate').optional({ nullable: true }).isISO8601().withMessage('nextTouchupDate debe ser una fecha válida').toDate(),
+        body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         validateRequest
     ],
     completeAppointment
+);
+
+router.get(
+    '/proximos',
+    getUpcomingAppointments
 );
 
 router.get(

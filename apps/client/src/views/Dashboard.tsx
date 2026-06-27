@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
-import { getPendingRegistration } from '../api/appointmentApi';
+import { getPendingRegistration, cancelAppointment, getUpcomingAppointments } from '../api/appointmentApi';
 import type { ServiceRecord, Appointment } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
-import { formatDate, getTimelineStatus } from '../utils/dates';
+import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
 import { Link } from 'react-router';
@@ -27,6 +27,9 @@ export default function Dashboard() {
 
     const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
     const [prefillService, setPrefillService] = useState<string | undefined>(undefined);
+    const [completedAppointmentId, setCompletedAppointmentId] = useState<string | undefined>(undefined);
+    const [prefillProfessional, setPrefillProfessional] = useState<string | undefined>(undefined);
+    const [prefillServiceDate, setPrefillServiceDate] = useState<string | undefined>(undefined);
 
     const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
         queryKey: ['dashboard-stats'],
@@ -49,15 +52,26 @@ export default function Dashboard() {
         refetchInterval: 30000,
     });
 
+    const { data: proximosTurnos, isLoading: isLoadingTurnos } = useQuery<Appointment[]>({
+        queryKey: ['upcoming-appointments'],
+        queryFn: getUpcomingAppointments
+    });
+
     const handleOpenNewVisit = () => {
+        setCompletedAppointmentId(undefined);
         setPrefillClient(undefined);
         setPrefillService(undefined);
+        setPrefillProfessional(undefined);
+        setPrefillServiceDate(undefined);
         setIsRegistroModalOpen(true);
     };
 
     const handleTouchupCheck = (clientId: string, serviceId: string) => {
+        setCompletedAppointmentId(undefined);
         setPrefillClient(clientId);
         setPrefillService(serviceId);
+        setPrefillProfessional(undefined);
+        setPrefillServiceDate(undefined);
         setIsRegistroModalOpen(true);
     };
 
@@ -80,7 +94,53 @@ export default function Dashboard() {
         }
     };
 
-    const isDashboardLoading = isLoadingStats || isLoadingRetoques || isLoadingRecientes;
+    const { mutate: completeTouchup } = useMutation({
+        mutationFn: (id: string) => updateServiceRecord(id, { touchupStatus: 'completed' }),
+        onSuccess: () => {
+            toast.success('Retoque marcado como completado');
+            queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        },
+        onError: (error) => handleApiError(error, 'Error al completar el retoque')
+    });
+
+    const { mutate: cancelAppointmentMutate } = useMutation({
+        mutationFn: (id: string) => cancelAppointment(id),
+        onSuccess: () => {
+            toast.success('Turno cancelado');
+            queryClient.invalidateQueries({ queryKey: ['upcoming-appointments'] });
+        },
+        onError: (error) => handleApiError(error, 'Error al cancelar el turno')
+    });
+
+    const handleCancelAppointment = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        toast('¿Cancelar este turno?', {
+            action: { label: 'Confirmar', onClick: () => cancelAppointmentMutate(id) },
+            cancel: { label: 'No', onClick: () => {} },
+            duration: 5000
+        });
+    };
+
+    const handleCompleteFromDashboard = (appt: Appointment) => {
+        setCompletedAppointmentId(appt._id);
+        setPrefillClient(appt.client._id);
+        setPrefillService(appt.service._id);
+        setPrefillProfessional(appt.professional?._id);
+        setPrefillServiceDate(new Date(appt.startTime).toISOString().split('T')[0]);
+        setIsRegistroModalOpen(true);
+    };
+
+    const handleCloseRegistroModal = () => {
+        setIsRegistroModalOpen(false);
+        setCompletedAppointmentId(undefined);
+        setPrefillClient(undefined);
+        setPrefillService(undefined);
+        setPrefillProfessional(undefined);
+        setPrefillServiceDate(undefined);
+    };
+
+    const isDashboardLoading = isLoadingStats || isLoadingRetoques || isLoadingRecientes || isLoadingTurnos;
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -144,12 +204,12 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Timeline */}
+            {/* Columns - Retoques | Turnos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Timeline - Próximos retoques */}
                 <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-8">
-                        <div><h4 className="text-xl font-serif">Próximos retoques</h4><p className="text-sm text-gray-400 mt-1">Historial de retoques pendientes</p></div>
+                        <div><h4 className="text-xl font-serif">Próximos retoques</h4><p className="text-sm text-gray-400 mt-1">Los 7 más próximos · ordenados por fecha</p></div>
                     </div>
                     {isDashboardLoading ? (
                         <div className="space-y-6">
@@ -183,8 +243,7 @@ export default function Dashboard() {
                                             <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mb-1.5 ${status.pillClass}`}>{status.label}</span>
                                             <p className="text-xs text-gray-400 font-medium">{formatDate(registro.nextTouchupDate)}</p>
                                         </div>
-
-                                        <div className="absolute -right-3 -top-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+                                        <div className="absolute -right-3 -top-3 flex gap-1 opacity-100 transition-all">
                                             <button
                                                 onClick={(e) => handleCancelTouchup(e, registro._id)}
                                                 title="Cancelar este retoque"
@@ -193,11 +252,18 @@ export default function Dashboard() {
                                                 <FiX size={16} />
                                             </button>
                                             <button
-                                                onClick={() => handleTouchupCheck(registro.client._id, registro.service._id)}
-                                                title="Registrar nueva visita para este retoque"
+                                                onClick={(e) => { e.stopPropagation(); completeTouchup(registro._id); }}
+                                                title="Marcar como completado"
                                                 className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiCheck size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleTouchupCheck(registro.client._id, registro.service._id)}
+                                                title="Completar y registrar próximo retoque"
+                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-primary hover:border-maison-primary transition-all cursor-pointer shadow-sm"
+                                            >
+                                                <FiRefreshCw size={16} />
                                             </button>
                                         </div>
                                     </div>
@@ -207,45 +273,115 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                {/* Recent */}
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm flex flex-col">
-                    <h4 className="text-xl font-serif">Últimos movimientos</h4>
-                    <p className="text-sm text-gray-400 mt-1 mb-8">Servicios recientemente registrados</p>
+                {/* Próximos Turnos */}
+                <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h4 className="text-xl font-serif">Próximos turnos</h4>
+                            <p className="text-sm text-gray-400 mt-1">Los 7 más próximos · ordenados por fecha</p>
+                        </div>
+                    </div>
                     {isDashboardLoading ? (
-                        <div className="space-y-5 flex-1">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="flex justify-between items-center animate-pulse">
-                                    <div className="space-y-2 flex-1"><div className="h-3 bg-gray-200 rounded w-1/2"></div><div className="h-2 bg-gray-200 rounded w-1/3"></div></div>
-                                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                        <div className="space-y-3">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex gap-3 animate-pulse p-3 border border-maison-border rounded-xl">
+                                    <div className="w-3 h-3 bg-gray-200 rounded-full mt-1.5 shrink-0"></div>
+                                    <div className="flex-1 space-y-1.5">
+                                        <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                                        <div className="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                                    </div>
+                                    <div className="flex gap-1.5 shrink-0">
+                                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                    ) : recientes?.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No hay servicios recientes.</p>
+                    ) : proximosTurnos?.length === 0 ? (
+                        <p className="text-gray-500 text-sm py-4">No hay turnos próximos.</p>
                     ) : (
-                        <ul className="space-y-6 pl-1 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                            {recientes?.map((registro) => (
-                                <li key={registro._id} className="relative pl-5 group">
-                                    <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-maison-text transition-colors"></span>
-                                    <div className="flex justify-between items-start gap-2">
-                                        <div className="min-w-0">
-                                            <p className="font-medium text-maison-text text-sm truncate">{registro.client.firstName} {registro.client.lastName}</p>
-                                            <p className="text-xs text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
+                        <div className="space-y-2.5">
+                            {proximosTurnos?.map(appt => {
+                                return (
+                                    <div key={appt._id} className="flex items-center gap-3 p-3 bg-white border border-maison-border rounded-xl hover:border-gray-300 transition-colors">
+                                        <div
+                                            className="shrink-0 w-3 h-3 rounded-full border border-maison-border"
+                                            style={{ backgroundColor: appt.professional?.color || '#9CA3AF' }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-maison-text text-sm truncate">
+                                                {appt.client.firstName} {appt.client.lastName}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">{appt.service.name}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {formatDateTime(appt.startTime)}
+                                            </p>
                                         </div>
-                                        <span className="text-[11px] text-gray-400 font-medium tracking-wide shrink-0">{formatDate(registro.createdAt)}</span>
+                                        <div className="flex gap-1.5 shrink-0">
+                                            <button
+                                                onClick={(e) => handleCancelAppointment(e, appt._id)}
+                                                title="Cancelar turno"
+                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-red hover:border-maison-red transition-all cursor-pointer shadow-sm"
+                                            >
+                                                <FiX size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleCompleteFromDashboard(appt)}
+                                                title="Confirmar y completar"
+                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
+                                            >
+                                                <FiCheck size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                </li>
-                            ))}
-                        </ul>
+                                );
+                            })}
+                        </div>
                     )}
                 </div>
             </div>
 
+            {/* Últimos movimientos — full width */}
+            <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
+                <h4 className="text-xl font-serif">Últimos movimientos</h4>
+                <p className="text-sm text-gray-400 mt-1 mb-8">Servicios recientemente registrados</p>
+                {isDashboardLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="flex justify-between items-center animate-pulse">
+                                <div className="space-y-2 flex-1"><div className="h-3 bg-gray-200 rounded w-1/2"></div><div className="h-2 bg-gray-200 rounded w-1/3"></div></div>
+                                <div className="h-3 bg-gray-200 rounded w-16"></div>
+                            </div>
+                        ))}
+                    </div>
+                ) : recientes?.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No hay servicios recientes.</p>
+                ) : (
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5 pl-1">
+                        {recientes?.map((registro) => (
+                            <li key={registro._id} className="relative pl-5 group">
+                                <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-maison-text transition-colors"></span>
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-maison-text text-sm truncate">{registro.client.firstName} {registro.client.lastName}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
+                                    </div>
+                                    <span className="text-[11px] text-gray-400 font-medium tracking-wide shrink-0">{formatDate(registro.createdAt)}</span>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
             <RegistroModal
                 isOpen={isRegistroModalOpen}
-                onClose={() => setIsRegistroModalOpen(false)}
+                onClose={handleCloseRegistroModal}
                 preselectedClientId={prefillClient}
                 preselectedServiceId={prefillService}
+                preselectedProfessionalId={prefillProfessional}
+                preselectedServiceDate={prefillServiceDate}
+                appointmentId={completedAppointmentId}
             />
         </div>
     );

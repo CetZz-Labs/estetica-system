@@ -354,3 +354,108 @@
 * **Verificación:** `pnpm --filter @estetica/server build` → Exit 0; `pnpm --filter @estetica/client build` → Exit 0 (ambos confirmados de forma independiente por el Leader). Lint cliente: 1 error PRE-EXISTENTE en `ProductoModal.tsx:37` (`'stock' unused`), confirmado fuera del diff de EP-11. Reviewer: 1ª ronda CHANGES_REQUESTED (único defecto: faltaba entrada C8 en CHANGELOG — corregida por el Leader); 2ª ronda **APPROVED** → `progress/reviews/review_EP-11.md`. EP-11 → **done** (flip aplicado por el reviewer).
 * **Pendiente operativo (no bloquea):** correr la migración cuando haya DB: `pnpm --filter @estetica/server exec ts-node src/scripts/migrate-ep11-professionals.ts`.
 * **Deuda preexistente señalada:** lint de `ProductoModal.tsx` (`'stock' unused`); ausencia de helper `formatDateTime` en `utils/dates.ts` (timestamps reales se formatean ad-hoc, patrón ya vigente en `Turnos.tsx`).
+
+---
+
+## 2026-06-26 — UX-06: Rename Shear + Página 404 + Date autofill + Hora en calendario
+
+* **Agente:** Claude (Leader) + implementer-frontend (1 ronda)
+* **Objetivo:** 4 mejoras/bugfixes sin épica en `feature_list.json`: (1) corrección de branding "Shaer"→"Shear"; (2) página 404 acorde al sistema de diseño; (3) fix de date auto-fill al seleccionar fecha en calendario; (4) mostrar hora en chips del calendario.
+
+* **Contexto operativo:** El usuario renombró la carpeta raíz de `shaer-system` a `shear-system`. Esto invalidó los `node_modules` (pnpm symlinks incluyen el path absoluto). Se requirió `CI=true pnpm install` antes del build para recrear node_modules sin TTY interactivo.
+
+* **Cambios Realizados (7 archivos, solo `apps/client/`):**
+
+  - `apps/client/index.html` — `<title>Shaer |` → `<title>Shear |`
+  - `apps/client/src/layouts/AppLayout.tsx` — 2 ocurrencias de "Shaer" → "Shear" (header móvil + sidebar)
+  - `apps/client/src/views/Landing.tsx` — 8 ocurrencias de "Shaer" → "Shear" (SVG, logos, copy)
+  - `apps/client/src/views/AceptarInvitacion.tsx` — 1 ocurrencia "Shaer" → "Shear" en `<h1>`
+  - `apps/client/src/views/NotFound.tsx` (nuevo) — Página 404 standalone con diseño Maison: fondo `bg-maison-bg`, "404" en `font-serif text-8xl`, subtítulo, descripción, CTA `<Link to="/dashboard">` con `FiArrowLeft`
+  - `apps/client/src/router.tsx` — `import NotFound` + `<Route path="*" element={<NotFound />} />` como última ruta (fuera de AppLayout)
+  - `apps/client/src/views/Turnos.tsx`:
+    - `handleDateSelect`: detecta string date-only (`!startTime.includes('T')`) e inyecta hora local actual para que el `<input type="datetime-local">` se rellene en vista mes (dayGrid, donde FullCalendar devuelve solo `YYYY-MM-DD`)
+    - Botón "Nuevo Turno": reemplaza `toISOString()` (UTC) por construcción manual con `getHours()`/`getMinutes()` locales — elimina desfase de 3 horas en Argentina
+    - `eventContent`: agrega prefijo `"HH:MM · "` con `toLocaleTimeString('es-AR', { hour12: false })` al título del chip del calendario en todas las vistas
+
+* **ADRs:**
+  - Tokens CSS `bg-maison-*`/`text-maison-*` no se renombraron — son tokens de diseño sin relación al nombre comercial.
+  - La ruta 404 queda fuera de AppLayout deliberadamente: usuarios no autenticados también pueden ver un error coherente sin redirigirse a login.
+  - El fix de hora en `handleDateSelect` es mínimamente invasivo: solo agrega el bloque `if (!startTime.includes('T'))`, sin cambiar el flujo para vistas timeGrid donde el string ya incluye la hora.
+
+* **Verificación:** `pnpm --filter @estetica/client build` → Exit 0. Lint: 1 error + 3 warnings PRE-EXISTENTES (`ProductoModal.tsx`, `ProfesionalModal.tsx`, `Negocio.tsx`, `Turnos.tsx:366`) — sin errores nuevos. Sin reviewer formal (alcance trivial, sin lógica de negocio ni acceso a DB).
+
+---
+
+## 2026-06-26 — UX-07: Scroll interno en calendario + fix validación nextTouchupDate
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (paralelo)
+* **Objetivo:** Dos bugfixes: (1) el calendario de turnos no tenía scroll interno en vistas semana/día; (2) el campo opcional "próximo retoque" lanzaba el error técnico "nextTouchupDate debe ser una fecha válida" al enviarse vacío.
+
+* **Bug 1 — Calendar scroll (`apps/client/src/views/Turnos.tsx`):**
+  - **Causa raíz:** `height="auto"` hace que FullCalendar se expanda sin scroll interno. En pantallas donde el calendario no entra completo, los slots de tarde se cortan.
+  - **Fix:** `height="auto"` → `contentHeight={560}`. FullCalendar agrega automáticamente scroll interno al timeGrid al recibir un `contentHeight` fijo.
+
+* **Bug 2 — Validación `nextTouchupDate` (`serviceRecordRoutes.ts` + `appointmentRoutes.ts`):**
+  - **Causa raíz:** `optional({ nullable: true })` en express-validator solo ignora `null`/`undefined`. React-hook-form envía `""` (string vacío) cuando el campo queda sin llenar. El validador `isISO8601()` ejecuta sobre `""`, falla, y devuelve un mensaje técnico al usuario.
+  - **Fix:** `optional({ nullable: true })` → `optional({ checkFalsy: true })` en los 3 validadores (POST `/api/registros`, PUT `/api/registros/:id`, POST `/api/turnos/:id/complete`). También se mejoró el mensaje: `'nextTouchupDate debe ser una fecha válida'` → `'La fecha del próximo retoque no es válida'`.
+
+* **Verificación:** `pnpm --filter @estetica/server build` → Exit 0. `pnpm --filter @estetica/client build` → Exit 0. Sin reviewer formal (alcance trivial, 3 líneas backend + 1 prop frontend, sin lógica de negocio nueva).
+
+---
+
+## 2026-06-26 — UX-08: Rango horario del calendario + Dashboard retoques mejorado
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (paralelo)
+* **Objetivo:** Tres mejoras: (1) ampliar el rango de horas del calendario; (2) limitar el widget de retoques a los 7 más próximos; (3) nuevo flujo de acciones en el widget de retoques (completar sin generar nuevo retoque).
+
+* **Cambio 1 — Rango horario del calendario (`Turnos.tsx`):**
+  - `slotMinTime="08:00"` → `"06:00"`, `slotMaxTime="20:00"` → `"22:00"`.
+  - Cubre el rango 6am–10pm (16 horas). Con el scroll interno (contentHeight=560 de UX-07) el usuario puede navegar libremente.
+
+* **Cambio 2 — Límite de 7 retoques (`serviceRecordController.ts`):**
+  - `getUpcomingTouchups` agrega `.limit(7)` al final de la cadena `.sort({ nextTouchupDate: 1 })`.
+  - Los 7 retoques de fecha más próxima (ascendente), exención de paginación válida para widget de dashboard.
+
+* **Cambio 3 — Tres acciones en el widget de retoques (`Dashboard.tsx`):**
+  - Import: `FiRefreshCw` agregado.
+  - Nueva mutation `completeTouchup` → `PUT /api/registros/:id` con `{ touchupStatus: 'completed' }` (misma ruta que `cancelTouchup`). Invalida `upcoming-touchups` y `dashboard-stats`.
+  - Subtitle: `"Historial de retoques pendientes"` → `"Los 7 más próximos · ordenados por fecha"`.
+  - Los botones de hover pasan de 2 a 3: `FiX` (cancelar), `FiCheck` (solo marcar como completado), `FiRefreshCw` (completar + registrar nueva visita con cliente/servicio pre-cargados).
+
+* **Verificación:** server build Exit 0, client build Exit 0. Sin reviewer formal (sin lógica de negocio nueva en backend; frontend: nueva mutation que reutiliza endpoint y handler ya auditados).
+
+---
+
+## 2026-06-26 — UX-09: Botón fecha sugerida + Nueva sección "Próximos turnos" + Badge cancelado + Botones visibles + Eliminación auto-cálculo backend
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (paralelo) + reviewer + implementer de correcciones
+* **Objetivo:** 5 mejoras UX identificadas por el usuario + correcciones pedidas por el reviewer:
+  1. Botón "Usar fecha sugerida" en RegistroModal
+  2. Eliminar auto-cálculo de `nextTouchupDate` en backend
+  3. Badge "Retoque Cancelado" en historial del cliente
+  4. Botones de acción siempre visibles en "Próximos retoques"
+  5. Nueva sección "Próximos turnos" en dashboard + layout reestructurado
+
+**Backend (`apps/server/src/`):**
+* `serviceRecordController.ts` — eliminado bloque de 20 líneas que auto-calculaba `finalNextTouchupDate` usando `service.defaultTouchupDays`. Reemplazado por `const finalNextTouchupDate = nextTouchupDate`. Bloque de creación automática de turno cuando el usuario SÍ provee `nextTouchupDate` se mantiene intacto.
+* `appointmentController.ts` — eliminado bloque `if (!finalNextTouchupDate && serviceDoc.defaultTouchupDays > 0)` de 5 líneas en `completeAppointment`. Nueva función `getUpcomingAppointments` que devuelve los próximos 7 turnos `pending`/`confirmed` en los próximos 30 días, ordenados ASC, filtrado por `tenantId`, populado con `client`/`service`/`professional`.
+* `appointmentRoutes.ts` — nueva ruta `GET /proximos` insertada ANTES de `GET /:id` para evitar colisión con el param dinámico.
+
+**Frontend (`apps/client/src/`):**
+* `api/appointmentApi.ts` — nueva función `getUpcomingAppointments()` → `GET /turnos/proximos`.
+* `components/RegistroModal.tsx` — `watch` y `setValue` destructurados de `useForm`; handler `handleUseSuggestedDate` parsea `serviceDate` en local time (`split('-')/new Date(year, month-1, day)`) y llena `nextTouchupDate` con `+defaultTouchupDays` a las 9:00 AM; botón "Usar sugerida (+Nd)" condicional (solo cuando el servicio tiene `defaultTouchupDays > 0` y hay fecha); invalidación de `upcoming-appointments` en `onSuccess`.
+* `views/ProfileClient.tsx` — dot del timeline usa `bg-maison-red` si `touchupStatus === 'cancelled'`; badge "Retoque Cancelado" (rojo) junto al existente "Retoque Listo" (verde). Trifecta GOV-ACCESS: color + texto + dot.
+* `views/Dashboard.tsx` — layout reestructurado: grid 2col [Retoques | Turnos] + card full-width [Movimientos]; botones de "Próximos retoques" siempre visibles (eliminado `sm:opacity-0 sm:group-hover:opacity-100`); nueva sección "Próximos turnos" con botones "Cancelar" (toast Sonner con confirmación) y "Confirmar y completar" (abre RegistroModal pre-cargado); estado extendido con `completedAppointmentId`, `prefillProfessional`, `prefillServiceDate`; `handleCloseRegistroModal` limpia los 5 prefills.
+* `utils/dates.ts` — nuevo helper `formatDateTime` para timestamps reales con hora (ISO UTC → local `es-AR`, formato "día mes · HH:mm").
+
+**Correcciones del reviewer (post-audit):**
+* `toLocaleDateString`/`toLocaleTimeString` ad-hoc en Dashboard reemplazados por `formatDateTime` del helper compartido.
+* `window.confirm` en `handleCancelAppointment` (código nuevo) reemplazado por `toast()` con actions "Confirmar"/"No" de Sonner.
+* `docs/governance-rules.md` GOV-VISIT actualizado: mandate 1 refleja la nueva política de control explícito del usuario.
+* `docs/architecture.md` ADR-005 actualizado: estado "Revisado (UX-09, 2026-06-26)".
+
+**Verificación:** server build Exit 0, client build Exit 0 (×2 rondas, antes y después de las correcciones del reviewer). Reviewer APROBADO tras correcciones.
+
+**Deuda técnica identificada (backlog):**
+* `window.confirm` pre-existente en `handleCancelTouchup` (Dashboard.tsx:92) y `handleDelete` (ProfileClient.tsx:44) — misma violación GOV-CLIENT mandate 3, pendiente de resolver.
+* Estado `isError` ausente en queries de `retoques`, `recientes`, `stats`, `proximosTurnos` en Dashboard — patrón pre-existente, 4 estados incompletos.

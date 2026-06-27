@@ -132,7 +132,7 @@ export default function PerfilCliente() {
                         <div className="relative pl-4 border-l-2 border-maison-border space-y-8 py-2 ml-2">
                             {historial?.map((registro) => (
                                 <div key={registro._id} className="relative ml-6 sm:ml-8">
-                                    <div className="absolute left-[-46px] sm:left-[-57px] top-1.5 w-4 h-4 rounded-full bg-maison-primary ring-4 ring-white"></div>
+                                    <div className={`absolute left-[-46px] sm:left-[-57px] top-1.5 w-4 h-4 rounded-full ring-4 ring-white ${registro.touchupStatus === 'cancelled' ? 'bg-maison-red' : 'bg-maison-primary'}`}></div>
                                     <div className="bg-white border border-maison-border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex flex-wrap justify-between items-start gap-3 mb-3">
                                             <div>
@@ -152,6 +152,9 @@ export default function PerfilCliente() {
                                             </div>
                                             {registro.touchupStatus === 'completed' && (
                                                 <span className="bg-green-50 text-maison-green border border-green-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Listo</span>
+                                            )}
+                                            {registro.touchupStatus === 'cancelled' && (
+                                                <span className="bg-red-50 text-maison-red border border-red-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Cancelado</span>
                                             )}
                                         </div>
                                         {(registro.notes || registro.productsUsed) && (
