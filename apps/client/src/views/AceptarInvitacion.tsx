@@ -63,7 +63,7 @@ export default function AceptarInvitacion() {
         <div className="min-h-screen flex items-center justify-center bg-maison-bg text-maison-text p-6">
             <div className="bg-maison-card border border-maison-border rounded-2xl p-8 max-w-sm w-full shadow-sm space-y-6">
                 <div className="text-center space-y-1">
-                    <h1 className="font-serif text-2xl font-bold">Shaer</h1>
+                    <h1 className="font-serif text-2xl font-bold">Shear</h1>
                     <p className="text-xs text-gray-400 uppercase tracking-widest">Invitación al equipo</p>
                 </div>
 

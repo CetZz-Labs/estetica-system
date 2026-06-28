@@ -16,6 +16,7 @@ import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
 import Landing from "./views/Landing";
 import AceptarInvitacion from "./views/AceptarInvitacion";
+import NotFound from "./views/NotFound";
 import { getMe } from './api/adminApi';
 import type { AdminInfo, AdminRole } from './types';
 
@@ -86,6 +87,7 @@ export default function Router() {
                     />
                 </Route>
 
+                <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster position="top-right" richColors />
         </BrowserRouter>

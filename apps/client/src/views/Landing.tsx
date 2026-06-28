@@ -41,7 +41,7 @@ function HeroIllustration() {
             <text x="160" y="52" textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="Playfair Display, serif" fill="white">S</text>
 
             {/* Title */}
-            <text x="286" y="52" textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="Playfair Display, serif" fill="#2C2A29">Shaer</text>
+            <text x="286" y="52" textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="Playfair Display, serif" fill="#2C2A29">Shear</text>
 
             {/* Avatar */}
             <circle cx="420" cy="48" r="10" fill="#FDFBF7" stroke="#EAE6DF" strokeWidth="1" />
@@ -208,7 +208,7 @@ export default function Landing() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-maison-bg text-maison-text font-sans">
                 <div className="text-center">
-                    <h1 className="text-3xl font-serif font-bold tracking-wide">Shaer</h1>
+                    <h1 className="text-3xl font-serif font-bold tracking-wide">Shear</h1>
                     <p className="text-sm text-gray-400 mt-2">Cargando...</p>
                 </div>
             </div>
@@ -238,7 +238,7 @@ export default function Landing() {
                             <div className="w-8 h-8 rounded-lg bg-maison-primary flex items-center justify-center">
                                 <span className="text-white font-serif font-bold text-sm">S</span>
                             </div>
-                            <span className="text-xl font-serif font-bold tracking-wide text-maison-text">Shaer</span>
+                            <span className="text-xl font-serif font-bold tracking-wide text-maison-text">Shear</span>
                         </Link>
 
                         {/* Desktop nav */}
@@ -284,7 +284,7 @@ export default function Landing() {
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
                     <div className="absolute top-0 right-0 bottom-0 w-72 bg-maison-card shadow-xl border-l border-maison-border p-6 transform transition-transform">
                         <div className="flex items-center justify-between mb-8">
-                            <span className="text-xl font-serif font-bold tracking-wide">Shaer</span>
+                            <span className="text-xl font-serif font-bold tracking-wide">Shear</span>
                             <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-gray-400 hover:text-gray-700 cursor-pointer" aria-label="Cerrar menú">
                                 <FiX size={24} />
                             </button>
@@ -416,7 +416,7 @@ export default function Landing() {
                             <span className="w-1.5 h-1.5 rounded-full bg-maison-text" />
                             <span className="w-8 h-px bg-maison-border" />
                         </div>
-                        <p className="text-sm text-gray-500 mt-4">Desde clientes hasta inventario, Shaer centraliza cada aspecto de tu operación diaria.</p>
+                        <p className="text-sm text-gray-500 mt-4">Desde clientes hasta inventario, Shear centraliza cada aspecto de tu operación diaria.</p>
                     </motion.div>
 
                     {/* Bento grid: all cards in a single grid */}
@@ -601,7 +601,7 @@ export default function Landing() {
                                 ¿Listo para simplificar tu gestión?
                             </h2>
                             <p className="text-base sm:text-lg text-gray-500 mt-4 max-w-lg mx-auto">
-                                Únete a los centros de estética que ya confían en Shaer para administrar su negocio.
+                                Únete a los centros de estética que ya confían en Shear para administrar su negocio.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
                                 <Link to="/registro"
@@ -636,7 +636,7 @@ export default function Landing() {
                             <div className="w-7 h-7 rounded-lg bg-maison-primary flex items-center justify-center">
                                 <span className="text-white font-serif font-bold text-xs">S</span>
                             </div>
-                            <span className="text-lg font-serif font-bold tracking-wide text-maison-text">Shaer</span>
+                            <span className="text-lg font-serif font-bold tracking-wide text-maison-text">Shear</span>
                         </div>
                         <nav className="flex items-center gap-6 text-xs font-medium text-gray-400">
                             <a href="#funcionalidades" className="hover:text-maison-text transition-colors no-underline">Funcionalidades</a>
@@ -645,7 +645,7 @@ export default function Landing() {
                             <Link to="/registro" className="hover:text-maison-text transition-colors no-underline">Registrarse</Link>
                         </nav>
                         <p className="text-xs text-gray-400">
-                            &copy; {new Date().getFullYear()} Shaer. Todos los derechos reservados.
+                            &copy; {new Date().getFullYear()} Shear. Todos los derechos reservados.
                         </p>
                     </div>
                 </div>

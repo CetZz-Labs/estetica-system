@@ -103,12 +103,66 @@ export const deleteClient = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Cliente no encontrado o ya ha sido eliminado' });
         }
 
-        return res.status(200).json({ 
-            message: 'Cliente eliminado correctamente', 
-            client: deletedClient 
+        return res.status(200).json({
+            message: 'Cliente eliminado correctamente',
+            client: deletedClient
         });
     } catch (error) {
         console.error('Error al eliminar el cliente:', error);
         return res.status(500).json({ error: 'Error interno del servidor al eliminar el cliente' });
+    }
+};
+
+// 6. Bulk Create (POST /api/clientes/carga-masiva)
+export const createBulkClients = async (req: Request, res: Response) => {
+    try {
+        const clients = req.body;
+
+        if (!Array.isArray(clients) || clients.length === 0) {
+            return res.status(400).json({ error: 'Se esperaba un array de clientes' });
+        }
+
+        let created = 0;
+        let skipped = 0;
+
+        for (const cli of clients) {
+            const firstName = String(cli.firstName || '').trim();
+            const lastName = String(cli.lastName || '').trim();
+
+            if (!firstName || !lastName) {
+                skipped++;
+                continue;
+            }
+
+            // Dedup case-insensitive por (firstName + lastName) dentro del tenant
+            const existing = await Client.findOne({
+                tenantId: req.tenantId,
+                firstName: { $regex: new RegExp(`^${firstName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
+                lastName:  { $regex: new RegExp(`^${lastName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
+                isActive: true
+            });
+
+            if (existing) {
+                skipped++;
+                continue;
+            }
+
+            await Client.create({
+                tenantId: req.tenantId,
+                firstName,
+                lastName,
+                phone: String(cli.phone || '').trim() || undefined,
+                medicalNotes: String(cli.medicalNotes || '').trim() || undefined,
+                isActive: true
+            });
+            created++;
+        }
+
+        return res.status(200).json({
+            message: `Carga completada: ${created} cliente${created !== 1 ? 's' : ''} creado${created !== 1 ? 's' : ''}, ${skipped} omitido${skipped !== 1 ? 's' : ''} (ya existían o faltaban datos).`
+        });
+    } catch (error: any) {
+        console.error('Error en carga masiva de clientes:', error);
+        return res.status(500).json({ error: 'Error al procesar la carga masiva de clientes' });
     }
 };

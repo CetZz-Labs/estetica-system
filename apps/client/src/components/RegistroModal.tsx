@@ -93,7 +93,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
-    const { register, control, handleSubmit, formState: { errors }, reset } = useForm<ServiceRecordPayload>({
+    const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ServiceRecordPayload>({
         defaultValues: {
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
@@ -106,6 +106,21 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: "productsUsed" });
+
+    const watchedServiceId = watch('service');
+    const watchedServiceDate = watch('serviceDate');
+    const selectedService = services?.find(s => s._id === watchedServiceId);
+    const hasSuggestedTouchup = (selectedService?.defaultTouchupDays ?? 0) > 0 && !!watchedServiceDate;
+
+    const handleUseSuggestedDate = () => {
+        if (!selectedService || !watchedServiceDate) return;
+        const [year, month, day] = watchedServiceDate.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setDate(date.getDate() + (selectedService.defaultTouchupDays || 0));
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const suggested = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T09:00`;
+        setValue('nextTouchupDate', suggested);
+    };
 
     const handleCloseModal = () => {
         setSelectedProductOption(null);
@@ -143,6 +158,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
+            queryClient.invalidateQueries({ queryKey: ['upcoming-appointments'] });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
             queryClient.invalidateQueries({ queryKey: ['pending-registration'] });
 
@@ -253,9 +269,20 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         <input type="date" className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.serviceDate ? 'border-maison-red' : 'border-maison-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
                     </div>
                     <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-xl border border-gray-200 md:-mt-2">
-                        <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Próximo Retoque <span className="text-gray-400 font-normal normal-case">Opcional</span>
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
+                                Próximo Retoque <span className="text-gray-400 font-normal normal-case ml-1">Opcional</span>
+                            </label>
+                            {hasSuggestedTouchup && (
+                                <button
+                                    type="button"
+                                    onClick={handleUseSuggestedDate}
+                                    className="text-[10px] font-semibold text-maison-primary hover:underline cursor-pointer"
+                                >
+                                    Usar sugerida (+{selectedService!.defaultTouchupDays}d)
+                                </button>
+                            )}
+                        </div>
                         <input type="datetime-local" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('nextTouchupDate')} />
                     </div>
                 </div>

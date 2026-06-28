@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FiSearch, FiPlus, FiUser, FiPhone } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronRight, FiPhone, FiUploadCloud } from 'react-icons/fi';
 
 import { getClients } from '../api/clientApi';
 import type { Client } from '../types';
 import ClienteModal from '../components/ClienteModal';
+import CargaMasivaClientesModal from '../components/CargaMasivaClientesModal';
 import { Link } from 'react-router';
 
 export default function Clients() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCargaMasivaOpen, setIsCargaMasivaOpen] = useState(false);
 
     const { data: clientes, isLoading, isError } = useQuery<Client[]>({
         queryKey: ['clients'],
@@ -32,12 +34,20 @@ export default function Clients() {
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Directorio</h2>
                     <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Clientes</h3>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto"
-                >
-                    <FiPlus className="text-lg" /> Agregar Cliente
-                </button>
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap self-start sm:self-auto">
+                    <button
+                        onClick={() => setIsCargaMasivaOpen(true)}
+                        className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                    >
+                        <FiUploadCloud className="text-lg" /> Importar
+                    </button>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+                    >
+                        <FiPlus className="text-lg" /> Agregar Cliente
+                    </button>
+                </div>
             </header>
 
             {/* Barra de Búsqueda */}
@@ -90,8 +100,11 @@ export default function Clients() {
                         {filteredClientes?.map((cliente) => {
                             const initials = cliente.firstName.charAt(0).toUpperCase() + cliente.lastName.charAt(0).toUpperCase();
                             return (
-                                <li key={cliente._id} className="p-4 hover:bg-gray-50 transition-colors group">
-                                    <div className="flex items-center justify-between gap-3">
+                                <li key={cliente._id} className="hover:bg-gray-50 transition-colors group">
+                                    <Link
+                                        to={`/clientes/${cliente._id}`}
+                                        className="flex items-center justify-between gap-3 p-4 w-full"
+                                    >
                                         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                             <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-full bg-maison-bg border border-maison-border flex items-center justify-center font-serif text-lg text-maison-text shadow-sm">
                                                 {initials}
@@ -112,14 +125,8 @@ export default function Clients() {
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* Siempre visible en móvil, con hover en desktop */}
-                                        <Link
-                                            to={`/clientes/${cliente._id}`}
-                                            className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer shadow-sm flex items-center gap-2"
-                                        >
-                                            <FiUser /> <span className="hidden sm:inline">Ver Perfil</span>
-                                        </Link>
-                                    </div>
+                                        <FiChevronRight className="shrink-0 text-gray-300 group-hover:text-maison-primary transition-colors text-xl" />
+                                    </Link>
                                 </li>
                             );
                         })}
@@ -128,6 +135,10 @@ export default function Clients() {
             </div>
 
             <ClienteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <CargaMasivaClientesModal
+                isOpen={isCargaMasivaOpen}
+                onClose={() => setIsCargaMasivaOpen(false)}
+            />
         </div>
     );
 }

@@ -46,7 +46,7 @@ export default function AppLayout() {
             {/* Header Móvil (Solo visible en pantallas chicas) */}
             <div className="md:hidden flex items-center justify-between p-4 border-b border-maison-border bg-maison-card sticky top-0 z-30">
                 <div>
-                    <h1 className="text-xl font-serif font-bold tracking-wide">Shaer</h1>
+                    <h1 className="text-xl font-serif font-bold tracking-wide">Shear</h1>
                 </div>
                 <button 
                     onClick={() => setIsMobileMenuOpen(true)} 
@@ -68,7 +68,7 @@ export default function AppLayout() {
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-maison-card border-r border-maison-border flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
                 <div className="p-6 border-b border-maison-border flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-serif font-bold tracking-wide">Shaer</h1>
+                        <h1 className="text-2xl font-serif font-bold tracking-wide">Shear</h1>
                         <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Estudio · CRM</p>
                     </div>
                     {/* Botón de cerrar solo visible en móvil */}

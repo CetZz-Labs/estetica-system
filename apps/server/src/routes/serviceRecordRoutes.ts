@@ -56,7 +56,7 @@ router.post(
             .isNumeric().withMessage('La cantidad debe ser un número')
             .custom(value => value > 0).withMessage('La cantidad debe ser mayor a 0'),
 
-        body('nextTouchupDate').optional({ nullable: true }).isISO8601().withMessage('nextTouchupDate debe ser una fecha válida').toDate(),
+        body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'canceled']).withMessage('Estado de retoque no válido'),
         validateRequest
     ],
@@ -71,7 +71,7 @@ router.put(
         // client, service y productsUsed NO son editables vía PUT (ver whitelist en el controller)
         body('serviceDate').optional().isISO8601().withMessage('serviceDate debe tener formato ISO 8601').toDate(),
         body('notes').optional().isString().trim(),
-        body('nextTouchupDate').optional({ nullable: true }).isISO8601().withMessage('nextTouchupDate debe ser una fecha válida').toDate(),
+        body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'cancelled']).withMessage('Estado de retoque no válido'),
         validateRequest
     ],

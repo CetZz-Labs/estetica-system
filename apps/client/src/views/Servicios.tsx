@@ -7,12 +7,14 @@ import { getServices, deleteService as deleteServiceApi } from '../api/serviceAp
 import { handleApiError } from '../api/errorHandler';
 import type { Service } from '../types';
 import ServicioModal from '../components/ServicioModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 export default function Servicios() {
 
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
     const { data: servicios, isLoading } = useQuery<Service[]>({
         queryKey: ['services'],
@@ -31,7 +33,7 @@ export default function Servicios() {
     const handleEdit = (service: Service) => { setServiceToEdit(service); setIsModalOpen(true); };
     const handleCreate = () => { setServiceToEdit(null); setIsModalOpen(true); };
     const handleDelete = (id: string, name: string) => {
-        if (window.confirm(`¿Seguro que querés eliminar el servicio "${name}"?`)) deleteService(id);
+        setConfirmDelete({ id, name });
     };
 
     // Loading skeleton is implemented below
@@ -98,6 +100,14 @@ export default function Servicios() {
             )}
 
             <ServicioModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} serviceToEdit={serviceToEdit} />
+            <ConfirmModal
+                isOpen={confirmDelete !== null}
+                onClose={() => setConfirmDelete(null)}
+                onConfirm={() => { if (confirmDelete) { deleteService(confirmDelete.id); setConfirmDelete(null); } }}
+                title="Eliminar servicio"
+                message={`¿Seguro que querés eliminar el servicio "${confirmDelete?.name}"? Esta acción no se puede deshacer.`}
+                confirmLabel="Eliminar servicio"
+            />
         </div>
     );
 }
