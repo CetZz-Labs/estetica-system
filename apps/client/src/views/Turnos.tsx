@@ -6,7 +6,8 @@ import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select';
 import type { StylesConfig } from 'react-select';
 import FullCalendar from '@fullcalendar/react';
-import type { DatesSetArg, DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { DatesSetArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -84,8 +85,8 @@ function getRenderStatus(appointment: Appointment): string {
 
 interface AppointmentFormData {
     client: string;
-    service: string;
-    professional: string;
+    service?: string;
+    professional?: string;
     startTime: string;
     notes?: string;
 }
@@ -189,7 +190,9 @@ export default function Turnos() {
             const professionalColor = a.professional && typeof a.professional === 'object' ? a.professional.color : undefined;
             return {
                 id: `appt-${a._id}`,
-                title: `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`,
+                title: a.service
+                    ? `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`
+                    : `${a.client.firstName} ${a.client.lastName}`,
                 start: a.startTime,
                 end: a.endTime,
                 extendedProps: { appointment: a, type: 'appointment' as const, professionalColor },
@@ -213,18 +216,15 @@ export default function Turnos() {
         setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
     }, []);
 
-    const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
-        if (!selectInfo.view || !selectInfo.view.calendar) return;
+    const handleDateClick = useCallback((clickInfo: DateClickArg) => {
         setEditingAppointment(null);
-
-        let startTime = selectInfo.startStr.slice(0, 16);
+        let startTime = clickInfo.dateStr.slice(0, 16);
         if (!startTime.includes('T')) {
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
             startTime = `${startTime}T${hh}:${mm}`;
         }
-
         reset({
             client: '',
             service: '',
@@ -250,21 +250,18 @@ export default function Turnos() {
     }, [updateMutate]);
 
     const onSubmit = (data: AppointmentFormData) => {
-        const service = (servicesData || []).find(s => s._id === data.service);
-        if (!service) {
-            toast.error('Seleccioná un servicio válido');
-            return;
-        }
-
-        const payload: AppointmentFormData = {
-            ...data,
+        const payload: Partial<AppointmentFormData> & { startTime: string; client: string } = {
+            client: data.client,
             startTime: new Date(data.startTime).toISOString(),
+            notes: data.notes,
+            ...(data.service ? { service: data.service } : {}),
+            ...(data.professional ? { professional: data.professional } : {}),
         };
 
         if (editingAppointment) {
             updateMutate({ id: editingAppointment._id, data: payload });
         } else {
-            createMutate(payload);
+            createMutate(payload as AppointmentFormData);
         }
     };
 
@@ -272,7 +269,7 @@ export default function Turnos() {
         setEditingAppointment(appointment);
         reset({
             client: appointment.client._id,
-            service: appointment.service._id,
+            service: appointment.service?._id || '',
             professional: appointment.professional?._id || '',
             startTime: new Date(appointment.startTime).toISOString().slice(0, 16),
             notes: appointment.notes || ''
@@ -291,7 +288,7 @@ export default function Turnos() {
     const handleCompleteAppointment = (appointment: Appointment) => {
         setCompletedAppointmentId(appointment._id);
         setPrefillClient(appointment.client._id);
-        setPrefillService(appointment.service._id);
+        setPrefillService(appointment.service?._id);
         setPrefillProfessional(appointment.professional?._id);
         setPrefillServiceDate(new Date(appointment.startTime).toISOString().split('T')[0]);
         setIsDetailModalOpen(false);
@@ -469,8 +466,6 @@ export default function Turnos() {
                         allDaySlot={false}
                         locale={esLocale}
                         contentHeight={560}
-                        selectable={true}
-                        selectMirror={true}
                         editable={true}
                         eventDurationEditable={true}
                         eventOverlap={false}
@@ -487,7 +482,7 @@ export default function Turnos() {
                             );
                         }}
                         datesSet={handleDatesSet}
-                        select={handleDateSelect}
+                        dateClick={handleDateClick}
                         eventClick={handleEventClick}
                         eventDrop={handleEventDrop}
                     />
@@ -524,11 +519,12 @@ export default function Turnos() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Servicio *</label>
+                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
+                            Servicio <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        </label>
                         <Controller
                             name="service"
                             control={control}
-                            rules={{ required: 'Seleccionar un servicio es obligatorio' }}
                             render={({ field }) => (
                                 <Select
                                     options={serviceOptions}
@@ -540,18 +536,18 @@ export default function Turnos() {
                                 />
                             )}
                         />
-                        {errors.service && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.service.message}</span>}
                         {selectedService && (
                             <p className="text-xs text-gray-400 mt-1">Duración estimada: {selectedService.duration} minutos</p>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional *</label>
+                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
+                            Profesional <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        </label>
                         <Controller
                             name="professional"
                             control={control}
-                            rules={{ required: 'Seleccionar una profesional es obligatorio' }}
                             render={({ field }) => (
                                 <Select
                                     options={professionalOptions}
@@ -563,7 +559,6 @@ export default function Turnos() {
                                 />
                             )}
                         />
-                        {errors.professional && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.professional.message}</span>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -622,15 +617,17 @@ export default function Turnos() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
-                                <FiCalendar className="text-lg" />
+                        {selectedAppointment.service && (
+                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                    <FiCalendar className="text-lg" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.service.name}</p>
+                                    <p className="text-xs text-gray-500">{selectedAppointment.service.duration} min</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-maison-text">{selectedAppointment.service.name}</p>
-                                <p className="text-xs text-gray-500">{selectedAppointment.service.duration} min</p>
-                            </div>
-                        </div>
+                        )}
 
                         {selectedAppointment.professional && typeof selectedAppointment.professional === 'object' && (
                             <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">

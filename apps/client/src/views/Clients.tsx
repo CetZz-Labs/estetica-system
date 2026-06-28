@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FiSearch, FiPlus, FiUser, FiPhone } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiUser, FiPhone, FiUploadCloud } from 'react-icons/fi';
 
 import { getClients } from '../api/clientApi';
 import type { Client } from '../types';
 import ClienteModal from '../components/ClienteModal';
+import CargaMasivaClientesModal from '../components/CargaMasivaClientesModal';
 import { Link } from 'react-router';
 
 export default function Clients() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCargaMasivaOpen, setIsCargaMasivaOpen] = useState(false);
 
     const { data: clientes, isLoading, isError } = useQuery<Client[]>({
         queryKey: ['clients'],
@@ -32,12 +34,20 @@ export default function Clients() {
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Directorio</h2>
                     <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Clientes</h3>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto"
-                >
-                    <FiPlus className="text-lg" /> Agregar Cliente
-                </button>
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap self-start sm:self-auto">
+                    <button
+                        onClick={() => setIsCargaMasivaOpen(true)}
+                        className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                    >
+                        <FiUploadCloud className="text-lg" /> Importar
+                    </button>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+                    >
+                        <FiPlus className="text-lg" /> Agregar Cliente
+                    </button>
+                </div>
             </header>
 
             {/* Barra de Búsqueda */}
@@ -128,6 +138,10 @@ export default function Clients() {
             </div>
 
             <ClienteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <CargaMasivaClientesModal
+                isOpen={isCargaMasivaOpen}
+                onClose={() => setIsCargaMasivaOpen(false)}
+            />
         </div>
     );
 }

@@ -46,7 +46,7 @@ export default function Inventario() {
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <button onClick={() => setIsCargaMasivaModalOpen(true)} className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
-                        <FiUploadCloud className="text-lg" /> <span className="hidden xs:inline">Carga Masiva</span><span className="xs:hidden">Masivo</span>
+                        <FiUploadCloud className="text-lg" /> Importar
                     </button>
                     <button onClick={handleNewProduct} className="bg-maison-primary hover:bg-black text-white px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
                         <FiPlus className="text-lg" /> <span>Nuevo Producto</span>

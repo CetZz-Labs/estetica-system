@@ -36,3 +36,16 @@ export const updateClient = async (id: string, data: ClientFormData): Promise<Cl
 export const deleteClient = async (id: string): Promise<void> => {
     await api.delete(`/clientes/${id}`);
 };
+
+export interface BulkClientData {
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    medicalNotes?: string;
+}
+
+/** POST /api/clientes/carga-masiva — Carga masiva de clientes */
+export const createBulkClients = async (data: BulkClientData[]): Promise<{ message: string }> => {
+    const response = await api.post('/clientes/carga-masiva', data);
+    return response.data;
+};

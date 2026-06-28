@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
@@ -94,16 +94,6 @@ export default function Dashboard() {
         }
     };
 
-    const { mutate: completeTouchup } = useMutation({
-        mutationFn: (id: string) => updateServiceRecord(id, { touchupStatus: 'completed' }),
-        onSuccess: () => {
-            toast.success('Retoque marcado como completado');
-            queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-        },
-        onError: (error) => handleApiError(error, 'Error al completar el retoque')
-    });
-
     const { mutate: cancelAppointmentMutate } = useMutation({
         mutationFn: (id: string) => cancelAppointment(id),
         onSuccess: () => {
@@ -125,7 +115,7 @@ export default function Dashboard() {
     const handleCompleteFromDashboard = (appt: Appointment) => {
         setCompletedAppointmentId(appt._id);
         setPrefillClient(appt.client._id);
-        setPrefillService(appt.service._id);
+        setPrefillService(appt.service?._id);
         setPrefillProfessional(appt.professional?._id);
         setPrefillServiceDate(new Date(appt.startTime).toISOString().split('T')[0]);
         setIsRegistroModalOpen(true);
@@ -252,18 +242,11 @@ export default function Dashboard() {
                                                 <FiX size={16} />
                                             </button>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); completeTouchup(registro._id); }}
-                                                title="Marcar como completado"
+                                                onClick={(e) => { e.stopPropagation(); handleTouchupCheck(registro.client._id, registro.service._id); }}
+                                                title="Registrar visita de retoque"
                                                 className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiCheck size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleTouchupCheck(registro.client._id, registro.service._id)}
-                                                title="Completar y registrar próximo retoque"
-                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-primary hover:border-maison-primary transition-all cursor-pointer shadow-sm"
-                                            >
-                                                <FiRefreshCw size={16} />
                                             </button>
                                         </div>
                                     </div>
@@ -312,7 +295,7 @@ export default function Dashboard() {
                                             <p className="font-medium text-maison-text text-sm truncate">
                                                 {appt.client.firstName} {appt.client.lastName}
                                             </p>
-                                            <p className="text-xs text-gray-500 truncate">{appt.service.name}</p>
+                                            <p className="text-xs text-gray-500 truncate">{appt.service?.name ?? 'Sin servicio'}</p>
                                             <p className="text-xs text-gray-400 mt-0.5">
                                                 {formatDateTime(appt.startTime)}
                                             </p>

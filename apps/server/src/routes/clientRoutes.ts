@@ -6,7 +6,8 @@ import {
     getClients,
     getClientById,
     updateClient,
-    deleteClient
+    deleteClient,
+    createBulkClients
 } from '../controllers/clientController';
 import { validateRequest } from '../middlewares/validateRequest';
 
@@ -27,6 +28,20 @@ router.post(
         validateRequest
     ],
     createClient
+);
+
+// Carga masiva (POST /api/clientes/carga-masiva)
+router.post(
+    '/carga-masiva',
+    [
+        body().isArray({ min: 1 }).withMessage('Se esperaba un array de clientes'),
+        body('*.firstName').notEmpty().withMessage('Cada cliente debe tener firstName'),
+        body('*.lastName').notEmpty().withMessage('Cada cliente debe tener lastName'),
+        body('*.phone').optional().isString().trim(),
+        body('*.medicalNotes').optional().isString().trim(),
+        validateRequest
+    ],
+    createBulkClients
 );
 
 // 2. Read All (GET /api/clientes)

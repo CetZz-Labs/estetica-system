@@ -90,8 +90,8 @@ export interface Professional {
 export interface Appointment {
     _id: string;
     client: { _id: string; firstName: string; lastName: string; phone?: string };
-    service: { _id: string; name: string; duration: number };
-    professional: { _id: string; name: string; color: string };
+    service?: { _id: string; name: string; duration: number };
+    professional?: { _id: string; name: string; color: string };
     startTime: string;
     endTime: string;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';

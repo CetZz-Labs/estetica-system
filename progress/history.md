@@ -157,6 +157,67 @@
   - `pnpm --filter @estetica/server build` → Exit Code 0
   - `pnpm --filter @estetica/client build` → Exit Code 0
 
+---
+
+## 2026-06-28 — UX-11: Carga masiva de clientes + guía de columnas
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (2 rondas).
+* **Objetivo:** (1) Nuevo endpoint y modal para importar clientes desde Excel/CSV en masa. (2) Guía visual de columnas en ambos modales de carga masiva (productos y clientes).
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/controllers/clientController.ts` — nueva función `createBulkClients`: loop con dedup case-insensitive por `(tenantId, firstName, lastName, isActive)` usando `$regex`; crea los clientes que no existen; omite duplicados y filas sin datos obligatorios; respuesta con conteo de creados/omitidos; sin filtrar internals de Mongoose al cliente (campo `details` eliminado tras review).
+  - `apps/server/src/routes/clientRoutes.ts` — ruta `POST /carga-masiva` con validators `express-validator` (`body().isArray({ min: 1 })`, `body('*.firstName').notEmpty()`, `body('*.lastName').notEmpty()`), ubicada antes de cualquier segmento `/:id` para evitar captura incorrecta del path literal.
+
+  **Frontend:**
+  - `apps/client/src/api/clientApi.ts` — `BulkClientData` interface + `createBulkClients` function (`POST /clientes/carga-masiva`).
+  - `apps/client/src/components/CargaMasivaClientesModal.tsx` (nuevo) — modal completo: guía visual de columnas (Nombre/Apellido obligatorios, Telefono/NotasMedicas opcionales), zona de drop drag-and-drop, preview table, mutación con invalidación de `['clients']`.
+  - `apps/client/src/components/CargaMasivaModal.tsx` (mejorado) — guía visual de columnas para productos (Nombre/Marca obligatorios, Stock/Descripcion opcionales) insertada antes de la zona de drop; hint text actualizado; fix de `type="button"` + `cursor-pointer` + `disabled:cursor-not-allowed` en botones (detectados en review).
+  - `apps/client/src/views/Clients.tsx` — botón "Carga Masiva" + modal `CargaMasivaClientesModal`.
+
+* **ADRs:**
+  - Clientes usan loop con `findOne` + `create` (no `bulkWrite` upsert) porque los datos personales de clientes no deben sobreescribirse desde un Excel; la dedup solo protege contra duplicados, no actualiza registros existentes.
+  - La guía de columnas siempre es visible (no colapsable) para que el usuario sepa el formato antes de preparar su archivo.
+
+* **Observación no bloqueante (reviewer):** los validadores `body('*.firstName').notEmpty()` rechazan el lote completo si alguna fila tiene campo vacío, mientras el controller hace skip por fila. Comportamiento de API incongruente pero no es un defecto de seguridad. Candidato a ajuste futuro.
+
+* **Review:** 2 rondas. 1ª: CHANGES_REQUESTED (3 defectos: `details` en 500, cursor en botones). Correcciones aplicadas. 2ª: builds Exit 0. UX-11 → **cerrado**.
+
+---
+
+## 2026-06-28 — UX-10: Fixes de negocio — turnos, retoques y calendario
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (2 rondas).
+* **Objetivo:** Cuatro correcciones de lógica de negocio reportadas por el usuario:
+  1. Servicio y Profesional opcionales en el formulario de nuevo turno.
+  2. `completeAppointment` usa service/professional del body como override cuando el turno no los tiene.
+  3. El botón de check en "Próximos retoques" requiere llenar el formulario de visita en vez de completar directamente.
+  4. Calendario: un solo click en un slot de hora abre el formulario (fix de doble-click con `select`).
+
+* **Cambios Realizados:**
+
+  **Backend:**
+  - `apps/server/src/models/Appointment.ts` — `service` y `professional` pasan a opcionales en interfaz y schema (quita `required: true`).
+  - `apps/server/src/controllers/appointmentController.ts::createAppointment` — guard reducido a `client + startTime`; lookups de professional y service condicionales; overlap check solo cuando hay `professionalId`; spread condicional al instanciar.
+  - `apps/server/src/controllers/appointmentController.ts::completeAppointment` — lee `bodyService`/`bodyProfessional` del request; resuelve `effectiveService`/`effectiveProfessional` con `??`; los usa en `ServiceRecord.updateMany`, `new ServiceRecord` y auto-retoque.
+  - `apps/server/src/controllers/appointmentController.ts::updateAppointment` — fix de regresión: lookup de `serviceDoc` envuelto en `if (serviceId)` para evitar `findOne({ _id: undefined })` → 404 en drag-and-drop de turnos sin servicio.
+  - `apps/server/src/routes/appointmentRoutes.ts` — validators de `service` y `professional` en `POST /` cambiados a `optional({ checkFalsy: true })`.
+  - `CHANGELOG.md` — entrada `[CHANGED] UX-10` documentando cambio de contrato.
+
+  **Frontend:**
+  - `apps/client/src/types/index.ts` — `Appointment.service` y `Appointment.professional` opcionales.
+  - `apps/client/src/api/appointmentApi.ts` — `AppointmentFormData.service` y `.professional` opcionales.
+  - `apps/client/src/views/Turnos.tsx` — 11 cambios: `DateClickArg` reemplaza `DateSelectArg`; `handleDateClick` reemplaza `handleDateSelect`; FullCalendar usa `dateClick` (elimina `selectable`, `selectMirror`, `select`); service/professional opcionales en form y tipos; guards de null en `events`, detail modal, `onSubmit`, `openEditModal`, `handleCompleteAppointment`.
+  - `apps/client/src/views/Dashboard.tsx` — 5 cambios: mutación `completeTouchup` eliminada; `FiRefreshCw` eliminado; botón check en retoques llama `handleTouchupCheck` (abre RegistroModal); optional chaining en `handleCompleteFromDashboard`; guard `?.name ?? 'Sin servicio'` en rendering.
+
+* **ADRs:**
+  - `dateClick` vs `select`: FullCalendar con `selectable` requería un drag para confirmar la selección, bloqueando el calendario tras el primer click. `dateClick` dispara inmediatamente sin estado intermedio.
+  - `createServiceRecord` ya tenía el `updateMany` para auto-completar retoques pendientes del mismo cliente+servicio; el cambio en el botón FiCheck aprovecha esa lógica existente sin modificar el backend.
+  - `completeAppointment` usa `appointment.service ?? bodyService` (el turno existente tiene prioridad, el body actúa como override cuando el turno no tiene servicio).
+
+* **Review:** 2 rondas. 1ª: CHANGES_REQUESTED (regresión en `updateAppointment` + CHANGELOG faltante). Correcciones aplicadas. 2ª ronda: builds Exit 0. UX-10 → **cerrado**.
+
 * **Cierre de Sesión:** Arnés multi-agente declarado estable y listo para operar. Fase 1 completa (7 épicas implementadas). Próxima tarea: iniciar Fase 2 con EP-08 (Multi-Tenant) previa validación del roadmap con el usuario.
 
 ---

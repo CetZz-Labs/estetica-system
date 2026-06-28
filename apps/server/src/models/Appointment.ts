@@ -3,8 +3,8 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IAppointment extends Document {
     tenantId: Types.ObjectId;
     client: Types.ObjectId;
-    service: Types.ObjectId;
-    professional: Types.ObjectId;
+    service?: Types.ObjectId;
+    professional?: Types.ObjectId;
     startTime: Date;
     endTime: Date;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -21,8 +21,8 @@ export interface IAppointment extends Document {
 const AppointmentSchema: Schema = new Schema({
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
-    service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-    professional: { type: Schema.Types.ObjectId, ref: 'Professional', required: true },
+    service: { type: Schema.Types.ObjectId, ref: 'Service' },
+    professional: { type: Schema.Types.ObjectId, ref: 'Professional' },
     startTime: { type: Date, required: true },
     endTime: { type: Date, required: true },
     status: {

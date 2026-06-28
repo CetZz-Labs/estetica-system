@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { Appointment } from '../models/Appointment';
 import { Service } from '../models/Service';
 import { ServiceRecord } from '../models/ServiceRecord';
@@ -9,53 +10,62 @@ export const createAppointment = async (req: Request, res: Response) => {
     try {
         const { client, service, professional, startTime, notes } = req.body;
 
-        if (!client || !service || !professional || !startTime) {
-            return res.status(400).json({ error: 'Faltan campos obligatorios: client, service, professional, startTime' });
+        if (!client || !startTime) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios: client, startTime' });
         }
 
-        // EP-11: la profesional agendable se lee del body y se valida que pertenezca
-        // al tenant y esté activa (anti-IDOR cruzado).
-        const professionalDoc = await Professional.findOne({ _id: professional, tenantId: req.tenantId, isActive: true });
-        if (!professionalDoc) {
-            return res.status(400).json({ error: 'Profesional no válida para este negocio' });
-        }
-        const professionalId = professionalDoc._id;
-
-        const serviceDoc = await Service.findOne({ _id: service, tenantId: req.tenantId, isActive: true });
-        if (!serviceDoc) {
-            return res.status(404).json({ error: 'Servicio no encontrado' });
+        // EP-11: si se provee profesional, validar que pertenezca al tenant y esté activa (anti-IDOR).
+        let professionalId: Types.ObjectId | undefined;
+        if (professional) {
+            const professionalDoc = await Professional.findOne({ _id: professional, tenantId: req.tenantId, isActive: true });
+            if (!professionalDoc) {
+                return res.status(400).json({ error: 'Profesional no válida para este negocio' });
+            }
+            professionalId = professionalDoc._id as Types.ObjectId;
         }
 
-        const duration = serviceDoc.duration || 60;
+        // Si se provee servicio, validar y obtener duración; de lo contrario usar 60 min.
+        let duration = 60;
+        if (service) {
+            const serviceDoc = await Service.findOne({ _id: service, tenantId: req.tenantId, isActive: true });
+            if (!serviceDoc) {
+                return res.status(404).json({ error: 'Servicio no encontrado' });
+            }
+            duration = serviceDoc.duration || 60;
+        }
+
         const startDate = new Date(startTime);
         const endDate = new Date(startDate.getTime() + duration * 60000);
 
-        const overlap = await Appointment.findOne({
-            tenantId: req.tenantId,
-            professional: professionalId,
-            isActive: true,
-            status: { $in: ['pending', 'confirmed'] },
-            startTime: { $lt: endDate },
-            endTime: { $gt: startDate }
-        }).populate('client', 'firstName lastName');
+        // Verificar solapamiento solo si hay profesional asignada.
+        if (professionalId) {
+            const overlap = await Appointment.findOne({
+                tenantId: req.tenantId,
+                professional: professionalId,
+                isActive: true,
+                status: { $in: ['pending', 'confirmed'] },
+                startTime: { $lt: endDate },
+                endTime: { $gt: startDate }
+            }).populate('client', 'firstName lastName');
 
-        if (overlap) {
-            return res.status(409).json({
-                error: 'El profesional ya tiene un turno asignado en este horario',
-                overlap: {
-                    _id: overlap._id,
-                    client: overlap.client,
-                    startTime: overlap.startTime,
-                    endTime: overlap.endTime
-                }
-            });
+            if (overlap) {
+                return res.status(409).json({
+                    error: 'El profesional ya tiene un turno asignado en este horario',
+                    overlap: {
+                        _id: overlap._id,
+                        client: overlap.client,
+                        startTime: overlap.startTime,
+                        endTime: overlap.endTime
+                    }
+                });
+            }
         }
 
         const newAppointment = new Appointment({
             tenantId: req.tenantId,
             client,
-            service,
-            professional: professionalId,
+            ...(service ? { service } : {}),
+            ...(professionalId ? { professional: professionalId } : {}),
             startTime: startDate,
             endTime: endDate,
             notes,
@@ -143,11 +153,14 @@ export const updateAppointment = async (req: Request, res: Response) => {
 
         if (startTime || service) {
             const serviceId = service || existing.service;
-            const serviceDoc = await Service.findOne({ _id: serviceId, tenantId: req.tenantId, isActive: true });
-            if (!serviceDoc) {
-                return res.status(404).json({ error: 'Servicio no encontrado' });
+            if (serviceId) {
+                const serviceDoc = await Service.findOne({ _id: serviceId, tenantId: req.tenantId, isActive: true });
+                if (!serviceDoc) {
+                    return res.status(404).json({ error: 'Servicio no encontrado' });
+                }
+                serviceDuration = serviceDoc.duration || 60;
             }
-            serviceDuration = serviceDoc.duration || 60;
+            // Sin servicio disponible, serviceDuration mantiene el default de 60 min
         }
 
         if (startTime) {
@@ -206,7 +219,7 @@ export const updateAppointment = async (req: Request, res: Response) => {
 export const completeAppointment = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { notes, productsUsed, nextTouchupDate } = req.body;
+        const { service: bodyService, professional: bodyProfessional, notes, productsUsed, nextTouchupDate } = req.body;
 
         const appointment = await Appointment.findOne({ _id: id, tenantId: req.tenantId, isActive: true });
         if (!appointment) {
@@ -219,10 +232,16 @@ export const completeAppointment = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'El turno ya fue completado' });
         }
 
+        // Si el turno fue creado sin servicio/profesional, se aceptan del body como override.
+        const effectiveService = appointment.service ?? (bodyService || undefined);
+        const effectiveProfessional = appointment.professional ?? (bodyProfessional || undefined);
+
         const serviceDate = appointment.startTime;
 
         // Buscamos el servicio para conocer defaultTouchupDays y duration.
-        const serviceDoc = await Service.findOne({ _id: appointment.service, tenantId: req.tenantId });
+        const serviceDoc = effectiveService
+            ? await Service.findOne({ _id: effectiveService, tenantId: req.tenantId })
+            : null;
 
         let finalNextTouchupDate = nextTouchupDate;
 
@@ -248,7 +267,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
             {
                 tenantId: req.tenantId,
                 client: appointment.client,
-                service: appointment.service,
+                service: effectiveService,
                 touchupStatus: 'pending'
             },
             { $set: { touchupStatus: 'completed' } }
@@ -258,7 +277,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
         const serviceRecord = new ServiceRecord({
             tenantId: req.tenantId,
             client: appointment.client,
-            service: appointment.service,
+            service: effectiveService,
             serviceDate,
             notes,
             productsUsed: productsUsed || [],
@@ -273,9 +292,9 @@ export const completeAppointment = async (req: Request, res: Response) => {
         if (notes !== undefined) appointment.notes = notes;
         await appointment.save();
 
-        // Auto-create next touchup appointment in calendar
+        // Auto-create next touchup appointment in calendar (solo si hay servicio efectivo)
         let touchupAppointment = null;
-        if (finalNextTouchupDate) {
+        if (finalNextTouchupDate && effectiveService) {
             const touchupStart = new Date(finalNextTouchupDate);
 
             const duration = serviceDoc?.duration || 60;
@@ -284,8 +303,8 @@ export const completeAppointment = async (req: Request, res: Response) => {
             touchupAppointment = await Appointment.create({
                 tenantId: req.tenantId,
                 client: appointment.client,
-                service: appointment.service,
-                professional: appointment.professional,
+                service: effectiveService,
+                professional: effectiveProfessional,
                 startTime: touchupStart,
                 endTime: touchupEnd,
                 status: 'pending',

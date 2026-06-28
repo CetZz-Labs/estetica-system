@@ -3,8 +3,8 @@ import type { Appointment, ServiceRecord } from '../types';
 
 export interface AppointmentFormData {
     client: string;
-    service: string;
-    professional: string;
+    service?: string;
+    professional?: string;
     startTime: string;
     notes?: string;
 }

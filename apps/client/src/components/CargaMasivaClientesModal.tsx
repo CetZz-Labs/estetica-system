@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { FiUploadCloud, FiFileText, FiCheckCircle } from 'react-icons/fi';
-import { createBulkProducts, type BulkProductData } from '../api/productApi';
+import { createBulkClients, type BulkClientData } from '../api/clientApi';
 import { handleApiError } from '../api/errorHandler';
 import Modal from './ui/Modal';
 
@@ -12,38 +12,39 @@ interface Props {
     onClose: () => void;
 }
 
-
-
 interface ExcelRow {
     Nombre?: string;
-    name?: string;
-    Marca?: string;
-    brand?: string;
-    Stock?: string | number;
-    stock?: string | number;
-    Descripcion?: string;
-    description?: string;
+    nombre?: string;
+    firstName?: string;
+    Apellido?: string;
+    apellido?: string;
+    lastName?: string;
+    Telefono?: string;
+    telefono?: string;
+    'Teléfono'?: string;
+    phone?: string;
+    NotasMedicas?: string;
+    notasMedicas?: string;
+    medicalNotes?: string;
     [key: string]: unknown;
 }
 
-
-
-export default function CargaMasivaModal({ isOpen, onClose }: Props) {
+export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
     const queryClient = useQueryClient();
 
-    const [previewData, setPreviewData] = useState<BulkProductData[]>([]);
+    const [previewData, setPreviewData] = useState<BulkClientData[]>([]);
     const [fileName, setFileName] = useState<string>('');
 
     const { mutate, isPending } = useMutation({
-        mutationFn: (data: BulkProductData[]) => createBulkProducts(data),
+        mutationFn: (data: BulkClientData[]) => createBulkClients(data),
         onSuccess: (data) => {
             toast.success(data.message, {
                 style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
             });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
             handleClose();
         },
-        onError: (error) => handleApiError(error, 'Error al subir los productos. Revisa el formato del archivo.')
+        onError: (error) => handleApiError(error, 'Error al subir los clientes. Revisa el formato del archivo.')
     });
 
     const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -70,14 +71,14 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
             const ws = wb.Sheets[wb.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json<ExcelRow>(ws);
 
-            const mappedData: BulkProductData[] = data
+            const mappedData: BulkClientData[] = data
                 .map((row) => ({
-                    name: String(row.Nombre || row.name || ''),
-                    brand: String(row.Marca || row.brand || ''),
-                    stock: Number(row.Stock || row.stock || 0),
-                    description: String(row.Descripcion || row.description || '')
+                    firstName: String(row.Nombre || row.nombre || row.firstName || '').trim(),
+                    lastName: String(row.Apellido || row.apellido || row.lastName || '').trim(),
+                    phone: String(row.Telefono || row.telefono || row['Teléfono'] || row.phone || '').trim() || undefined,
+                    medicalNotes: String(row.NotasMedicas || row.notasMedicas || row.medicalNotes || '').trim() || undefined,
                 }))
-                .filter(p => p.name.trim() !== '' && p.brand.trim() !== '');
+                .filter(c => c.firstName !== '' && c.lastName !== '');
 
             setPreviewData(mappedData);
         };
@@ -117,8 +118,8 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Importar productos"
-            subtitle="Subí un archivo Excel (.xlsx o .csv) con tus productos."
+            title="Importar clientes"
+            subtitle="Subí un archivo Excel o CSV con tus clientes."
             maxWidth="max-w-xl"
             containerClassName="flex flex-col max-h-[85vh]"
             footer={footer}
@@ -131,9 +132,9 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
                         <thead>
                             <tr>
                                 <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Nombre</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Marca</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Stock</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Descripcion</th>
+                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Apellido</th>
+                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Telefono</th>
+                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">NotasMedicas</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -151,22 +152,22 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
                     <table className="w-full text-xs border-collapse">
                         <tbody>
                             <tr>
-                                <td className="p-2 border border-maison-border bg-white text-gray-600">Keratina Premium</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-600">L'Oreal</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">10</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">Tratamiento intensivo</td>
+                                <td className="p-2 border border-maison-border bg-white text-gray-600">María</td>
+                                <td className="p-2 border border-maison-border bg-white text-gray-600">González</td>
+                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">+54 9 11 1234-5678</td>
+                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">Alérgica al tinte</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-3">Si el producto ya existe (mismo nombre y marca), se suma el stock al existente.</p>
+                <p className="text-[10px] text-gray-400 mt-3">El sistema omite filas duplicadas (mismo nombre y apellido ya registrados).</p>
             </div>
 
             {!fileName ? (
                 <label className="border-2 border-dashed border-gray-200 rounded-3xl p-12 flex flex-col items-center justify-center hover:border-maison-primary hover:bg-maison-primary/5 transition-all cursor-pointer group">
                     <FiUploadCloud className="text-5xl text-gray-300 group-hover:text-maison-primary mb-4 transition-colors" />
                     <span className="text-gray-600 font-medium">Hacé clic o arrastrá el archivo aquí</span>
-                    <span className="text-xs text-gray-400 mt-2">Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
+                    <span className="text-xs text-gray-400 mt-2">Compatib. Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
                     <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} />
                 </label>
             ) : (
@@ -177,7 +178,7 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
                         </div>
                         <div className="flex-1">
                             <p className="font-medium text-maison-text">{fileName}</p>
-                            <p className="text-xs text-gray-500">{previewData.length} productos detectados</p>
+                            <p className="text-xs text-gray-500">{previewData.length} clientes detectados</p>
                         </div>
                         <button
                             type="button"
@@ -192,21 +193,21 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
                         <table className="w-full text-xs text-left">
                             <thead className="bg-gray-50 sticky top-0">
                                 <tr>
-                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Nombre</th>
-                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest text-center">Stock</th>
+                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Nombre Apellido</th>
+                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Teléfono</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-maison-border bg-white">
-                                {previewData.slice(0, 10).map((p, i) => (
+                                {previewData.slice(0, 10).map((c, i) => (
                                     <tr key={i}>
-                                        <td className="p-3 font-medium text-gray-700">{p.name} <span className="text-gray-400 font-normal">({p.brand})</span></td>
-                                        <td className="p-3 text-center font-bold text-maison-text">{p.stock}</td>
+                                        <td className="p-3 font-medium text-gray-700">{c.firstName} {c.lastName}</td>
+                                        <td className="p-3 text-gray-500">{c.phone || <span className="italic text-gray-300">—</span>}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                         {previewData.length > 10 && (
-                            <p className="p-3 text-center text-gray-400 bg-gray-50 italic">Y {previewData.length - 10} productos más...</p>
+                            <p className="p-3 text-center text-gray-400 bg-gray-50 italic">Y {previewData.length - 10} clientes más...</p>
                         )}
                     </div>
                 </div>
