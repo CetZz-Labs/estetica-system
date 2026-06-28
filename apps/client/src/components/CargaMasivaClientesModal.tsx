@@ -2,7 +2,7 @@ import { useState, type ChangeEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { FiUploadCloud, FiFileText, FiCheckCircle } from 'react-icons/fi';
+import { FiUploadCloud, FiFileText, FiCheckCircle, FiDownload } from 'react-icons/fi';
 import { createBulkClients, type BulkClientData } from '../api/clientApi';
 import { handleApiError } from '../api/errorHandler';
 import Modal from './ui/Modal';
@@ -29,11 +29,24 @@ interface ExcelRow {
     [key: string]: unknown;
 }
 
+function downloadClienteEjemplo() {
+    const ws = XLSX.utils.aoa_to_sheet([
+        ['Nombre', 'Apellido', 'Telefono', 'NotasMedicas'],
+        ['María', 'González', '+54 9 11 1234-5678', 'Alérgica al tinte'],
+        ['Carlos', 'Rodríguez', '+54 9 11 9876-5432', ''],
+        ['Ana', 'Martínez', '', 'Sin observaciones'],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+    XLSX.writeFile(wb, 'ejemplo-importacion-clientes.xlsx');
+}
+
 export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
     const queryClient = useQueryClient();
 
     const [previewData, setPreviewData] = useState<BulkClientData[]>([]);
     const [fileName, setFileName] = useState<string>('');
+    const [isDragOver, setIsDragOver] = useState(false);
 
     const { mutate, isPending } = useMutation({
         mutationFn: (data: BulkClientData[]) => createBulkClients(data),
@@ -47,10 +60,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         onError: (error) => handleApiError(error, 'Error al subir los clientes. Revisa el formato del archivo.')
     });
 
-    const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const processFile = (file: File) => {
         setFileName(file.name);
         const isCSV = file.name.toLowerCase().endsWith('.csv');
         const reader = new FileReader();
@@ -88,6 +98,12 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         } else {
             reader.readAsArrayBuffer(file);
         }
+    };
+
+    const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        processFile(file);
     };
 
     const handleClose = () => {
@@ -161,10 +177,34 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                     </table>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3">El sistema omite filas duplicadas (mismo nombre y apellido ya registrados).</p>
+                <div className="flex justify-end mt-3">
+                    <button
+                        type="button"
+                        onClick={downloadClienteEjemplo}
+                        className="flex items-center gap-1.5 text-xs text-maison-primary hover:underline cursor-pointer"
+                    >
+                        <FiDownload className="text-sm" />
+                        Descargar archivo de ejemplo
+                    </button>
+                </div>
             </div>
 
             {!fileName ? (
-                <label className="border-2 border-dashed border-gray-200 rounded-3xl p-12 flex flex-col items-center justify-center hover:border-maison-primary hover:bg-maison-primary/5 transition-all cursor-pointer group">
+                <label
+                    className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer group ${
+                        isDragOver
+                            ? 'border-maison-primary bg-maison-primary/10'
+                            : 'border-gray-200 hover:border-maison-primary hover:bg-maison-primary/5'
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragOver(false);
+                        const file = e.dataTransfer.files[0];
+                        if (file) processFile(file);
+                    }}
+                >
                     <FiUploadCloud className="text-5xl text-gray-300 group-hover:text-maison-primary mb-4 transition-colors" />
                     <span className="text-gray-600 font-medium">Hacé clic o arrastrá el archivo aquí</span>
                     <span className="text-xs text-gray-400 mt-2">Compatib. Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
