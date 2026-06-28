@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FiSearch, FiPlus, FiUser, FiPhone, FiUploadCloud } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronRight, FiPhone, FiUploadCloud } from 'react-icons/fi';
 
 import { getClients } from '../api/clientApi';
 import type { Client } from '../types';
@@ -100,8 +100,11 @@ export default function Clients() {
                         {filteredClientes?.map((cliente) => {
                             const initials = cliente.firstName.charAt(0).toUpperCase() + cliente.lastName.charAt(0).toUpperCase();
                             return (
-                                <li key={cliente._id} className="p-4 hover:bg-gray-50 transition-colors group">
-                                    <div className="flex items-center justify-between gap-3">
+                                <li key={cliente._id} className="hover:bg-gray-50 transition-colors group">
+                                    <Link
+                                        to={`/clientes/${cliente._id}`}
+                                        className="flex items-center justify-between gap-3 p-4 w-full"
+                                    >
                                         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                             <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-full bg-maison-bg border border-maison-border flex items-center justify-center font-serif text-lg text-maison-text shadow-sm">
                                                 {initials}
@@ -122,14 +125,8 @@ export default function Clients() {
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* Siempre visible en móvil, con hover en desktop */}
-                                        <Link
-                                            to={`/clientes/${cliente._id}`}
-                                            className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer shadow-sm flex items-center gap-2"
-                                        >
-                                            <FiUser /> <span className="hidden sm:inline">Ver Perfil</span>
-                                        </Link>
-                                    </div>
+                                        <FiChevronRight className="shrink-0 text-gray-300 group-hover:text-maison-primary transition-colors text-xl" />
+                                    </Link>
                                 </li>
                             );
                         })}

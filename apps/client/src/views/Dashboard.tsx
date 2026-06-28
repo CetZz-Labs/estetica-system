@@ -11,6 +11,7 @@ import type { DashboardStats } from '../api/serviceRecordApi';
 import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { Link } from 'react-router';
 
 const getGreeting = (): string => {
@@ -25,6 +26,7 @@ export default function Dashboard() {
     const { isLoaded, user } = useUser();
     const displayName = user?.username || user?.firstName || user?.fullName || '';
 
+    const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
     const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
     const [prefillService, setPrefillService] = useState<string | undefined>(undefined);
     const [completedAppointmentId, setCompletedAppointmentId] = useState<string | undefined>(undefined);
@@ -89,9 +91,7 @@ export default function Dashboard() {
 
     const handleCancelTouchup = (e: React.MouseEvent, recordId: string) => {
         e.stopPropagation();
-        if (window.confirm('¿Cancelar este retoque?')) {
-            cancelTouchup(recordId);
-        }
+        setConfirmCancelId(recordId);
     };
 
     const { mutate: cancelAppointmentMutate } = useMutation({
@@ -365,6 +365,14 @@ export default function Dashboard() {
                 preselectedProfessionalId={prefillProfessional}
                 preselectedServiceDate={prefillServiceDate}
                 appointmentId={completedAppointmentId}
+            />
+            <ConfirmModal
+                isOpen={confirmCancelId !== null}
+                onClose={() => setConfirmCancelId(null)}
+                onConfirm={() => { if (confirmCancelId) { cancelTouchup(confirmCancelId); setConfirmCancelId(null); } }}
+                title="Cancelar retoque"
+                message="¿Confirmás que querés cancelar este retoque?"
+                confirmLabel="Cancelar retoque"
             />
         </div>
     );

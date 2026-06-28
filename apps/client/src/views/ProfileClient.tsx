@@ -10,6 +10,7 @@ import { formatDate } from '../utils/dates';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ClienteModal from '../components/ClienteModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 export default function PerfilCliente() {
     const { id } = useParams();
@@ -17,6 +18,7 @@ export default function PerfilCliente() {
 
     const queryClient = useQueryClient();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const { data: cliente, isLoading: isLoadingClient } = useQuery<Client>({
         queryKey: ['client', id],
@@ -41,9 +43,7 @@ export default function PerfilCliente() {
     });
 
     const handleDelete = () => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este cliente y todo su historial?')) {
-            deleteClient();
-        }
+        setIsDeleteConfirmOpen(true);
     };
 
     const isLoading = isLoadingClient || isLoadingHistory;
@@ -187,6 +187,14 @@ export default function PerfilCliente() {
             </div>
 
             <ClienteModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} clientToEdit={cliente} />
+            <ConfirmModal
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={() => { deleteClient(); setIsDeleteConfirmOpen(false); }}
+                title="Eliminar cliente"
+                message="¿Estás seguro de que deseas eliminar este cliente y todo su historial? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar cliente"
+            />
         </div>
     );
 }
