@@ -77,3 +77,17 @@ export const formatDateTime = (dateString: string): string => {
     const timePart = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
     return `${datePart} · ${timePart}`;
 };
+
+/**
+ * Formatea una fecha date-only ("YYYY-MM-DD") forzando timeZone UTC para evitar
+ * el desfase de un día en zonas UTC-N (ej. Argentina UTC-3).
+ * Usar siempre para fechas capturadas con <input type="date">, vencimientos y retoques.
+ */
+export const formatCalendarDate = (dateString: string): string => {
+    return new Intl.DateTimeFormat('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(dateString));
+};

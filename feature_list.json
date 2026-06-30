@@ -240,7 +240,7 @@
             "name": "Configuración de disponibilidad del negocio",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Horarios de atención, duración de servicios y días no laborables. Bloqueo de turnos fuera del horario configurado.",
             "acceptance_criteria": [
                 "El admin PUEDE definir horario de atención para cada día de la semana",

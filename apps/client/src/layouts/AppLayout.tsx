@@ -110,9 +110,15 @@ export default function AppLayout() {
                     )}
 
                     {role === 'ADMIN' && (
-                        <NavLink to="/configuracion/negocio" onClick={closeMenu} className={navLinkClass}>
-                            Configuración
-                        </NavLink>
+                        <div className="pt-4 mt-2 border-t border-maison-border">
+                            <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Configuración</p>
+                            <NavLink to="/configuracion/negocio" onClick={closeMenu} className={navLinkClass}>
+                                Mi Negocio
+                            </NavLink>
+                            <NavLink to="/configuracion/disponibilidad" onClick={closeMenu} className={navLinkClass}>
+                                Disponibilidad
+                            </NavLink>
+                        </div>
                     )}
                 </nav>
 

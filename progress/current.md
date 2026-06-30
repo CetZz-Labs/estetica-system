@@ -1,23 +1,25 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-06-28
-- **Sesión:** — (sin feature activa)
+- **Última actualización:** 2026-06-30
+- **Sesión:** —
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
-_Sin tareas activas. A la espera de la próxima feature._
+_Sin feature activa. Listo para iniciar próxima tarea._
 
 ## Estado del Backlog
-- EP-12 Acceso diferenciado por rol (RBAC) → **done**
-- EP-11 Gestión de Profesionales agendables → done
+- EP-16 Configuración de disponibilidad del negocio → **done**
 - EP-15 Conversión de turno a visita registrada → done
 - EP-14 Crear y gestionar turnos → done
-- UX-05 Sistema de invitaciones Profesionales → **cerrado**
-- UX-06 Renombrado Shear + 404 + calendario fixes → **cerrado**
-- UX-07 Scroll calendario + validación nextTouchupDate → **cerrado**
-- UX-08 Rango horario + widget retoques mejorado → **cerrado**
-- UX-09 Fecha sugerida + próximos turnos + badge cancelado + auto-cálculo → **cerrado**
+- EP-13 Calendario visual de turnos → done
+- EP-12 Acceso diferenciado por rol (RBAC) → done
+- EP-11 Gestión de Profesionales agendables → done
+
+### Pendientes
+- EP-17 Recordatorio de turno por mail (Fase 4)
+- EP-18 a EP-22 Reportes (Fase 5)
+- EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
 - Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).

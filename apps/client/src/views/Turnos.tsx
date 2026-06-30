@@ -17,6 +17,8 @@ import { getAppointments, createAppointment, updateAppointment, cancelAppointmen
 import { getClients } from '../api/clientApi';
 import { getServices } from '../api/serviceApi';
 import { getProfessionals } from '../api/professionalApi';
+import { getDisponibilidad } from '../api/disponibilidadApi';
+import type { BusinessHours } from '../api/disponibilidadApi';
 
 import { handleApiError } from '../api/errorHandler';
 import type { AxiosError } from 'axios';
@@ -73,6 +75,14 @@ function getStatusIcon(status: string): ReactElement {
         case 'overdue': return <FiAlertTriangle />;
         default: return <FiClock />;
     }
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function isOverduePending(appointment: Appointment): boolean {
@@ -133,6 +143,11 @@ export default function Turnos() {
     const { data: professionalsData } = useQuery<Professional[]>({
         queryKey: ['professionals', 'active'],
         queryFn: () => getProfessionals(),
+    });
+
+    const { data: businessHoursData } = useQuery<BusinessHours>({
+        queryKey: ['business-hours'],
+        queryFn: getDisponibilidad,
     });
 
     const { mutate: createMutate, isPending: isCreating } = useMutation({
@@ -196,7 +211,7 @@ export default function Turnos() {
                 start: a.startTime,
                 end: a.endTime,
                 extendedProps: { appointment: a, type: 'appointment' as const, professionalColor },
-                backgroundColor: palette.bg,
+                backgroundColor: professionalColor ? hexToRgba(professionalColor, 0.13) : palette.bg,
                 borderColor: professionalColor || palette.border,
                 textColor: palette.text,
                 classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : ''].filter(Boolean),
@@ -207,6 +222,17 @@ export default function Turnos() {
     const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })), [clientsData]);
     const serviceOptions = useMemo(() => (servicesData || []).map(s => ({ value: s._id, label: `${s.name} (${s.duration} min)` })), [servicesData]);
     const professionalOptions = useMemo(() => (professionalsData || []).map(p => ({ value: p._id, label: p.name })), [professionalsData]);
+
+    const calendarBusinessHours = useMemo(() => {
+        if (!businessHoursData?.schedule?.length) return true;
+        return businessHoursData.schedule
+            .filter((d) => d.isOpen)
+            .map((d) => ({
+                daysOfWeek: [d.day],
+                startTime: d.openTime,
+                endTime: d.closeTime,
+            }));
+    }, [businessHoursData]);
 
     const professionals = professionalsData || [];
 
@@ -267,11 +293,14 @@ export default function Turnos() {
 
     const openEditModal = (appointment: Appointment) => {
         setEditingAppointment(appointment);
+        const d = new Date(appointment.startTime);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const localStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
         reset({
             client: appointment.client._id,
             service: appointment.service?._id || '',
             professional: appointment.professional?._id || '',
-            startTime: new Date(appointment.startTime).toISOString().slice(0, 16),
+            startTime: localStart,
             notes: appointment.notes || ''
         });
         setIsDetailModalOpen(false);
@@ -449,6 +478,7 @@ export default function Turnos() {
                         .appointment-event-content { display: flex; align-items: center; gap: 4px; overflow: hidden; }
                         .appointment-event-content .event-icon { display: flex; align-items: center; flex-shrink: 0; font-size: 0.85em; }
                         .appointment-event-content .event-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .appointment-event-content .event-prof-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
                         .fc-timegrid-event .fc-event-main { overflow: hidden; }
                     `}</style>
                     {isFetching && (
@@ -467,17 +497,46 @@ export default function Turnos() {
                         locale={esLocale}
                         contentHeight={560}
                         editable={true}
-                        eventDurationEditable={true}
-                        eventOverlap={false}
+                        eventDurationEditable={false}
+                        slotEventOverlap={true}
+                        eventOverlap={(stillEvent, movingEvent) => {
+                            if (!movingEvent) return true;
+                            const stillProf = (stillEvent.extendedProps.appointment as Appointment)?.professional?._id;
+                            const movingProf = (movingEvent.extendedProps.appointment as Appointment)?.professional?._id;
+                            return !stillProf || !movingProf || stillProf !== movingProf;
+                        }}
                         events={events}
                         eventContent={(arg) => {
                             const appointment = arg.event.extendedProps.appointment as Appointment;
+                            const professionalColor = arg.event.extendedProps.professionalColor as string | undefined;
                             const startDate = new Date(appointment.startTime);
                             const timeStr = startDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            const isDay = arg.view.type === 'timeGridDay';
+
+                            if (!isDay) {
+                                return (
+                                    <div className="appointment-event-content">
+                                        {professionalColor
+                                            ? <span className="event-prof-dot" style={{ backgroundColor: professionalColor }} aria-hidden />
+                                            : <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
+                                        }
+                                        <span className="event-title">{timeStr}</span>
+                                    </div>
+                                );
+                            }
+
+                            const professionalName = appointment.professional && typeof appointment.professional === 'object'
+                                ? appointment.professional.name
+                                : undefined;
                             return (
                                 <div className="appointment-event-content">
                                     <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
-                                    <span className="event-title">{timeStr} · {arg.event.title}</span>
+                                    {professionalColor && (
+                                        <span className="event-prof-dot" style={{ backgroundColor: professionalColor }} aria-hidden />
+                                    )}
+                                    <span className="event-title">
+                                        {timeStr} · {arg.event.title}{professionalName ? ` · ${professionalName}` : ''}
+                                    </span>
                                 </div>
                             );
                         }}
@@ -485,6 +544,7 @@ export default function Turnos() {
                         dateClick={handleDateClick}
                         eventClick={handleEventClick}
                         eventDrop={handleEventDrop}
+                        businessHours={calendarBusinessHours}
                     />
                 </div>
             )}

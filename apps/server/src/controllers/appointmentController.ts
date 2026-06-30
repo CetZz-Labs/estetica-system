@@ -5,6 +5,47 @@ import { Service } from '../models/Service';
 import { ServiceRecord } from '../models/ServiceRecord';
 import { Product } from '../models/Product';
 import { Professional } from '../models/Professional';
+import { Tenant } from '../models/Tenant';
+
+async function checkBusinessHours(tenantId: string, startDate: Date, endDate: Date): Promise<string | null> {
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant?.businessHours?.schedule || tenant.businessHours.schedule.length !== 7) return null;
+
+    const tz = tenant.timezone || 'America/Argentina/Buenos_Aires';
+    const localDateStr = startDate.toLocaleDateString('en-CA', { timeZone: tz });
+    const startTimeStr = startDate.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false });
+    const [startHH, startMM] = startTimeStr.split(':').map(Number);
+    const startMin = startHH * 60 + startMM;
+
+    const endTimeStr = endDate.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false });
+    const [endHH, endMM] = endTimeStr.split(':').map(Number);
+    const endMin = endHH * 60 + endMM;
+
+    const dayOfWeek = new Date(localDateStr).getUTCDay();
+    const daySchedule = (tenant.businessHours.schedule as any[]).find((d: any) => d.day === dayOfWeek);
+
+    if (!daySchedule) return null;
+
+    if (!daySchedule.isOpen) {
+        return 'El negocio no atiende ese día de la semana';
+    }
+
+    const [openHH, openMM] = daySchedule.openTime.split(':').map(Number);
+    const [closeHH, closeMM] = daySchedule.closeTime.split(':').map(Number);
+    const openMin = openHH * 60 + openMM;
+    const closeMin = closeHH * 60 + closeMM;
+
+    if (startMin < openMin || endMin > closeMin) {
+        return `El turno está fuera del horario de atención (${daySchedule.openTime} – ${daySchedule.closeTime})`;
+    }
+
+    const isBlocked = (tenant.businessHours.blockedDates as any[])?.some((bd: any) => bd.date === localDateStr);
+    if (isBlocked) {
+        return 'El negocio no atiende en esa fecha';
+    }
+
+    return null;
+}
 
 export const createAppointment = async (req: Request, res: Response) => {
     try {
@@ -60,6 +101,9 @@ export const createAppointment = async (req: Request, res: Response) => {
                 });
             }
         }
+
+        const hoursError = await checkBusinessHours(req.tenantId!.toString(), startDate, endDate);
+        if (hoursError) return res.status(400).json({ error: hoursError });
 
         const newAppointment = new Appointment({
             tenantId: req.tenantId,
@@ -171,7 +215,7 @@ export const updateAppointment = async (req: Request, res: Response) => {
         const checkStartTime = startTime ? new Date(startTime) : existing.startTime;
         const checkEndTime = newEndTime || existing.endTime;
 
-        if (professional || startTime) {
+        if ((professional || startTime) && checkProfessional) {
             const overlap = await Appointment.findOne({
                 _id: { $ne: id },
                 tenantId: req.tenantId,
@@ -192,6 +236,11 @@ export const updateAppointment = async (req: Request, res: Response) => {
                     }
                 });
             }
+        }
+
+        if (startTime && newEndTime) {
+            const hoursError = await checkBusinessHours(req.tenantId!.toString(), new Date(startTime), newEndTime);
+            if (hoursError) return res.status(400).json({ error: hoursError });
         }
 
         const $set: any = {};

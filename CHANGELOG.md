@@ -6,6 +6,7 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 
 ### Added
 - EP-01 a EP-07 (Fase 1): Autenticación Clerk, CRUD de clientes, servicios, productos, registro de visitas, retoques y dashboard.
+- EP-16: Configuración de disponibilidad del negocio. Nuevos endpoints `GET /api/disponibilidad` y `PUT /api/disponibilidad` (requiere rol ADMIN). Almacena horario semanal (7 días, apertura/cierre, abierto/cerrado) y fechas no laborables en el modelo `Tenant`. `POST /api/turnos` y `PUT /api/turnos/:id` validan automáticamente contra el horario configurado (400 si fuera de horario o día cerrado). El calendario de turnos refleja el horario de atención visualmente vía `businessHours` prop de FullCalendar.
 - EP-11: Gestión de Profesionales agendables. Nueva entidad `Professional` (nombre, color, estado activa/inactiva, vínculo opcional `linkedAdmin`) desacoplada del login. Nuevos endpoints `GET/POST/PUT/DELETE /api/profesionales` y `GET /api/profesionales/linkable-admins`. La baja (`DELETE`) devuelve `409 { futureAppointments }` si la profesional tiene turnos futuros y no se envía `confirm: true`. Script de migración idempotente `scripts/migrate-ep11-professionals.ts`.
 
 ### Changed

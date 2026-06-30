@@ -14,6 +14,7 @@ import Profesionales from "./views/Profesionales";
 import Turnos from "./views/Turnos";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
+import Disponibilidad from "./views/Disponibilidad";
 import Landing from "./views/Landing";
 import AceptarInvitacion from "./views/AceptarInvitacion";
 import NotFound from "./views/NotFound";
@@ -82,6 +83,14 @@ export default function Router() {
                         element={
                             <ProtectedRoute roles={['ADMIN']}>
                                 <Negocio />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/configuracion/disponibilidad"
+                        element={
+                            <ProtectedRoute roles={['ADMIN']}>
+                                <Disponibilidad />
                             </ProtectedRoute>
                         }
                     />

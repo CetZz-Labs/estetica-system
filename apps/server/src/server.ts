@@ -14,6 +14,7 @@ import tenantRoutes from './routes/tenantRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import professionalRoutes from './routes/professionalRoutes';
 import invitationRoutes from './routes/invitationRoutes';
+import disponibilidadRoutes from './routes/disponibilidadRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -57,6 +58,8 @@ app.use('/api/invitacion', invitationRoutes);
 
 // EP-12: /api/negocio restringido solo a rol ADMIN (SRS §6.2)
 app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), tenantRoutes);
+// EP-16: /api/disponibilidad restringido solo a rol ADMIN (configuración de negocio)
+app.use('/api/disponibilidad', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), disponibilidadRoutes);
 // EP-12 fix: appointmentRoutes aplica checkAdminAccess+checkTenantAccess internamente — sin doble middleware
 app.use('/api/turnos', appointmentRoutes);
 

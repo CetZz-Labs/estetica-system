@@ -1,5 +1,41 @@
 # Bitácora Histórica de Sesiones (Append-Only)
 
+---
+
+## 2026-06-30 — EP-16: Configuración de disponibilidad del negocio (Fase 4)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (1 ronda).
+* **Objetivo:** Permitir que el administrador configure el horario de atención semanal y fechas no laborables. Los turnos creados o movidos fuera de ese horario quedan bloqueados automáticamente con 400. El calendario de turnos refleja el horario visualmente.
+
+* **Cambios Backend:**
+  - `apps/server/src/models/Tenant.ts` — interfaces `IDaySchedule`, `IBlockedDate`, `IBusinessHours` + campo `businessHours` en `TenantSchema` (schedule 7 días + blockedDates, subdocs con `_id: false`).
+  - `apps/server/src/controllers/disponibilidadController.ts` (nuevo) — `getDisponibilidad` (retorna default Lun–Sáb 09:00–18:00 si no configurado), `updateDisponibilidad` (whitelist `$set`).
+  - `apps/server/src/routes/disponibilidadRoutes.ts` (nuevo) — GET + PUT con validators express-validator (array min/max 7, regex HH:MM, regex YYYY-MM-DD).
+  - `apps/server/src/server.ts` — mount `/api/disponibilidad` con `checkAdminAccess + checkTenantAccess + requireRole('ADMIN')`.
+  - `apps/server/src/controllers/appointmentController.ts` — import `Tenant`, helper privado `checkBusinessHours` (timezone-aware, retorna string|null), llamadas en `createAppointment` y `updateAppointment`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/api/disponibilidadApi.ts` (nuevo) — tipos `DaySchedule`, `BlockedDate`, `BusinessHours` + `getDisponibilidad`/`updateDisponibilidad`.
+  - `apps/client/src/views/Disponibilidad.tsx` (nuevo) — vista con 7 toggles ARIA (`role="switch"`) + time inputs + sección de días bloqueados con formulario inline. Estado "dirty" para evitar `set-state-in-effect` incompatible con React Compiler.
+  - `apps/client/src/utils/dates.ts` — nueva función `formatCalendarDate` (fuerza `timeZone: 'UTC'` para date-only strings, previene off-by-one en UTC-3).
+  - `apps/client/src/views/Turnos.tsx` — query `['business-hours']` + useMemo `calendarBusinessHours` + prop `businessHours` en FullCalendar.
+  - `apps/client/src/router.tsx` — ruta `/configuracion/disponibilidad` protegida por ADMIN.
+  - `apps/client/src/layouts/AppLayout.tsx` — sección Configuración expandida: "Mi Negocio" + "Disponibilidad".
+  - `CHANGELOG.md` — entrada EP-16 bajo `### Added`.
+
+* **ADRs:**
+  - `findByIdAndUpdate(req.tenantId)` en `updateDisponibilidad` no viola anti-IDOR: Tenant es el root entity, `tenantId` ya está resuelto por middleware.
+  - `completeAppointment` NO valida horario: el turno ya existe; validar al completar puede bloquear registros legítimos fuera de horario.
+  - `checkBusinessHours` retorna `null` si `schedule.length !== 7` (retrocompatibilidad: tenants sin configurar no ven bloqueos).
+  - Orden de días en UI: Lunes→Domingo (convención argentina).
+
+* **Fixes previos en la misma sesión (sin épica):**
+  - `Turnos.tsx`: color de profesional como fondo tintado + dot; vistas mensual/semanal muestran solo dot+hora; vista diaria agrega nombre del profesional.
+  - `openEditModal`: fix timezone (UTC→local) en campo `startTime` del formulario de edición.
+  - `appointmentController.ts::updateAppointment`: fix bug — overlap check omitido cuando turno no tiene profesional asignada (`checkProfessional` undefined → query sin filtro).
+
+* **Verificación:** server build Exit 0, client build Exit 0. Lint: 0 errores nuevos (1 preexistente `ProductoModal.tsx:37`). Reviewer: **APPROVED** → `progress/reviews/review_EP-16.md`. EP-16 → **done**.
+
 > **Regla de Operación:** Este archivo representa el historial inmutable a largo plazo del monorepo. Queda estrictamente prohibido modificar, reescribir o eliminar entradas anteriores. Las nuevas bitácoras se añadirán única y exclusivamente al final del archivo.
 
 ---
