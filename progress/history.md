@@ -556,3 +556,73 @@
 **Deuda técnica identificada (backlog):**
 * `window.confirm` pre-existente en `handleCancelTouchup` (Dashboard.tsx:92) y `handleDelete` (ProfileClient.tsx:44) — misma violación GOV-CLIENT mandate 3, pendiente de resolver.
 * Estado `isError` ausente en queries de `retoques`, `recientes`, `stats`, `proximosTurnos` en Dashboard — patrón pre-existente, 4 estados incompletos.
+
+---
+
+## 2026-07-01 — Bug fix post-EP-11: crash de React en conflicto de desactivación + asimetría PUT/DELETE
+
+* **Agente:** Claude (Leader) + explorer (auditoría) + implementer-backend + implementer-frontend (paralelo) + reviewer
+* **Disparador:** usuario reportó que al intentar desactivar una profesional con turnos futuros asignados, la UI crasheaba con `Uncaught Error: Objects are not valid as a React child (found: object with keys {_id, firstName, lastName})`.
+* **Auditoría previa:** `explore_EP-11-audit.md` confirmó que los 3 criterios de aceptación de EP-11 (selector solo activas, soft delete + historial intacto, alerta de reasignación) cumplían, pero detectó una asimetría no bloqueante: el guard de turnos futuros solo vivía en `DELETE`, no en `PUT`.
+
+**Backend (`apps/server/src/controllers/professionalController.ts`):**
+* Extraída `findFutureAppointments(tenantId, professionalId)` reutilizable desde el bloque que antes vivía inline en `deleteProfessional`.
+* `updateProfessional` (PUT) ahora aplica el mismo guard 409 cuando llega `isActive === false` (comparación estricta) sin `confirm === true`. El flag `confirm` se lee de `req.body` sin persistirse en el `$set` (anti mass-assignment). No afecta reactivación (`isActive: true`) ni ediciones sin ese campo.
+
+**Frontend (`apps/client/src/`):**
+* Causa raíz del crash: `api/professionalApi.ts` tipaba `FutureAppointment.client`/`.service` como `string`, pero el backend siempre devolvió los objetos populados (`{_id, firstName, lastName}` / `{_id, name}`). Corregida la interfaz para reflejar el shape real.
+* `views/Profesionales.tsx:191` corregido para renderizar `{appt.client.firstName} {appt.client.lastName} · {appt.service.name}` en vez de los objetos directos.
+
+**Verificación:** reviewer corrió los builds él mismo (no confió en las bitácoras): server `tsc` exit 0, client `tsc -b && vite build` exit 0. Lint exit 1 solo por el error preexistente y no relacionado en `ProductoModal.tsx:37` (deuda técnica ya documentada). Veredicto: **APROBADO**.
+
+**Deuda técnica nueva identificada (no bloqueante):**
+* `PUT /api/profesionales/:id` no valida `confirm` con `express-validator` como sí hace el `DELETE` — asimetría de higiene de validación, sin riesgo de seguridad (el campo nunca se persiste).
+
+---
+
+## 2026-07-01 — Fix scroll/overflow en Modal compartido (post-EP-11)
+
+* **Agente:** Claude (Leader) + implementer-frontend + verificación manual del usuario en navegador
+* **Disparador:** usuario reportó que, con muchos turnos futuros, el modal de conflicto de desactivación de profesional crecía sin límite y los botones del footer quedaban fuera de la pantalla sin scroll disponible.
+* **Cambio:** `apps/client/src/components/ui/Modal.tsx` — contenedor interno ahora `flex flex-col max-h-[90vh]`; body agrega `flex-1 min-h-0` al `overflow-y-auto custom-scrollbar` existente. Header y footer (`shrink-0`) quedan fijos, el body scrollea internamente. Componente compartido: el fix beneficia a todos los modales largos de la app, no solo al de profesionales.
+* **Verificación:** build client exit 0. Sin herramienta de automatización de navegador disponible en la sesión para captura automática — el usuario confirmó manualmente en su navegador (server/client ya corrían en localhost:3000/5173) que el modal ahora queda acotado, scrollea y los botones son clickeables.
+* **Hallazgo documentado (no corregido, backlog):** 3 consumidores (`CargaMasivaClientesModal.tsx`, `CargaMasivaModal.tsx`, `RegistroModal.tsx`) ya traían un `containerClassName` con `flex flex-col max-h-[...]` como workaround manual del mismo bug, ahora redundante con el default nuevo del componente — no rompe nada, candidato a limpieza futura.
+
+---
+
+## 2026-07-01 — EP-17: Recordatorio de turno por mail (+ campo email en Client, + Ajustes > Notificaciones por tenant)
+
+* **Agente:** Claude (Leader) + explorer + 5 implementers (2 backend Stack1/2, 2 frontend Stack1/2, 1 backend Stack3) + 2 reviewers (stack1-2, final)
+* **Disparador:** siguiente feature pendiente del backlog (Fase 4). El usuario pidió arrancar agregando un campo `email` opcional a clientes como prerequisito, y usarlo para el recordatorio automático de turno.
+* **Decisiones de arquitectura confirmadas con el usuario** (feature sin infraestructura previa — se relevó con un explorer que no había NINGUNA librería de mail/cron instalada):
+  - Envío: **Nodemailer + SMTP** (no Resend/SendGrid).
+  - Scheduling: **cron interno** (`node-cron`, cada 15 min), no endpoint externo.
+  - Credenciales SMTP: **configurables por tenant desde la web** (no `.env` global), persistidas cifradas.
+  - Horas de anticipación del recordatorio: **configurable por tenant**, mismo formulario que el SMTP.
+  - Nueva sección canónica **GOV-NOTIFY** agregada a `docs/governance-rules.md` documentando estos mandatos antes de implementar.
+
+**Stack 1 — Campo `email` opcional en `Client`:**
+* Backend: `Client.ts` (+`email?`, sin `unique`), `clientController.ts` (createClient/updateClient/createBulkClients), `clientRoutes.ts` (`isEmail()` opcional en POST/PUT/carga-masiva), `docs/db-schema.md` sincronizado.
+* Frontend: `clientApi.ts` (+`email` en `ClientFormData`/`BulkClientData`), `types/index.ts` (tipo `Client`), `ClienteModal.tsx` (+input email), `CargaMasivaClientesModal.tsx` (+columna Email en plantilla/mapeo/guía).
+
+**Stack 2 — Ajustes > Notificaciones (SMTP cifrado + horas de anticipación, por tenant):**
+* Backend: `Tenant.ts` (+`notificationSettings`: smtpHost/Port/Secure/User/PasswordEncrypted/fromEmail/fromName/reminderHoursBefore), `utils/crypto.ts` (nuevo — AES-256-GCM, clave derivada de `CREDENTIALS_ENCRYPTION_KEY` vía `scryptSync`, IV aleatorio por cifrado), `notificationSettingsController.ts` + `notificationSettingsRoutes.ts` (nuevos, patrón `disponibilidadController.ts`; GET nunca expone la contraseña, solo `hasSmtpPassword: boolean`; PUT con patrón "vacío = no cambiar"), montado en `server.ts` como `/api/notificaciones` (`checkAdminAccess, checkTenantAccess, requireRole('ADMIN')`), `.env.example` nuevo.
+* Frontend: `notificationSettingsApi.ts` (nuevo), `views/Notificaciones.tsx` (nuevo, patrón `Negocio.tsx`, 4 estados, contraseña nunca precargada, Trifecta de accesibilidad para el indicador de "contraseña configurada"), ruta `/configuracion/notificaciones` + entrada de sidebar.
+* Reviewer Stack 1+2: **APROBADO** (`review_EP-17-stack1-2.md`) — auditó específicamente el cifrado (IV aleatorio, clave derivada, nunca texto plano en respuestas), multi-tenancy y el patrón "no pisar contraseña".
+
+**Stack 3 — Servicio de mail + cron scheduler:**
+* `Appointment.ts` (+`reminderSent: boolean` default `false`, + índice `{tenantId,status,reminderSent,startTime}`).
+* `services/mailService.ts` (nuevo) — `sendAppointmentReminder()`: arma transporter Nodemailer con credenciales del tenant (desencriptadas en memoria), mail con nombre del cliente, servicio, fecha/hora en timezone del tenant, y datos de contacto del negocio.
+* `services/reminderScheduler.ts` (nuevo) — `runReminderCheck()` (idempotente vía `reminderSent`, try/catch por turno para no frenar el batch, omite silenciosamente turnos sin email de cliente) + `startReminderScheduler()` (cron `*/15 * * * *`).
+* `index.ts` arranca el cron dentro de `server.listen(...)` (no en `server.ts`, para no dispararlo en tests con supertest).
+* Nuevas dependencias aprobadas explícitamente por el usuario: `nodemailer`, `node-cron` (+ `@types/*`).
+
+**Hallazgo de gobernanza (primera pasada del reviewer final — RECHAZADO):** `services/` y `utils/` son carpetas nuevas fuera de las "4 Capas" documentadas del backend (`controllers/models/routes/middlewares/config`), violando `CHECKPOINTS.md` C3. Remediación del leader: en vez de forzar el código en una carpeta que no encaja (un mail service no es un controller), se amendó formalmente la documentación — `docs/architecture.md` ("Backend: 4 Capas" → "Backend: 6 Capas"), `CHECKPOINTS.md` C3 y `.claude/rules/backend.md` §2, reconociendo `services/` (lógica desacoplada de req/res) y `utils/` (funciones puras) como capas legítimas. Segunda pasada del reviewer: **APROBADO**, verificó consistencia entre los 3 documentos y contra el código real (grep confirmó que ningún archivo de `services/`/`utils/` importa `Request`/`Response`).
+
+**Verificación:** ambos reviewers corrieron los builds ellos mismos: server y client `exit 0`; lint client `exit 1` solo por el error preexistente y no relacionado en `ProductoModal.tsx:37`. `pnpm --filter @estetica/server test` falló por un problema de entorno del sandbox (descarga del binario de `mongodb-memory-server`), no por regresión de código — documentado, no bloqueante.
+
+**`feature_list.json`:** EP-17 → `"done"`.
+
+**Deuda técnica nueva identificada (no bloqueante):**
+* Sin tests automatizados para `mailService`/`reminderScheduler`.
+* `Tenant.notificationSettings.smtpPort` sin valor `default` (el usuario tiene que completarlo manualmente; podría defaultear a 587).
