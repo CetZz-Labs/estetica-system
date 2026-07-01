@@ -41,7 +41,7 @@ export default function AppLayout() {
         }`;
 
     return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-maison-bg text-maison-text font-sans">
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-maison-bg text-maison-text font-sans">
             
             {/* Header Móvil (Solo visible en pantallas chicas) */}
             <div className="md:hidden flex items-center justify-between p-4 border-b border-maison-border bg-maison-card sticky top-0 z-30">
@@ -118,6 +118,9 @@ export default function AppLayout() {
                             <NavLink to="/configuracion/disponibilidad" onClick={closeMenu} className={navLinkClass}>
                                 Disponibilidad
                             </NavLink>
+                            <NavLink to="/configuracion/notificaciones" onClick={closeMenu} className={navLinkClass}>
+                                Notificaciones
+                            </NavLink>
                         </div>
                     )}
                 </nav>
@@ -129,7 +132,7 @@ export default function AppLayout() {
             </aside>
 
             {/* Área de Contenido Principal */}
-            <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
+            <main className="flex-1 p-4 md:p-8 overflow-x-hidden overflow-y-auto">
                 <Outlet />
             </main>
         </div>
