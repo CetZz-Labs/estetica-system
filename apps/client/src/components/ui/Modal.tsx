@@ -50,7 +50,7 @@ export default function Modal({
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div
-                className={`bg-maison-card border border-maison-border rounded-2xl w-full ${maxWidth} shadow-xl overflow-hidden ${containerClassName}`}
+                className={`bg-maison-card border border-maison-border rounded-2xl w-full ${maxWidth} shadow-xl overflow-hidden flex flex-col max-h-[90vh] ${containerClassName}`}
             >
                 {/* ── Header ── */}
                 <div className="flex justify-between items-center p-5 sm:p-6 border-b border-maison-border bg-maison-bg shrink-0">
@@ -78,7 +78,7 @@ export default function Modal({
                 </div>
 
                 {/* ── Body ── */}
-                <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar">
+                <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 min-h-0">
                     {children}
                 </div>
 

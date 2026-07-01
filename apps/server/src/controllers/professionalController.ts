@@ -1,10 +1,35 @@
 import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
+import { Types } from 'mongoose';
 import { clerkClient } from '@clerk/express';
 import { Professional } from '../models/Professional';
 import { Admin } from '../models/Admin';
 import { Tenant } from '../models/Tenant';
 import { Appointment } from '../models/Appointment';
+
+// Busca los turnos futuros pendientes/confirmados de una profesional dentro del tenant.
+// Reutilizada por deleteProfessional y updateProfessional para mantener el mismo guard
+// en ambos caminos de baja (DELETE explícito y PUT con isActive: false).
+const findFutureAppointments = async (tenantId: Types.ObjectId | undefined, professionalId: string) => {
+    const futureAppointments = await Appointment.find({
+        tenantId,
+        professional: professionalId,
+        isActive: true,
+        status: { $in: ['pending', 'confirmed'] },
+        startTime: { $gte: new Date() }
+    })
+        .select('_id client service startTime')
+        .populate('client', 'firstName lastName')
+        .populate('service', 'name')
+        .sort({ startTime: 1 });
+
+    return futureAppointments.map((appt) => ({
+        _id: appt._id,
+        client: appt.client,
+        service: appt.service,
+        startTime: appt.startTime
+    }));
+};
 
 // 1. Create (POST /api/profesionales)
 export const createProfessional = async (req: Request, res: Response) => {
@@ -142,6 +167,19 @@ export const updateProfessional = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { name, color, linkedAdmin, isActive } = req.body;
+        const confirm = req.body?.confirm === true;
+
+        // Guard simétrico al de deleteProfessional: una baja explícita vía PUT (isActive: false)
+        // también debe verificar turnos futuros pendientes/confirmados antes de aplicarse.
+        if (isActive === false && !confirm) {
+            const futureAppointments = await findFutureAppointments(req.tenantId, id);
+            if (futureAppointments.length > 0) {
+                return res.status(409).json({
+                    error: 'La profesional tiene turnos futuros asignados. Reasignalos o confirmá la baja.',
+                    futureAppointments
+                });
+            }
+        }
 
         // Si se provee un vínculo a usuario, validar que el Admin pertenece al tenant
         if (linkedAdmin) {
@@ -201,27 +239,12 @@ export const deleteProfessional = async (req: Request, res: Response) => {
 
         // Guard: turnos futuros pendientes/confirmados quedarían huérfanos si se da de baja.
         if (!confirm) {
-            const futureAppointments = await Appointment.find({
-                tenantId: req.tenantId,
-                professional: id,
-                isActive: true,
-                status: { $in: ['pending', 'confirmed'] },
-                startTime: { $gte: new Date() }
-            })
-                .select('_id client service startTime')
-                .populate('client', 'firstName lastName')
-                .populate('service', 'name')
-                .sort({ startTime: 1 });
+            const futureAppointments = await findFutureAppointments(req.tenantId, id);
 
             if (futureAppointments.length > 0) {
                 return res.status(409).json({
                     error: 'La profesional tiene turnos futuros asignados. Reasignalos o confirmá la baja.',
-                    futureAppointments: futureAppointments.map((appt) => ({
-                        _id: appt._id,
-                        client: appt.client,
-                        service: appt.service,
-                        startTime: appt.startTime
-                    }))
+                    futureAppointments
                 });
             }
         }

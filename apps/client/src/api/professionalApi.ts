@@ -18,8 +18,8 @@ export interface LinkableAdmin {
 /** Turno futuro devuelto por el guard del DELETE (409). */
 export interface FutureAppointment {
     _id: string;
-    client: string;
-    service: string;
+    client: { _id: string; firstName: string; lastName: string };
+    service: { _id: string; name: string };
     startTime: string;
 }
 
