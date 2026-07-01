@@ -17,6 +17,17 @@ export interface IBusinessHours {
     blockedDates: IBlockedDate[];
 }
 
+export interface INotificationSettings {
+    smtpHost?: string;
+    smtpPort?: number;
+    smtpSecure?: boolean;        // true = TLS/SSL (puerto 465), false = STARTTLS (puerto 587)
+    smtpUser?: string;
+    smtpPasswordEncrypted?: string;  // nunca texto plano — ver utils/crypto.ts
+    fromEmail?: string;
+    fromName?: string;
+    reminderHoursBefore?: number;    // default 24
+}
+
 export interface ITenant extends Document {
     name: string;
     logo?: string;
@@ -24,6 +35,7 @@ export interface ITenant extends Document {
     currency: string;
     isActive: boolean;
     businessHours?: IBusinessHours;
+    notificationSettings?: INotificationSettings;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -47,6 +59,17 @@ const TenantSchema: Schema = new Schema({
             date: { type: String },
             reason: { type: String }
         }]
+    },
+    notificationSettings: {
+        _id: false,
+        smtpHost: { type: String, trim: true },
+        smtpPort: { type: Number },
+        smtpSecure: { type: Boolean },
+        smtpUser: { type: String, trim: true },
+        smtpPasswordEncrypted: { type: String },
+        fromEmail: { type: String, trim: true },
+        fromName: { type: String, trim: true },
+        reminderHoursBefore: { type: Number, default: 24, min: 1, max: 168 }
     }
 }, {
     timestamps: true

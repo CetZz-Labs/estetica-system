@@ -30,7 +30,7 @@
 
 ### Backend (Express + Mongoose)
 
-- [ ] **Estructura Limpia:** Todo código en `apps/server/src/` pertenece a `controllers/`, `models/`, `routes/`, `middlewares/` o `config/`.
+- [ ] **Estructura Limpia:** Todo código en `apps/server/src/` pertenece a `controllers/`, `models/`, `routes/`, `middlewares/`, `config/`, `services/` (lógica de negocio fuera del ciclo request/response — integraciones externas, jobs en background) o `utils/` (funciones puras sin dependencia de Express/Mongoose). Ver `docs/architecture.md` § Backend: 6 Capas.
 - [ ] **Autenticación Obligatoria:** Todo endpoint protegido usa `checkAdminAccess` middleware. Las rutas públicas (health check) están explícitamente excluidas.
 - [ ] **Validación de Entrada:** Todo POST y PUT usa `express-validator` para sanitizar datos.
 - [ ] **Manejo de Errores:** Cada controller maneja sus errores con try/catch y responde con códigos HTTP adecuados (400, 404, 500). Los stack traces de Mongoose nunca se propagan al cliente.

@@ -54,12 +54,14 @@
 [ Backend Express ]
 ```
 
-### Backend: 4 Capas
+### Backend: 6 Capas
 
 1. **Routes (`src/routes/`)**: Definición de rutas Express con middleware de autenticación y validación inline.
 2. **Controllers (`src/controllers/`)**: Lógica de endpoints con try/catch y respuestas HTTP.
 3. **Models (`src/models/`)**: Schemas Mongoose con interfaces TypeScript.
 4. **Config/Middlewares (`src/config/`, `src/middlewares/`)**: Configuración de DB, Clerk, y middlewares personalizados.
+5. **Services (`src/services/`)**: Lógica de negocio desacoplada de un ciclo request/response — integraciones con sistemas externos (ej. `mailService.ts`, envío SMTP) y jobs en background (ej. `reminderScheduler.ts`, cron interno con `node-cron`). Un controller puede invocar un service; un service nunca conoce `req`/`res`. _(Agregada en EP-17, 2026-07-01 — primera feature que requirió lógica de negocio fuera del ciclo HTTP.)_
+6. **Utils (`src/utils/`)**: Funciones puras y utilitarias sin estado ni dependencias de Express/Mongoose, reutilizables desde cualquier capa (ej. `crypto.ts`, cifrado AES-256-GCM de credenciales). _(Agregada en EP-17, 2026-07-01.)_
 
 ```
 [ Routes ] → [ Auth Middleware ] → [ Controllers ] → [ Mongoose Models ]

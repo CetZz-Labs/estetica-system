@@ -20,6 +20,8 @@ La API sigue una estructura de capas:
 - `src/models/`: Schemas de Mongoose (PascalCase, interfaz `IEntity`, schema `EntitySchema`, export `Entity`)
 - `src/routes/`: Definición de rutas Express (crean Router, aplican middleware, export default)
 - `src/middlewares/`: Middleware personalizados (auth, validación)
+- `src/services/`: Lógica de negocio desacoplada de `req`/`res` — integraciones externas (ej. `mailService.ts`) y jobs en background (ej. `reminderScheduler.ts` con `node-cron`). Un controller puede llamar a un service; un service nunca importa `Request`/`Response` de Express. _(EP-17, 2026-07-01)_
+- `src/utils/`: Funciones puras y utilitarias, sin dependencia de Express/Mongoose (ej. `crypto.ts`). _(EP-17, 2026-07-01)_
 
 ### Patrón de Controlador
 

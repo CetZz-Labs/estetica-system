@@ -33,8 +33,23 @@ Centros de estética registrados (Fase 2 / EP-08). Cada tenant es un negocio ind
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
 **Reglas de negocio:**
-- Modelo mínimo creado en EP-08. EP-09 (registro autónomo) agregó el flujo de alta. EP-10 agregó configuración (logo, zona horaria, moneda) con endpoints GET/PUT /api/negocio protegidos por `checkAdminAccess` y `checkTenantAccess`.
+- Modelo mínimo creado en EP-08. EP-09 (registro autónomo) agregó el flujo de alta. EP-10 agregó configuración (logo, zona horaria, moneda) con endpoints GET/PUT /api/negocio protegidos por `checkAdminAccess` y `checkTenantAccess`. EP-16 agregó el subdocumento `businessHours` (horarios y días bloqueados). EP-17 agregó el subdocumento `notificationSettings` (SMTP + ventana de anticipación del recordatorio de turno).
 - Los datos legados (pre multi-tenant) requieren backfill manual de `tenantId` antes de desplegar.
+
+**Subdocumento `notificationSettings` (EP-17, prerequisito del envío de recordatorios):**
+
+| Campo | Tipo Mongoose | Requerido | Descripción |
+|-------|--------------|-----------|-------------|
+| `smtpHost` | `String` | No | Host del servidor SMTP del tenant. `trim` |
+| `smtpPort` | `Number` | No | Puerto SMTP (típicamente 465 o 587) |
+| `smtpSecure` | `Boolean` | No | `true` = TLS/SSL (puerto 465), `false` = STARTTLS (puerto 587) |
+| `smtpUser` | `String` | No | Usuario/login SMTP. `trim` |
+| `smtpPasswordEncrypted` | `String` | No | Contraseña SMTP cifrada en reposo con AES-256-GCM (`utils/crypto.ts`, clave `CREDENTIALS_ENCRYPTION_KEY`). **Nunca se expone vía API en texto plano ni cifrado** — `GET`/`PUT /api/notificaciones` solo devuelven `hasSmtpPassword: boolean` |
+| `fromEmail` | `String` | No | Email remitente de los recordatorios. `trim` |
+| `fromName` | `String` | No | Nombre remitente. `trim` |
+| `reminderHoursBefore` | `Number` | No, default `24` | Horas de anticipación del recordatorio de turno. `min: 1, max: 168` |
+
+Ver regla canónica completa en [`governance-rules.md#gov-notify`](governance-rules.md#gov-notify--notificaciones-por-mail-recordatorios-de-turno).
 
 ---
 
@@ -69,6 +84,7 @@ Clientes del centro de estética. Perfil con datos de contacto y notas médicas.
 | `firstName` | `String` | Sí | - | Nombre del cliente. `trim` |
 | `lastName` | `String` | Sí | - | Apellido del cliente. `trim` |
 | `phone` | `String` | No | - | Teléfono de contacto. `trim` |
+| `email` | `String` | No | - | Email de contacto. `trim`, `lowercase`. Sin restricción de unicidad |
 | `medicalNotes` | `String` | No | - | Alergias, contraindicaciones, etc. `trim` |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete. Preserva integridad del historial de visitas |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
@@ -178,6 +194,7 @@ Turnos/agenda del centro de estética. Vincula cliente, servicio y profesional c
 | `cancelledBy` | `ObjectId` (ref: Admin) | No | - | Admin que canceló el turno |
 | `createdBy` | `ObjectId` (ref: Admin) | Sí | - | Admin que creó el turno |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
+| `reminderSent` | `Boolean` | No, default `false` | Indexado (compuesto) | Idempotencia del cron de recordatorios (EP-17): `true` una vez enviado el mail de recordatorio |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
@@ -188,11 +205,13 @@ Turnos/agenda del centro de estética. Vincula cliente, servicio y profesional c
 | - | `appointments` | `tenantId: 1, startTime: 1, status: 1` | Consultas de calendario por rango de fechas y estado |
 | - | `appointments` | `tenantId: 1, client: 1, startTime: -1` | Historial de turnos del cliente (próximos y pasados) |
 | - | `appointments` | `tenantId: 1, professional: 1, startTime: 1, status: 1` | Validación de superposición y filtro por profesional |
+| - | `appointments` | `tenantId: 1, status: 1, reminderSent: 1, startTime: 1` | Cron de recordatorios (EP-17): turnos activos pendientes de aviso, dentro de la ventana de anticipación |
 
 **Reglas de negocio:**
 - `endTime` se calcula automáticamente como `startTime + service.duration` (minutos).
 - Superposición: se valida que no exista otro turno `pending` o `confirmed` del mismo `professional` cuyas horas se superpongan.
 - Al cancelar, se registra `cancelledAt`, `cancelledBy` y opcionalmente `cancelReason`.
+- EP-17: el cron interno (`services/reminderScheduler.ts`) envía un mail de recordatorio a los turnos `pending`/`confirmed` cuyo `startTime` cae dentro de la ventana `[now, now + tenant.notificationSettings.reminderHoursBefore]` y `reminderSent: false`. Al enviarlo, marca `reminderSent: true`. Ver [`governance-rules.md#gov-notify`](governance-rules.md#gov-notify--notificaciones-por-mail-recordatorios-de-turno).
 
 ---
 
@@ -240,6 +259,7 @@ admins ──< appointments.cancelledBy (ref)
 | `appointments` | `tenantId: 1, startTime: 1, status: 1` | Compuesto | Consultas de calendario por rango de fechas y estado |
 | `appointments` | `tenantId: 1, client: 1, startTime: -1` | Compuesto | Historial de turnos del cliente |
 | `appointments` | `tenantId: 1, professional: 1, startTime: 1, status: 1` | Compuesto | Validación de superposición y filtro por profesional |
+| `appointments` | `tenantId: 1, status: 1, reminderSent: 1, startTime: 1` | Compuesto | Cron de recordatorios (EP-17) |
 
 > Nota: la unicidad de productos (`name + brand`) sigue siendo a nivel de aplicación (regex case-insensitive acotada por `tenantId` en `productController`). No existe índice unique compuesto porque no replicaría la insensibilidad a mayúsculas (requeriría collation).
 

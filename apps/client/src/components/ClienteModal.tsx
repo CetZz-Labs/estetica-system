@@ -20,7 +20,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
     const queryClient = useQueryClient();
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<ClientFormData>({
-        defaultValues: { firstName: '', lastName: '', phone: '', medicalNotes: '' }
+        defaultValues: { firstName: '', lastName: '', phone: '', email: '', medicalNotes: '' }
     });
 
     useEffect(() => {
@@ -29,10 +29,11 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                 firstName: clientToEdit.firstName,
                 lastName: clientToEdit.lastName,
                 phone: clientToEdit.phone || '',
+                email: clientToEdit.email || '',
                 medicalNotes: clientToEdit.medicalNotes || ''
             });
         } else if (isOpen) {
-            reset({ firstName: '', lastName: '', phone: '', medicalNotes: '' });
+            reset({ firstName: '', lastName: '', phone: '', email: '', medicalNotes: '' });
         }
     }, [clientToEdit, isOpen, reset]);
 
@@ -121,6 +122,17 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                         type="tel"
                         className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
                         {...register('phone')}
+                    />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
+                        Email <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                    </label>
+                    <input
+                        type="email"
+                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        {...register('email')}
                     />
                 </div>
 

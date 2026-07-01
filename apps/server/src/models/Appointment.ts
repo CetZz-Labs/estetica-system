@@ -14,6 +14,7 @@ export interface IAppointment extends Document {
     cancelledBy?: Types.ObjectId;
     createdBy: Types.ObjectId;
     isActive: boolean;
+    reminderSent: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -35,7 +36,8 @@ const AppointmentSchema: Schema = new Schema({
     cancelledAt: { type: Date },
     cancelledBy: { type: Schema.Types.ObjectId, ref: 'Admin' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    reminderSent: { type: Boolean, default: false } // EP-17: idempotencia del cron de recordatorios (ver GOV-NOTIFY mandato 4)
 }, {
     timestamps: true
 });
@@ -43,5 +45,7 @@ const AppointmentSchema: Schema = new Schema({
 AppointmentSchema.index({ tenantId: 1, startTime: 1, status: 1 });
 AppointmentSchema.index({ tenantId: 1, client: 1, startTime: -1 });
 AppointmentSchema.index({ tenantId: 1, professional: 1, startTime: 1, status: 1 });
+// Cubre la query del cron de recordatorios (EP-17): turnos activos pendientes de recordatorio, ordenados por proximidad
+AppointmentSchema.index({ tenantId: 1, status: 1, reminderSent: 1, startTime: 1 });
 
 export const Appointment = mongoose.model<IAppointment>('Appointment', AppointmentSchema);

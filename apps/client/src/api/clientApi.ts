@@ -5,6 +5,7 @@ export interface ClientFormData {
     firstName: string;
     lastName: string;
     phone?: string;
+    email?: string;
     medicalNotes?: string;
 }
 
@@ -41,6 +42,7 @@ export interface BulkClientData {
     firstName: string;
     lastName: string;
     phone?: string;
+    email?: string;
     medicalNotes?: string;
 }
 

@@ -4,13 +4,14 @@ import { Client } from '../models/Client';
 // 1. Create (POST /api/clientes)
 export const createClient = async (req: Request, res: Response) => {
     try {
-        const { firstName, lastName, phone, medicalNotes } = req.body;
+        const { firstName, lastName, phone, email, medicalNotes } = req.body;
 
         const newClient = new Client({
             tenantId: req.tenantId,
             firstName,
             lastName,
             phone,
+            email,
             medicalNotes,
             isActive: true
         });
@@ -60,16 +61,17 @@ export const getClientById = async (req: Request, res: Response) => {
 export const updateClient = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { firstName, lastName, phone, medicalNotes } = req.body;
+        const { firstName, lastName, phone, email, medicalNotes } = req.body;
 
         // Actualizamos buscando por ID dentro del tenant y asegurándonos de que esté activo
         const updatedClient = await Client.findOneAndUpdate(
             { _id: id, tenantId: req.tenantId, isActive: true },
-            { 
-                $set: { 
+            {
+                $set: {
                     ...(firstName !== undefined && { firstName }),
                     ...(lastName !== undefined && { lastName }),
                     ...(phone !== undefined && { phone }),
+                    ...(email !== undefined && { email }),
                     ...(medicalNotes !== undefined && { medicalNotes })
                 }
             },
@@ -152,6 +154,7 @@ export const createBulkClients = async (req: Request, res: Response) => {
                 firstName,
                 lastName,
                 phone: String(cli.phone || '').trim() || undefined,
+                email: String(cli.email || '').trim() || undefined,
                 medicalNotes: String(cli.medicalNotes || '').trim() || undefined,
                 isActive: true
             });

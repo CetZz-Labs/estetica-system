@@ -24,6 +24,7 @@ router.post(
         body('firstName').notEmpty().withMessage('El nombre (firstName) es obligatorio').trim(),
         body('lastName').notEmpty().withMessage('El apellido (lastName) es obligatorio').trim(),
         body('phone').optional().isString().trim(),
+        body('email').optional({ checkFalsy: true }).isEmail().withMessage('Email inválido').normalizeEmail(),
         body('medicalNotes').optional().isString().trim(),
         validateRequest
     ],
@@ -38,6 +39,7 @@ router.post(
         body('*.firstName').notEmpty().withMessage('Cada cliente debe tener firstName'),
         body('*.lastName').notEmpty().withMessage('Cada cliente debe tener lastName'),
         body('*.phone').optional().isString().trim(),
+        body('*.email').optional({ checkFalsy: true }).isEmail().withMessage('Email inválido en una o más filas'),
         body('*.medicalNotes').optional().isString().trim(),
         validateRequest
     ],
@@ -65,6 +67,7 @@ router.put(
         body('firstName').optional().notEmpty().withMessage('El nombre no puede estar vacío').trim(),
         body('lastName').optional().notEmpty().withMessage('El apellido no puede estar vacío').trim(),
         body('phone').optional().isString().trim(),
+        body('email').optional({ checkFalsy: true }).isEmail().withMessage('Email inválido').normalizeEmail(),
         body('medicalNotes').optional().isString().trim(),
         validateRequest
     ],

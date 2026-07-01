@@ -62,6 +62,7 @@ export interface Client {
     firstName: string;
     lastName: string;
     phone?: string;
+    email?: string;
     medicalNotes?: string;
     isActive: boolean;
     createdAt: string;

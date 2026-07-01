@@ -253,7 +253,7 @@
             "name": "Recordatorio de turno por mail",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Envío automático de mail recordatorio 24/48 horas antes del turno. Configurable por el negocio.",
             "acceptance_criteria": [
                 "El sistema DEBE enviar mail de recordatorio automáticamente",

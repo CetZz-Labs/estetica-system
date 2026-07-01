@@ -114,6 +114,23 @@
 
 ---
 
+## GOV-NOTIFY — Notificaciones por Mail (Recordatorios de Turno)
+
+**Regla:** Cada tenant configura sus propias credenciales SMTP y su ventana de anticipación del recordatorio desde `Ajustes > Notificaciones`. Las credenciales viven en `Tenant.notificationSettings`, con la contraseña SMTP **cifrada en reposo** (nunca en texto plano ni devuelta al frontend). El envío de recordatorios corre en un cron interno (`node-cron`) que es **idempotente** vía un campo de estado en `Appointment`.
+
+**Por qué:** Es un sistema multi-tenant donde cada centro de estética usa su propio remitente de mail — no hay una cuenta SMTP global del sistema. Las credenciales de un tercero (SMTP de la estética) son un secreto sensible que, si se filtra vía un endpoint GET o un dump de base de datos, compromete la cuenta de mail de esa clienta. El campo de estado evita reenvíos duplicados si el cron corre más de una vez sobre el mismo turno, y evita enviar el recordatorio de un turno ya cancelado.
+
+**Mandatos:**
+1. `Tenant.notificationSettings.smtpPasswordEncrypted` se cifra con AES-256-GCM usando una clave de servidor (`process.env.CREDENTIALS_ENCRYPTION_KEY`, **no** es un dato por tenant). Prohibido persistir la contraseña SMTP en texto plano.
+2. El endpoint `GET /api/notificaciones` NUNCA devuelve la contraseña (ni cifrada ni en texto plano) — expone únicamente `hasSmtpPassword: boolean` para que el frontend sepa si ya hay una credencial cargada.
+3. El endpoint `PUT /api/notificaciones`: si `smtpPassword` viene vacío/omitido, se conserva la contraseña ya guardada (patrón "dejar en blanco para no cambiar"). Solo se re-cifra y persiste si viene un valor no vacío.
+4. `Appointment.reminderSent: boolean` (default `false`) es la fuente de verdad de idempotencia. El cron solo procesa turnos con `reminderSent: false`, `isActive: true` y `status` en `['pending', 'confirmed']` — un turno cancelado antes de esa ventana queda excluido naturalmente por el filtro de `status`.
+5. Si el cliente del turno no tiene `email`, o el tenant no tiene SMTP configurado, el turno se **omite silenciosamente** (no es un error) y no se marca `reminderSent` (para permitir reintento si más adelante se completa la configuración).
+
+**Auditado por:** `CHECKPOINTS.md` C7 (seguridad de credenciales) — sección nueva, sin checkpoint específico preexistente hasta que se audite en el reviewer de EP-17.
+
+---
+
 ## GOV-CLIENT — Seguridad de Frontend (Clerk + Sanitización)
 
 **Regla:** El frontend nunca almacena tokens de sesión en localStorage. Clerk maneja sesiones via cookies HttpOnly. No usar `dangerouslySetInnerHTML`. La instancia de Axios inyecta el token JWT automáticamente via interceptor de Clerk.

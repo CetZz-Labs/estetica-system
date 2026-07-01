@@ -5,6 +5,7 @@ export interface IClient extends Document {
     firstName: string;
     lastName: string;
     phone?: string;
+    email?: string;
     medicalNotes?: string;
     isActive: boolean;
     createdAt: Date;
@@ -16,6 +17,7 @@ const ClientSchema: Schema = new Schema({
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     phone: { type: String, trim: true },
+    email: { type: String, trim: true, lowercase: true },
     medicalNotes: { type: String, trim: true }, // Ej: "Alérgica a la PPD"
     isActive: { type: Boolean, default: true } // Para no borrar el historial si deja de asistir
 }, {

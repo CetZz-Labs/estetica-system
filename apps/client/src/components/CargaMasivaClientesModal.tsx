@@ -23,6 +23,8 @@ interface ExcelRow {
     telefono?: string;
     'Teléfono'?: string;
     phone?: string;
+    Email?: string;
+    email?: string;
     NotasMedicas?: string;
     notasMedicas?: string;
     medicalNotes?: string;
@@ -31,10 +33,10 @@ interface ExcelRow {
 
 function downloadClienteEjemplo() {
     const ws = XLSX.utils.aoa_to_sheet([
-        ['Nombre', 'Apellido', 'Telefono', 'NotasMedicas'],
-        ['María', 'González', '+54 9 11 1234-5678', 'Alérgica al tinte'],
-        ['Carlos', 'Rodríguez', '+54 9 11 9876-5432', ''],
-        ['Ana', 'Martínez', '', 'Sin observaciones'],
+        ['Nombre', 'Apellido', 'Telefono', 'Email', 'NotasMedicas'],
+        ['María', 'González', '+54 9 11 1234-5678', 'juana@ejemplo.com', 'Alérgica al tinte'],
+        ['Carlos', 'Rodríguez', '+54 9 11 9876-5432', '', ''],
+        ['Ana', 'Martínez', '', '', 'Sin observaciones'],
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
@@ -86,6 +88,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                     firstName: String(row.Nombre || row.nombre || row.firstName || '').trim(),
                     lastName: String(row.Apellido || row.apellido || row.lastName || '').trim(),
                     phone: String(row.Telefono || row.telefono || row['Teléfono'] || row.phone || '').trim() || undefined,
+                    email: String(row.Email || row.email || '').trim() || undefined,
                     medicalNotes: String(row.NotasMedicas || row.notasMedicas || row.medicalNotes || '').trim() || undefined,
                 }))
                 .filter(c => c.firstName !== '' && c.lastName !== '');
@@ -150,6 +153,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                                 <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Nombre</th>
                                 <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Apellido</th>
                                 <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Telefono</th>
+                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Email</th>
                                 <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">NotasMedicas</th>
                             </tr>
                         </thead>
@@ -157,6 +161,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                             <tr>
                                 <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
                                 <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
+                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
                                 <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
                                 <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
                             </tr>
@@ -171,6 +176,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                                 <td className="p-2 border border-maison-border bg-white text-gray-600">María</td>
                                 <td className="p-2 border border-maison-border bg-white text-gray-600">González</td>
                                 <td className="p-2 border border-maison-border bg-white text-gray-400 italic">+54 9 11 1234-5678</td>
+                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">juana@ejemplo.com</td>
                                 <td className="p-2 border border-maison-border bg-white text-gray-400 italic">Alérgica al tinte</td>
                             </tr>
                         </tbody>
