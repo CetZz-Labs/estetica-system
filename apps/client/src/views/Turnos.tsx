@@ -29,9 +29,9 @@ import RegistroModal from '../components/RegistroModal';
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
         ...base,
-        backgroundColor: '#FDFBF7',
+        backgroundColor: '#fff9f6',
         borderColor: state.isFocused ? '#E5E7EB' : '#E5E7EB',
-        borderRadius: '0.75rem',
+        borderRadius: '0.5rem',
         padding: '2px',
         boxShadow: state.isFocused ? '0 0 0 2px #E5E7EB' : 'none',
         '&:hover': { borderColor: '#D1D5DB' }
@@ -45,11 +45,11 @@ const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
 };
 
 const STATUS_PALETTE: Record<string, { bg: string; border: string; text: string }> = {
-    confirmed: { bg: '#ECFDF5', border: '#BBF7D0', text: '#54A885' },
-    cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
+    confirmed: { bg: '#ECFDF5', border: '#BBF7D0', text: '#6b8e7b' },
+    cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#e5484d' },
     completed: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
     pending: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
-    overdue: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
+    overdue: { bg: '#FEF2F2', border: '#FECACA', text: '#e5484d' },
 };
 
 function getStatusPalette(status: string): { bg: string; border: string; text: string } {
@@ -154,7 +154,7 @@ export default function Turnos() {
         mutationFn: (data: AppointmentFormData) => createAppointment(data),
         onSuccess: () => {
             toast.success('Turno creado exitosamente', {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
             setIsFormModalOpen(false);
@@ -341,11 +341,11 @@ export default function Turnos() {
     const formFooter = (
         <>
             <button type="button" onClick={() => { setIsFormModalOpen(false); setEditingAppointment(null); }}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                 Cancelar
             </button>
             <button form="appointmentForm" type="submit" disabled={isCreating || isUpdating}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                className="bg-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer">
                 {isCreating || isUpdating ? 'Guardando...' : (editingAppointment ? 'Actualizar Turno' : 'Crear Turno')}
             </button>
         </>
@@ -358,17 +358,17 @@ export default function Turnos() {
                     <button onClick={() => openCancelModal(selectedAppointment)}
                         aria-label="Cancelar turno"
                         title="Cancelar turno"
-                        className="p-2 text-gray-400 hover:text-maison-red transition-colors cursor-pointer">
+                        className="p-2 text-gray-400 hover:text-destructive transition-colors cursor-pointer">
                         <FiTrash2 className="text-lg" />
                     </button>
                     <button onClick={() => openEditModal(selectedAppointment)}
                         aria-label="Editar turno"
                         title="Editar turno"
-                        className="p-2 text-gray-400 hover:text-maison-primary transition-colors cursor-pointer">
+                        className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer">
                         <FiEdit2 className="text-lg" />
                     </button>
                     <button onClick={() => handleCompleteAppointment(selectedAppointment)}
-                        className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+                        className="bg-primary hover:bg-black text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
                         <FiCheck /> Completar y Registrar
                     </button>
                 </>
@@ -379,11 +379,11 @@ export default function Turnos() {
     const cancelFooter = (
         <>
             <button type="button" onClick={() => setIsCancelModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                 Volver
             </button>
             <button onClick={handleConfirmCancel} disabled={isCancelling}
-                className="bg-maison-red hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                className="bg-destructive hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer">
                 {isCancelling ? 'Cancelando...' : 'Confirmar Cancelación'}
             </button>
         </>
@@ -401,7 +401,7 @@ export default function Turnos() {
             <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
                 <div>
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Agenda</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Turnos</h3>
+                    <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Turnos</h3>
                 </div>
                 <button onClick={() => {
                     setEditingAppointment(null);
@@ -417,7 +417,7 @@ export default function Turnos() {
                     });
                     setIsFormModalOpen(true);
                 }}
-                    className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
+                    className="bg-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
                     <FiPlus className="text-lg" /> Nuevo Turno
                 </button>
             </header>
@@ -426,7 +426,7 @@ export default function Turnos() {
                 <div className="mb-4 flex items-center gap-3">
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
                     <select value={professionalFilter} onChange={e => setProfessionalFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
+                        className="px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
                         <option value="">Todas</option>
                         {professionals.map(p => (
                             <option key={p._id} value={p._id}>{p.name}</option>
@@ -436,7 +436,7 @@ export default function Turnos() {
             )}
 
             {isLoading ? (
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden p-4 animate-pulse">
+                <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden p-4 animate-pulse">
                     <div className="h-10 bg-gray-200 rounded-lg w-full mb-4" />
                     <div className="grid grid-cols-7 gap-1">
                         {Array.from({ length: 35 }).map((_, i) => (
@@ -445,33 +445,33 @@ export default function Turnos() {
                     </div>
                 </div>
             ) : isError ? (
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
                     <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiAlertCircle className="text-2xl text-maison-red" />
+                        <FiAlertCircle className="text-2xl text-destructive" />
                     </div>
-                    <h4 className="text-lg font-serif text-maison-text mb-2">Error al cargar turnos</h4>
+                    <h4 className="text-lg font-serif text-foreground mb-2">Error al cargar turnos</h4>
                     <p className="text-sm text-gray-500">No pudimos cargar los turnos en este momento. Por favor, intenta de nuevo.</p>
                 </div>
             ) : (
-                <div className="relative bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden p-4">
+                <div className="relative bg-card border border-border rounded-lg shadow-sm overflow-hidden p-4">
                     <style>{`
-                        .fc { font-family: 'Inter', sans-serif; background-color: #FFFFFF; border-radius: 16px; border: none; }
-                        .fc .fc-toolbar-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: #2C2A29; }
-                        .fc .fc-button-primary { background-color: #FFFFFF; border: 1px solid #EAE6DF; color: #4B5563; border-radius: 9999px; padding: 6px 16px; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
-                        .fc .fc-button-primary:hover { background-color: #F9FAF8; border-color: #D1D5DB; color: #2C2A29; }
+                        .fc { font-family: 'Manrope', sans-serif; background-color: #FFFFFF; border-radius: 16px; border: none; }
+                        .fc .fc-toolbar-title { font-family: 'Fraunces', serif; font-size: 1.25rem; color: #5c4b43; }
+                        .fc .fc-button-primary { background-color: #FFFFFF; border: 1px solid #ebe0da; color: #4B5563; border-radius: 9999px; padding: 6px 16px; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
+                        .fc .fc-button-primary:hover { background-color: #F9FAF8; border-color: #D1D5DB; color: #5c4b43; }
                         .fc .fc-button-primary:disabled { opacity: 0.5; }
-                        .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #1A1A1A; border-color: #1A1A1A; color: #FFFFFF; }
-                        .fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today { background-color: #FDFBF7; }
-                        .fc .fc-col-header-cell { background-color: #FDFBF7; }
+                        .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #c18695; border-color: #c18695; color: #FFFFFF; }
+                        .fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today { background-color: #fff9f6; }
+                        .fc .fc-col-header-cell { background-color: #fff9f6; }
                         .fc .fc-col-header-cell-cushion { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: #6B7280; padding: 8px; }
                         .fc .fc-timegrid-slot-label { font-size: 0.75rem; color: #9CA3AF; }
-                        .fc .fc-timegrid-now-indicator-line { border-color: #E06B5E; }
-                        .fc .fc-timegrid-now-indicator-arrow { border-color: #E06B5E; }
-                        .fc-theme-standard td, .fc-theme-standard th { border-color: #EAE6DF; }
-                        .fc-theme-standard .fc-scrollgrid { border-color: #EAE6DF; }
+                        .fc .fc-timegrid-now-indicator-line { border-color: #e5484d; }
+                        .fc .fc-timegrid-now-indicator-arrow { border-color: #e5484d; }
+                        .fc-theme-standard td, .fc-theme-standard th { border-color: #ebe0da; }
+                        .fc-theme-standard .fc-scrollgrid { border-color: #ebe0da; }
                         .fc .fc-daygrid-day-number { font-size: 0.8rem; color: #4B5563; padding: 6px; }
-                        .fc .fc-day-today .fc-daygrid-day-number { color: #1A1A1A; font-weight: 600; }
-                        .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color: #EAE6DF; }
+                        .fc .fc-day-today .fc-daygrid-day-number { color: #c18695; font-weight: 600; }
+                        .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color: #ebe0da; }
                         .appointment-event { border-radius: 8px; padding: 2px 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; }
                         .appointment-event.cancelled { text-decoration: line-through; opacity: 0.7; }
                         .fc .fc-daygrid-event { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -482,7 +482,7 @@ export default function Turnos() {
                         .fc-timegrid-event .fc-event-main { overflow: hidden; }
                     `}</style>
                     {isFetching && (
-                        <span className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border border-maison-border rounded-full">
+                        <span className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border border-border rounded-full">
                             Actualizando...
                         </span>
                     )}
@@ -575,7 +575,7 @@ export default function Turnos() {
                                 />
                             )}
                         />
-                        {errors.client && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.client.message}</span>}
+                        {errors.client && <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium"><FiAlertCircle /> {errors.client.message}</span>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -624,10 +624,10 @@ export default function Turnos() {
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha y Hora *</label>
                         <input type="datetime-local"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.startTime ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.startTime ? 'border-destructive' : 'border-border'}`}
                             {...register('startTime', { required: 'La fecha y hora son obligatorias' })}
                         />
-                        {errors.startTime && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.startTime.message}</span>}
+                        {errors.startTime && <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium"><FiAlertCircle /> {errors.startTime.message}</span>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -635,7 +635,7 @@ export default function Turnos() {
                             Notas <span className="text-gray-400 font-normal normal-case">Opcional</span>
                         </label>
                         <textarea rows={3} placeholder="Ej: Cliente solicita coloración con mechas..."
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
                             {...register('notes')}
                         />
                     </div>
@@ -654,9 +654,9 @@ export default function Turnos() {
                     <div className="space-y-5">
                         <div className="flex items-center gap-2">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
-                                getRenderStatus(selectedAppointment) === 'confirmed' ? 'bg-green-50 text-maison-green border-green-200' :
-                                getRenderStatus(selectedAppointment) === 'cancelled' ? 'bg-red-50 text-maison-red border-red-200' :
-                                getRenderStatus(selectedAppointment) === 'overdue' ? 'bg-red-50 text-maison-red border-red-200' :
+                                getRenderStatus(selectedAppointment) === 'confirmed' ? 'bg-green-50 text-ring border-green-200' :
+                                getRenderStatus(selectedAppointment) === 'cancelled' ? 'bg-red-50 text-destructive border-red-200' :
+                                getRenderStatus(selectedAppointment) === 'overdue' ? 'bg-red-50 text-destructive border-red-200' :
                                 getRenderStatus(selectedAppointment) === 'completed' ? 'bg-gray-50 text-gray-500 border-gray-200' :
                                 'bg-gray-50 text-gray-500 border-gray-200'
                             }`}>
@@ -665,12 +665,12 @@ export default function Turnos() {
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
+                            <div className="p-2 bg-white rounded-full border border-border text-gray-500">
                                 <FiUser className="text-lg" />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-maison-text">{selectedAppointment.client.firstName} {selectedAppointment.client.lastName}</p>
+                                <p className="text-sm font-medium text-foreground">{selectedAppointment.client.firstName} {selectedAppointment.client.lastName}</p>
                                 {selectedAppointment.client.phone && (
                                     <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><FiPhone /> {selectedAppointment.client.phone}</p>
                                 )}
@@ -678,35 +678,35 @@ export default function Turnos() {
                         </div>
 
                         {selectedAppointment.service && (
-                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                            <div className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
+                                <div className="p-2 bg-white rounded-full border border-border text-gray-500">
                                     <FiCalendar className="text-lg" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.service.name}</p>
+                                    <p className="text-sm font-medium text-foreground">{selectedAppointment.service.name}</p>
                                     <p className="text-xs text-gray-500">{selectedAppointment.service.duration} min</p>
                                 </div>
                             </div>
                         )}
 
                         {selectedAppointment.professional && typeof selectedAppointment.professional === 'object' && (
-                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                            <div className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
+                                <div className="p-2 bg-white rounded-full border border-border text-gray-500">
                                     <FiUser className="text-lg" />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="h-3 w-3 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: selectedAppointment.professional.color }} aria-hidden />
-                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.professional.name}</p>
+                                    <span className="h-3 w-3 rounded-full border border-border shrink-0" style={{ backgroundColor: selectedAppointment.professional.color }} aria-hidden />
+                                    <p className="text-sm font-medium text-foreground">{selectedAppointment.professional.name}</p>
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
+                            <div className="p-2 bg-white rounded-full border border-border text-gray-500">
                                 <FiClock className="text-lg" />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-maison-text">{formatDate(selectedAppointment.startTime)}</p>
+                                <p className="text-sm font-medium text-foreground">{formatDate(selectedAppointment.startTime)}</p>
                                 <p className="text-xs text-gray-500">Hasta {new Date(selectedAppointment.endTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                         </div>
@@ -714,13 +714,13 @@ export default function Turnos() {
                         {selectedAppointment.notes && (
                             <div>
                                 <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Notas</h4>
-                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-200">{selectedAppointment.notes}</p>
+                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">{selectedAppointment.notes}</p>
                             </div>
                         )}
 
                         {selectedAppointment.status === 'cancelled' && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                                <h4 className="text-xs font-bold tracking-widest text-maison-red uppercase mb-2">Cancelación</h4>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <h4 className="text-xs font-bold tracking-widest text-destructive uppercase mb-2">Cancelación</h4>
                                 {selectedAppointment.cancelReason && (
                                     <p className="text-sm text-red-700 mb-1">Motivo: {selectedAppointment.cancelReason}</p>
                                 )}
@@ -748,7 +748,7 @@ export default function Turnos() {
                         <textarea rows={3} placeholder="Ej: Cliente llamó para cancelar..."
                             value={cancelReason}
                             onChange={(e) => setCancelReason(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
                         />
                     </div>
                 </div>

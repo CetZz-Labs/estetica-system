@@ -137,14 +137,14 @@ export default function Dashboard() {
             <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
                 <div>
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Panel Principal</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">
+                    <h3 className="text-3xl sm:text-4xl font-serif text-foreground">
                         {isLoaded ? `${getGreeting()}${displayName ? `, ${displayName}` : ''} ✿` : getGreeting()}
                     </h3>
                 </div>
                 <div className="flex gap-3">
                     <Link to="/clientes" className="bg-white border border-gray-200 hover:border-gray-300 text-gray-600 px-4 py-2.5 sm:px-5 rounded-full text-sm font-medium transition-colors shadow-sm">Directorio</Link>
 
-                    <button onClick={handleOpenNewVisit} className="bg-maison-primary hover:bg-black text-white px-4 py-2.5 sm:px-5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                    <button onClick={handleOpenNewVisit} className="bg-primary hover:bg-black text-white px-4 py-2.5 sm:px-5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
                         <FiPlus /> <span>Nueva Visita</span>
                     </button>
                 </div>
@@ -154,23 +154,23 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 {isDashboardLoading ? (
                     [1, 2, 3].map(i => (
-                        <div key={i} className="bg-maison-card border border-maison-border rounded-2xl p-5 flex items-start gap-4 animate-pulse">
-                            <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                        <div key={i} className="bg-card border border-border rounded-lg p-5 flex items-start gap-4 animate-pulse">
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
                             <div className="space-y-2 flex-1 mt-1"><div className="h-3 bg-gray-200 rounded w-1/2"></div><div className="h-8 bg-gray-200 rounded w-1/4 mt-2"></div></div>
                         </div>
                     ))
                 ) : (
                     <>
-                        <div className="bg-maison-card border border-maison-border rounded-2xl p-5 flex items-start gap-4">
-                            <div className="bg-maison-bg p-3 rounded-xl border border-maison-border"><FiUsers className="text-xl text-gray-600" /></div>
+                        <div className="bg-card border border-border rounded-lg p-5 flex items-start gap-4">
+                            <div className="bg-background p-3 rounded-lg border border-border"><FiUsers className="text-xl text-gray-600" /></div>
                             <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Total de Clientes</h4><span className="text-3xl font-serif">{stats?.totalClients || 0}</span></div>
                         </div>
-                        <div className="bg-maison-card border border-maison-border rounded-2xl p-5 flex items-start gap-4">
-                            <div className="bg-maison-bg p-3 rounded-xl border border-maison-border"><FiScissors className="text-xl text-gray-600" /></div>
+                        <div className="bg-card border border-border rounded-lg p-5 flex items-start gap-4">
+                            <div className="bg-background p-3 rounded-lg border border-border"><FiScissors className="text-xl text-gray-600" /></div>
                             <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Servicios Realizados</h4><span className="text-3xl font-serif">{stats?.servicesDone || 0}</span></div>
                         </div>
-                        <div className="bg-maison-card border border-maison-border rounded-2xl p-5 flex items-start gap-4">
-                            <div className="bg-maison-bg p-3 rounded-xl border border-maison-border"><FiCalendar className="text-xl text-gray-600" /></div>
+                        <div className="bg-card border border-border rounded-lg p-5 flex items-start gap-4">
+                            <div className="bg-background p-3 rounded-lg border border-border"><FiCalendar className="text-xl text-gray-600" /></div>
                             <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Próximos Retoques</h4><span className="text-3xl font-serif">{stats?.upcomingTouchups || 0}</span></div>
                         </div>
                     </>
@@ -178,8 +178,8 @@ export default function Dashboard() {
             </div>
 
             {!isDashboardLoading && pendingRegistration && pendingRegistration.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm">
-                    <div className="p-2.5 bg-amber-100 rounded-xl border border-amber-200 shrink-0">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-6 flex items-start gap-4 shadow-sm">
+                    <div className="p-2.5 bg-amber-100 rounded-lg border border-amber-200 shrink-0">
                         <FiAlertTriangle className="text-xl text-amber-600" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -197,7 +197,7 @@ export default function Dashboard() {
             {/* Columns - Retoques | Turnos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 {/* Timeline - Próximos retoques */}
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
+                <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-8">
                         <div><h4 className="text-xl font-serif">Próximos retoques</h4><p className="text-sm text-gray-400 mt-1">Los 7 más próximos · ordenados por fecha</p></div>
                     </div>
@@ -214,18 +214,18 @@ export default function Dashboard() {
                     ) : retoques?.length === 0 ? (
                         <p className="text-gray-500 text-sm py-4">No hay retoques pendientes.</p>
                     ) : (
-                        <div className="relative pl-3 border-l-2 border-maison-border space-y-4 py-2 ml-2">
+                        <div className="relative pl-3 border-l-2 border-border space-y-4 py-2 ml-2">
                             {retoques?.map((registro) => {
                                 if (!registro.nextTouchupDate) return null;
                                 const status = getTimelineStatus(registro.nextTouchupDate);
                                 const initials = registro.client.firstName.charAt(0).toUpperCase();
                                 return (
-                                    <div key={registro._id} className="relative flex justify-between items-center bg-white border border-maison-border rounded-xl p-4 shadow-sm ml-6 hover:border-gray-300 transition-colors group">
+                                    <div key={registro._id} className="relative flex justify-between items-center bg-white border border-border rounded-lg p-4 shadow-sm ml-6 hover:border-gray-300 transition-colors group">
                                         <div className={`absolute -left-11.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full ${status.dotColor} ring-4 ring-white`}></div>
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 shrink-0 rounded-full bg-maison-bg border border-maison-border flex items-center justify-center font-serif text-lg text-maison-text shadow-sm">{initials}</div>
+                                            <div className="w-10 h-10 shrink-0 rounded-full bg-background border border-border flex items-center justify-center font-serif text-lg text-foreground shadow-sm">{initials}</div>
                                             <div className="min-w-0">
-                                                <p className="font-medium text-maison-text truncate">{registro.client.firstName} {registro.client.lastName}</p>
+                                                <p className="font-medium text-foreground truncate">{registro.client.firstName} {registro.client.lastName}</p>
                                                 <p className="text-sm text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
                                             </div>
                                         </div>
@@ -237,14 +237,14 @@ export default function Dashboard() {
                                             <button
                                                 onClick={(e) => handleCancelTouchup(e, registro._id)}
                                                 title="Cancelar este retoque"
-                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-red hover:border-maison-red transition-all cursor-pointer shadow-sm"
+                                                className="w-8 h-8 bg-background border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-destructive hover:border-destructive transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiX size={16} />
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleTouchupCheck(registro.client._id, registro.service._id); }}
                                                 title="Registrar visita de retoque"
-                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
+                                                className="w-8 h-8 bg-background border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-ring hover:border-ring transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiCheck size={16} />
                                             </button>
@@ -257,7 +257,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Próximos Turnos */}
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
+                <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h4 className="text-xl font-serif">Próximos turnos</h4>
@@ -267,7 +267,7 @@ export default function Dashboard() {
                     {isDashboardLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="flex gap-3 animate-pulse p-3 border border-maison-border rounded-xl">
+                                <div key={i} className="flex gap-3 animate-pulse p-3 border border-border rounded-lg">
                                     <div className="w-3 h-3 bg-gray-200 rounded-full mt-1.5 shrink-0"></div>
                                     <div className="flex-1 space-y-1.5">
                                         <div className="h-3 bg-gray-200 rounded w-2/3"></div>
@@ -286,13 +286,13 @@ export default function Dashboard() {
                         <div className="space-y-2.5">
                             {proximosTurnos?.map(appt => {
                                 return (
-                                    <div key={appt._id} className="flex items-center gap-3 p-3 bg-white border border-maison-border rounded-xl hover:border-gray-300 transition-colors">
+                                    <div key={appt._id} className="flex items-center gap-3 p-3 bg-white border border-border rounded-lg hover:border-gray-300 transition-colors">
                                         <div
-                                            className="shrink-0 w-3 h-3 rounded-full border border-maison-border"
+                                            className="shrink-0 w-3 h-3 rounded-full border border-border"
                                             style={{ backgroundColor: appt.professional?.color || '#9CA3AF' }}
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-maison-text text-sm truncate">
+                                            <p className="font-medium text-foreground text-sm truncate">
                                                 {appt.client.firstName} {appt.client.lastName}
                                             </p>
                                             <p className="text-xs text-gray-500 truncate">{appt.service?.name ?? 'Sin servicio'}</p>
@@ -304,14 +304,14 @@ export default function Dashboard() {
                                             <button
                                                 onClick={(e) => handleCancelAppointment(e, appt._id)}
                                                 title="Cancelar turno"
-                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-red hover:border-maison-red transition-all cursor-pointer shadow-sm"
+                                                className="w-8 h-8 bg-background border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-destructive hover:border-destructive transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiX size={14} />
                                             </button>
                                             <button
                                                 onClick={() => handleCompleteFromDashboard(appt)}
                                                 title="Confirmar y completar"
-                                                className="w-8 h-8 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center text-gray-400 hover:text-maison-green hover:border-maison-green transition-all cursor-pointer shadow-sm"
+                                                className="w-8 h-8 bg-background border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-ring hover:border-ring transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FiCheck size={14} />
                                             </button>
@@ -325,7 +325,7 @@ export default function Dashboard() {
             </div>
 
             {/* Últimos movimientos — full width */}
-            <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
                 <h4 className="text-xl font-serif">Últimos movimientos</h4>
                 <p className="text-sm text-gray-400 mt-1 mb-8">Servicios recientemente registrados</p>
                 {isDashboardLoading ? (
@@ -343,10 +343,10 @@ export default function Dashboard() {
                     <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5 pl-1">
                         {recientes?.map((registro) => (
                             <li key={registro._id} className="relative pl-5 group">
-                                <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-maison-text transition-colors"></span>
+                                <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-foreground transition-colors"></span>
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="min-w-0">
-                                        <p className="font-medium text-maison-text text-sm truncate">{registro.client.firstName} {registro.client.lastName}</p>
+                                        <p className="font-medium text-foreground text-sm truncate">{registro.client.firstName} {registro.client.lastName}</p>
                                         <p className="text-xs text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
                                     </div>
                                     <span className="text-[11px] text-gray-400 font-medium tracking-wide shrink-0">{formatDate(registro.createdAt)}</span>

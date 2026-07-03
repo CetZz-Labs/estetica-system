@@ -78,7 +78,7 @@ export default function Profesionales() {
             <button
                 type="button"
                 onClick={closeConflict}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
                 Volver
             </button>
@@ -86,7 +86,7 @@ export default function Profesionales() {
                 type="button"
                 onClick={handleForceDeactivate}
                 disabled={isDeactivating}
-                className="bg-maison-red hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-destructive hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isDeactivating ? 'Desactivando...' : 'Desactivar de todas formas'}
             </button>
@@ -98,9 +98,9 @@ export default function Profesionales() {
             <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
                 <div>
                     <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Equipo</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Profesionales</h3>
+                    <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Profesionales</h3>
                 </div>
-                <button onClick={handleCreate} className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
+                <button onClick={handleCreate} className="bg-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
                     <FiPlus className="text-lg" /> Agregar Profesional
                 </button>
             </header>
@@ -108,7 +108,7 @@ export default function Profesionales() {
             {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm animate-pulse">
+                        <div key={i} className="bg-card border border-border rounded-lg p-6 shadow-sm animate-pulse">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="w-11 h-11 bg-gray-200 rounded-full"></div>
                             </div>
@@ -118,37 +118,37 @@ export default function Profesionales() {
                     ))}
                 </div>
             ) : isError ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-6 text-maison-red shadow-sm">
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-6 text-destructive shadow-sm">
                     <FiAlertCircle aria-hidden className="shrink-0 text-xl" />
                     <span className="text-sm font-medium">No se pudieron cargar las profesionales. Reintentá en unos segundos.</span>
                 </div>
             ) : profesionales?.length === 0 ? (
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
-                    <div className="w-16 h-16 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4">
                         <FiUsers className="text-2xl text-gray-400" />
                     </div>
-                    <h4 className="text-lg font-serif text-maison-text mb-2">No hay profesionales registradas</h4>
+                    <h4 className="text-lg font-serif text-foreground mb-2">No hay profesionales registradas</h4>
                     <p className="text-sm text-gray-500">Agregá tu primera profesional para empezar a agendar turnos.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {profesionales?.map((profesional) => (
-                        <div key={profesional._id} className={`bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group ${profesional.isActive ? '' : 'opacity-75'}`}>
+                        <div key={profesional._id} className={`bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-all group ${profesional.isActive ? '' : 'opacity-75'}`}>
                             <div className="flex justify-between items-start mb-4">
-                                <div className="w-11 h-11 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: profesional.color }} aria-hidden />
+                                <div className="w-11 h-11 rounded-full border border-border shrink-0" style={{ backgroundColor: profesional.color }} aria-hidden />
                                 <div className="flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleEdit(profesional)} aria-label="Editar profesional" title="Editar" className="p-2 text-gray-400 hover:text-maison-primary transition-colors cursor-pointer"><FiEdit2 size={16} /></button>
+                                    <button onClick={() => handleEdit(profesional)} aria-label="Editar profesional" title="Editar" className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer"><FiEdit2 size={16} /></button>
                                     {profesional.isActive ? (
-                                        <button onClick={() => handleDeactivate(profesional)} aria-label="Desactivar profesional" title="Desactivar" className="p-2 text-gray-400 hover:text-maison-red transition-colors cursor-pointer"><FiSlash size={16} /></button>
+                                        <button onClick={() => handleDeactivate(profesional)} aria-label="Desactivar profesional" title="Desactivar" className="p-2 text-gray-400 hover:text-destructive transition-colors cursor-pointer"><FiSlash size={16} /></button>
                                     ) : (
-                                        <button onClick={() => reactivate(profesional._id)} aria-label="Reactivar profesional" title="Reactivar" className="p-2 text-gray-400 hover:text-maison-green transition-colors cursor-pointer"><FiRotateCcw size={16} /></button>
+                                        <button onClick={() => reactivate(profesional._id)} aria-label="Reactivar profesional" title="Reactivar" className="p-2 text-gray-400 hover:text-ring transition-colors cursor-pointer"><FiRotateCcw size={16} /></button>
                                     )}
                                 </div>
                             </div>
-                            <h4 className="text-xl font-serif text-maison-text mb-3">{profesional.name}</h4>
+                            <h4 className="text-xl font-serif text-foreground mb-3">{profesional.name}</h4>
                             <div className="flex flex-wrap gap-2">
                                 {profesional.isActive ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-lg text-xs font-semibold uppercase tracking-widest text-maison-green">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-lg text-xs font-semibold uppercase tracking-widest text-ring">
                                         <FiCheckCircle /> Activa
                                     </span>
                                 ) : (
@@ -173,7 +173,7 @@ export default function Profesionales() {
                 footer={conflictFooter}
             >
                 <div className="space-y-4">
-                    <div className="flex items-start gap-2 rounded-xl border border-orange-100 bg-orange-50 p-4 text-maison-orange">
+                    <div className="flex items-start gap-2 rounded-lg border border-orange-100 bg-orange-50 p-4 text-warning">
                         <FiAlertTriangle aria-hidden className="shrink-0 mt-0.5" />
                         <p className="text-sm text-gray-700">
                             Reasigná estos turnos a otra profesional desde la sección Turnos antes de desactivar,
@@ -183,12 +183,12 @@ export default function Profesionales() {
 
                     <ul className="space-y-2">
                         {conflictAppointments.map((appt) => (
-                            <li key={appt._id} className="flex items-center gap-3 rounded-xl border border-maison-border bg-maison-bg p-3">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500 shrink-0">
+                            <li key={appt._id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
+                                <div className="p-2 bg-white rounded-full border border-border text-gray-500 shrink-0">
                                     <FiCalendar />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-maison-text">{appt.client.firstName} {appt.client.lastName} · {appt.service.name}</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.client.firstName} {appt.client.lastName} · {appt.service.name}</p>
                                     <p className="text-xs text-gray-500">{formatStartTime(appt.startTime)}</p>
                                 </div>
                             </li>

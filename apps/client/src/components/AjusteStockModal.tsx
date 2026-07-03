@@ -46,7 +46,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
         },
         onSuccess: () => {
             toast.success('Stock actualizado exitosamente', {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             onClose();
@@ -74,7 +74,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -82,7 +82,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                 form="ajusteStockForm"
                 type="submit"
                 disabled={isPending || isInvalidStock}
-                className="bg-maison-text hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-foreground hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Procesando...' : 'Confirmar Ajuste'}
             </button>
@@ -98,7 +98,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             icon={<FiActivity />}
             footer={footer}
         >
-            <div className="mb-6 flex items-center justify-between bg-white border border-gray-200 px-4 py-3 rounded-xl shadow-sm">
+            <div className="mb-6 flex items-center justify-between bg-white border border-gray-200 px-4 py-3 rounded-lg shadow-sm">
                 <span className="text-sm font-medium text-gray-500">Stock Actual</span>
                 <span className="text-xl font-serif">{product.stock} <span className="text-sm font-sans text-gray-400 font-normal">unidades</span></span>
             </div>
@@ -106,13 +106,13 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             <form id="ajusteStockForm" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                 <div className="grid grid-cols-2 gap-3">
-                    <label className={`relative flex flex-col items-center p-4 border rounded-xl cursor-pointer transition-all ${type === 'add' ? 'border-maison-primary bg-maison-primary/5 ring-1 ring-maison-primary' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <label className={`relative flex flex-col items-center p-4 border rounded-lg cursor-pointer transition-all ${type === 'add' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
                         <input type="radio" value="add" className="sr-only" {...register('type')} />
-                        <FiArrowUpRight className={`text-2xl mb-1 ${type === 'add' ? 'text-maison-primary' : 'text-gray-400'}`} />
-                        <span className={`text-sm font-medium ${type === 'add' ? 'text-maison-primary' : 'text-gray-600'}`}>Ingreso (+)</span>
+                        <FiArrowUpRight className={`text-2xl mb-1 ${type === 'add' ? 'text-primary' : 'text-gray-400'}`} />
+                        <span className={`text-sm font-medium ${type === 'add' ? 'text-primary' : 'text-gray-600'}`}>Ingreso (+)</span>
                     </label>
 
-                    <label className={`relative flex flex-col items-center p-4 border rounded-xl cursor-pointer transition-all ${type === 'subtract' ? 'border-red-500 bg-red-50 ring-1 ring-red-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <label className={`relative flex flex-col items-center p-4 border rounded-lg cursor-pointer transition-all ${type === 'subtract' ? 'border-red-500 bg-red-50 ring-1 ring-red-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
                         <input type="radio" value="subtract" className="sr-only" {...register('type')} />
                         <FiArrowDownRight className={`text-2xl mb-1 ${type === 'subtract' ? 'text-red-500' : 'text-gray-400'}`} />
                         <span className={`text-sm font-medium ${type === 'subtract' ? 'text-red-600' : 'text-gray-600'}`}>Egreso / Merma (-)</span>
@@ -125,7 +125,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                         <input
                             type="number"
                             min="1"
-                            className={`w-full px-4 py-3 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 text-lg font-medium text-center ${errors.amount ? 'border-maison-red' : 'border-gray-200'}`}
+                            className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 text-lg font-medium text-center ${errors.amount ? 'border-destructive' : 'border-gray-200'}`}
                             {...register('amount', {
                                 valueAsNumber: true,
                                 required: 'Requerido',
@@ -141,15 +141,15 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                         <input
                             type="text"
                             placeholder="Ej: Compra a proveedor, Producto dañado..."
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
                             {...register('reason')}
                         />
                     </div>
                 </div>
 
-                <div className={`p-4 rounded-xl border flex justify-between items-center transition-colors ${isInvalidStock ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                <div className={`p-4 rounded-lg border flex justify-between items-center transition-colors ${isInvalidStock ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
                     <span className="text-sm font-medium">Stock resultante proyectado:</span>
-                    <span className={`text-xl font-bold ${isInvalidStock ? 'text-red-600' : 'text-maison-text'}`}>
+                    <span className={`text-xl font-bold ${isInvalidStock ? 'text-red-600' : 'text-foreground'}`}>
                         {finalStock}
                     </span>
                 </div>

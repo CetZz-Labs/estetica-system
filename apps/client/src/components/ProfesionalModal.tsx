@@ -21,13 +21,13 @@ interface Props {
     professionalToEdit?: Professional | null;
 }
 
-const PRESET_COLORS = ['#1A1A1A', '#54A885', '#E5A059', '#E06B5E', '#6366F1', '#0EA5E9', '#A855F7', '#EC4899'];
+const PRESET_COLORS = ['#c18695', '#6b8e7b', '#E5A059', '#e5484d', '#6366F1', '#0EA5E9', '#A855F7', '#EC4899'];
 
 export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }: Props) {
     const queryClient = useQueryClient();
 
     const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ProfessionalFormData>({
-        defaultValues: { name: '', color: '#1A1A1A', linkedAdmin: '', inviteEmail: '' },
+        defaultValues: { name: '', color: '#c18695', linkedAdmin: '', inviteEmail: '' },
     });
 
     const { data: linkableAdmins } = useQuery<LinkableAdmin[]>({
@@ -40,12 +40,12 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
         if (professionalToEdit && isOpen) {
             reset({
                 name: professionalToEdit.name,
-                color: professionalToEdit.color || '#1A1A1A',
+                color: professionalToEdit.color || '#c18695',
                 linkedAdmin: professionalToEdit.linkedAdmin || '',
                 inviteEmail: '',
             });
         } else if (isOpen) {
-            reset({ name: '', color: '#1A1A1A', linkedAdmin: '', inviteEmail: '' });
+            reset({ name: '', color: '#c18695', linkedAdmin: '', inviteEmail: '' });
         }
     }, [professionalToEdit, isOpen, reset]);
 
@@ -87,7 +87,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -95,7 +95,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                 form="profesionalForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : 'Guardar'}
             </button>
@@ -116,11 +116,11 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                     <input
                         type="text"
                         placeholder="Ej. Camila Rossi"
-                        className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.name ? 'border-maison-red' : 'border-maison-border'}`}
+                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.name ? 'border-destructive' : 'border-border'}`}
                         {...register('name', { required: 'Requerido' })}
                     />
                     {errors.name && (
-                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                             <FiAlertCircle /> {errors.name.message}
                         </span>
                     )}
@@ -132,7 +132,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                         <input
                             type="color"
                             aria-label="Seleccionar color de agenda"
-                            className="h-10 w-14 shrink-0 cursor-pointer rounded-xl border border-maison-border bg-maison-bg p-1"
+                            className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-border bg-background p-1"
                             {...register('color', { required: 'Requerido' })}
                         />
                         <div className="flex flex-wrap gap-2">
@@ -142,14 +142,14 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                                     type="button"
                                     aria-label={`Usar color ${preset}`}
                                     onClick={() => setValue('color', preset, { shouldDirty: true })}
-                                    className={`h-7 w-7 cursor-pointer rounded-full border transition-transform hover:scale-110 ${selectedColor?.toLowerCase() === preset.toLowerCase() ? 'border-maison-text ring-2 ring-gray-200' : 'border-maison-border'}`}
+                                    className={`h-7 w-7 cursor-pointer rounded-full border transition-transform hover:scale-110 ${selectedColor?.toLowerCase() === preset.toLowerCase() ? 'border-foreground ring-2 ring-gray-200' : 'border-border'}`}
                                     style={{ backgroundColor: preset }}
                                 />
                             ))}
                         </div>
                     </div>
                     {errors.color && (
-                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                             <FiAlertCircle /> {errors.color.message}
                         </span>
                     )}
@@ -161,7 +161,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                         Vincular a usuario <span className="text-gray-400 font-normal normal-case">Opcional</span>
                     </label>
                     <select
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 cursor-pointer"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 cursor-pointer"
                         {...register('linkedAdmin')}
                     >
                         <option value="">Sin vincular</option>
@@ -183,7 +183,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                         <input
                             type="email"
                             placeholder="profesional@ejemplo.com"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.inviteEmail ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.inviteEmail ? 'border-destructive' : 'border-border'}`}
                             {...register('inviteEmail', {
                                 validate: (val) => {
                                     if (!val) return true;
@@ -192,7 +192,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                             })}
                         />
                         {errors.inviteEmail && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.inviteEmail.message}
                             </span>
                         )}

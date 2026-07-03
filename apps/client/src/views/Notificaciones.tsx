@@ -77,22 +77,22 @@ export default function Notificaciones() {
                     <div className="h-3 bg-gray-200 rounded w-24"></div>
                     <div className="h-8 bg-gray-200 rounded w-48"></div>
                 </div>
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-24"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="h-10 bg-gray-200 rounded-full w-32"></div>
                 </div>
@@ -103,11 +103,11 @@ export default function Notificaciones() {
     if (isError) {
         return (
             <div className="p-4 md:p-8 max-w-2xl mx-auto">
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
-                    <div className="w-16 h-16 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiBell className="text-2xl text-maison-red" />
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiBell className="text-2xl text-destructive" />
                     </div>
-                    <p className="text-sm text-maison-red">
+                    <p className="text-sm text-destructive">
                         No pudimos cargar la configuración en este momento. Por favor, intenta de nuevo.
                     </p>
                 </div>
@@ -119,24 +119,24 @@ export default function Notificaciones() {
         <div className="p-4 md:p-8 max-w-2xl mx-auto">
             <div className="mb-8">
                 <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Configuración</p>
-                <h1 className="font-serif text-2xl text-maison-text">Notificaciones</h1>
+                <h1 className="font-serif text-2xl text-foreground">Notificaciones</h1>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
                     <div>
-                        <p className="text-sm font-medium text-maison-text mb-2">Servidor SMTP</p>
+                        <p className="text-sm font-medium text-foreground mb-2">Servidor SMTP</p>
 
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Host SMTP</label>
                             <input
                                 type="text"
                                 placeholder="Ej: smtp.gmail.com"
-                                className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpHost ? 'border-maison-red' : 'border-maison-border'}`}
+                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpHost ? 'border-destructive' : 'border-border'}`}
                                 {...register('smtpHost')}
                             />
                             {errors.smtpHost && (
-                                <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                                <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                     <FiAlertCircle /> {errors.smtpHost.message}
                                 </span>
                             )}
@@ -148,20 +148,20 @@ export default function Notificaciones() {
                         <input
                             type="number"
                             placeholder="Ej: 587"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpPort ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpPort ? 'border-destructive' : 'border-border'}`}
                             {...register('smtpPort', { valueAsNumber: true })}
                         />
                         {errors.smtpPort && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.smtpPort.message}
                             </span>
                         )}
                     </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer self-start text-sm font-medium text-gray-700 bg-maison-bg border border-maison-border px-4 py-2.5 rounded-xl w-fit">
+                    <label className="flex items-center gap-2 cursor-pointer self-start text-sm font-medium text-gray-700 bg-background border border-border px-4 py-2.5 rounded-lg w-fit">
                         <input
                             type="checkbox"
-                            className="w-4 h-4 rounded border-gray-300 text-maison-primary focus:ring-maison-primary"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                             {...register('smtpSecure')}
                         />
                         <span>Conexión segura (TLS/SSL)</span>
@@ -172,11 +172,11 @@ export default function Notificaciones() {
                         <input
                             type="text"
                             placeholder="Ej: notificaciones@minegocio.com"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpUser ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpUser ? 'border-destructive' : 'border-border'}`}
                             {...register('smtpUser')}
                         />
                         {errors.smtpUser && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.smtpUser.message}
                             </span>
                         )}
@@ -187,16 +187,16 @@ export default function Notificaciones() {
                         <input
                             type="password"
                             placeholder={data?.hasSmtpPassword ? '••••••••  (dejar en blanco para no cambiar)' : 'Sin configurar'}
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpPassword ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.smtpPassword ? 'border-destructive' : 'border-border'}`}
                             {...register('smtpPassword')}
                         />
                         {errors.smtpPassword && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.smtpPassword.message}
                             </span>
                         )}
                         {data?.hasSmtpPassword ? (
-                            <span className="flex items-center gap-1 text-xs text-maison-green mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-ring mt-1 font-medium">
                                 <FiCheckCircle /> Contraseña configurada
                             </span>
                         ) : (
@@ -211,7 +211,7 @@ export default function Notificaciones() {
                         <input
                             type="email"
                             placeholder="Ej: turnos@minegocio.com"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.fromEmail ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.fromEmail ? 'border-destructive' : 'border-border'}`}
                             {...register('fromEmail', {
                                 pattern: {
                                     value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -220,7 +220,7 @@ export default function Notificaciones() {
                             })}
                         />
                         {errors.fromEmail && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.fromEmail.message}
                             </span>
                         )}
@@ -231,11 +231,11 @@ export default function Notificaciones() {
                         <input
                             type="text"
                             placeholder="Ej: Maison Estudio"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.fromName ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.fromName ? 'border-destructive' : 'border-border'}`}
                             {...register('fromName')}
                         />
                         {errors.fromName && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.fromName.message}
                             </span>
                         )}
@@ -248,7 +248,7 @@ export default function Notificaciones() {
                             min={1}
                             max={168}
                             placeholder="Ej: 24"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.reminderHoursBefore ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.reminderHoursBefore ? 'border-destructive' : 'border-border'}`}
                             {...register('reminderHoursBefore', {
                                 valueAsNumber: true,
                                 min: { value: 1, message: 'El mínimo es 1 hora' },
@@ -256,7 +256,7 @@ export default function Notificaciones() {
                             })}
                         />
                         {errors.reminderHoursBefore && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.reminderHoursBefore.message}
                             </span>
                         )}
@@ -266,7 +266,7 @@ export default function Notificaciones() {
                         <button
                             type="submit"
                             disabled={isPending}
-                            className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                            className="bg-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
                         >
                             {isPending ? 'Guardando...' : 'Guardar cambios'}
                         </button>

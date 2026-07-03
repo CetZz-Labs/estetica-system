@@ -21,7 +21,7 @@ export default function AppLayout() {
 
     if (!isLoaded) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-maison-bg text-maison-text">
+            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
                 Cargando...
             </div>
         );
@@ -36,20 +36,20 @@ export default function AppLayout() {
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
         `block p-3 rounded-lg font-medium transition-colors ${isActive
-            ? 'bg-maison-bg text-maison-text border border-maison-border'
-            : 'text-gray-500 hover:text-maison-text hover:bg-gray-50 border border-transparent'
+            ? 'bg-background text-foreground border border-border'
+            : 'text-gray-500 hover:text-foreground hover:bg-gray-50 border border-transparent'
         }`;
 
     return (
-        <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-maison-bg text-maison-text font-sans">
-            
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-background text-foreground font-sans">
+
             {/* Header Móvil (Solo visible en pantallas chicas) */}
-            <div className="md:hidden flex items-center justify-between p-4 border-b border-maison-border bg-maison-card sticky top-0 z-30">
+            <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-30">
                 <div>
-                    <h1 className="text-xl font-serif font-bold tracking-wide">Shear</h1>
+                    <img src="/shear-logo.png" alt="Shear" className="h-11 w-auto" />
                 </div>
-                <button 
-                    onClick={() => setIsMobileMenuOpen(true)} 
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
                     className="p-2 text-gray-600 hover:text-black transition-colors"
                 >
                     <FiMenu size={24} />
@@ -58,18 +58,18 @@ export default function AppLayout() {
 
             {/* Overlay oscuro para móvil */}
             {isMobileMenuOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
                     onClick={closeMenu}
                 />
             )}
 
             {/* Sidebar (Menú Lateral) */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-maison-card border-r border-maison-border flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
-                <div className="p-6 border-b border-maison-border flex items-center justify-between">
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+                <div className="p-6 border-b border-border flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-serif font-bold tracking-wide">Shear</h1>
-                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Estudio · CRM</p>
+                        <img src="/shear-logo.png" alt="Shear" className="h-12 w-auto" />
+                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-1 ml-1">Estudio · CRM</p>
                     </div>
                     {/* Botón de cerrar solo visible en móvil */}
                     <button onClick={closeMenu} className="md:hidden p-2 text-gray-400 hover:text-gray-700">
@@ -101,7 +101,7 @@ export default function AppLayout() {
                     </NavLink>
 
                     {role === 'ADMIN' && (
-                        <div className="pt-4 mt-2 border-t border-maison-border">
+                        <div className="pt-4 mt-2 border-t border-border">
                             <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>
                             <NavLink to="/profesionales" onClick={closeMenu} className={navLinkClass}>
                                 Profesionales
@@ -110,7 +110,7 @@ export default function AppLayout() {
                     )}
 
                     {role === 'ADMIN' && (
-                        <div className="pt-4 mt-2 border-t border-maison-border">
+                        <div className="pt-4 mt-2 border-t border-border">
                             <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Configuración</p>
                             <NavLink to="/configuracion/negocio" onClick={closeMenu} className={navLinkClass}>
                                 Mi Negocio
@@ -125,7 +125,7 @@ export default function AppLayout() {
                     )}
                 </nav>
 
-                <div className="p-4 border-t border-maison-border flex items-center gap-3">
+                <div className="p-4 border-t border-border flex items-center gap-3">
                     <UserButton />
                     <span className="text-sm font-medium">Mi Cuenta</span>
                 </div>

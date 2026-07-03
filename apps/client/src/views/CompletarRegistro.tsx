@@ -16,7 +16,7 @@ export default function CompletarRegistro() {
 
     if (!isLoaded) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-maison-bg text-maison-text">
+            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
                 Cargando...
             </div>
         );
@@ -51,11 +51,11 @@ export default function CompletarRegistro() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-maison-bg p-4">
-            <div className="w-full max-w-md bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="w-full max-w-md bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8">
                 <div className="text-center mb-8">
                     <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Maison · CRM</p>
-                    <h1 className="font-serif text-2xl sm:text-3xl text-maison-text">
+                    <h1 className="font-serif text-2xl sm:text-3xl text-foreground">
                         Completá el registro
                     </h1>
                     <p className="text-sm text-gray-500 mt-2">
@@ -74,7 +74,7 @@ export default function CompletarRegistro() {
                             value={businessName}
                             onChange={(e) => setBusinessName(e.target.value)}
                             placeholder="Ej: Maison Belle"
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
                         />
                     </div>
 
@@ -88,12 +88,12 @@ export default function CompletarRegistro() {
                             value={responsibleName}
                             onChange={(e) => setResponsibleName(e.target.value)}
                             placeholder="Ej: Ana Pérez"
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
                         />
                     </div>
 
                     {error && (
-                        <div className="flex items-center gap-2 text-sm text-maison-red font-medium">
+                        <div className="flex items-center gap-2 text-sm text-destructive font-medium">
                             <FiAlertCircle /> {error}
                         </div>
                     )}
@@ -101,7 +101,7 @@ export default function CompletarRegistro() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full flex items-center justify-center gap-2 bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
                     >
                         {isSubmitting ? 'Guardando...' : 'Completar registro'}
                     </button>
