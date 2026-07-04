@@ -36,10 +36,10 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     control: (base, state) => ({
         ...base,
         backgroundColor: '#fff9f6', // bg-background
-        borderColor: state.isFocused ? '#E5E7EB' : '#E5E7EB', // focus:ring-gray-200
+        borderColor: state.isFocused ? '#80a890' : '#E5E7EB', // focus:ring-ring (verde seco)
         borderRadius: '0.5rem', // rounded-lg
         padding: '2px',
-        boxShadow: state.isFocused ? '0 0 0 2px #E5E7EB' : 'none',
+        boxShadow: state.isFocused ? '0 0 0 2px #80a890' : 'none',
         '&:hover': {
             borderColor: '#D1D5DB'
         }
@@ -266,7 +266,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha del Servicio *</label>
-                        <input type="date" className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.serviceDate ? 'border-destructive' : 'border-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
+                        <input type="date" className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.serviceDate ? 'border-destructive' : 'border-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
                     </div>
                     <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-lg border border-gray-200 md:-mt-2">
                         <div className="flex items-center justify-between">
@@ -283,7 +283,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 </button>
                             )}
                         </div>
-                        <input type="datetime-local" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('nextTouchupDate')} />
+                        <input type="datetime-local" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" {...register('nextTouchupDate')} />
                     </div>
                 </div>
 
@@ -304,7 +304,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         </div>
 
                         <div className="flex gap-3">
-                            <input type="number" min="1" placeholder="Cant." className="flex-1 sm:w-24 px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value ? Number(e.target.value) : '')} />
+                            <input type="number" min="1" placeholder="Cant." className="flex-1 sm:w-24 px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value ? Number(e.target.value) : '')} />
                             <button type="button" onClick={handleAddProduct} disabled={!selectedProductOption || !quantityToAdd} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shrink-0"><FiPlus /></button>
                         </div>
                     </div>
@@ -333,7 +333,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
                         Notas del Servicio <span className="text-gray-400 font-normal normal-case">Opcional</span>
                     </label>
-                    <textarea rows={2} placeholder="Ej: Fórmula del color, observaciones del cabello..." className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" {...register('notes')} />
+                    <textarea rows={2} placeholder="Ej: Fórmula del color, observaciones del cabello..." className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none" {...register('notes')} />
                 </div>
             </form>
         </Modal>

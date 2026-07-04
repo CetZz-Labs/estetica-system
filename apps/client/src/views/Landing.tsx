@@ -257,7 +257,7 @@ export default function Landing() {
                                 Iniciar sesión
                             </Link>
                             <Link to="/registro"
-                                className="bg-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all shadow-sm no-underline"
+                                className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all shadow-sm no-underline"
                             >
                                 Comenzar gratis <FiArrowRight size={16} />
                             </Link>
@@ -266,7 +266,7 @@ export default function Landing() {
                         {/* Mobile hamburger */}
                         <button
                             onClick={() => setMobileMenuOpen(true)}
-                            className="md:hidden p-2 text-gray-600 hover:text-black transition-colors cursor-pointer"
+                                className="md:hidden p-2 text-gray-600 hover:text-black transition-colors cursor-pointer"
                             aria-label="Abrir menú"
                         >
                             <FiMenu size={24} />
@@ -301,7 +301,7 @@ export default function Landing() {
                                 Iniciar sesión
                             </Link>
                             <Link to="/registro" onClick={() => setMobileMenuOpen(false)}
-                                className="bg-primary hover:bg-black text-white px-5 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline"
+                                className="bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline"
                             >
                                 Comenzar gratis <FiArrowRight size={16} />
                             </Link>
@@ -340,7 +340,7 @@ export default function Landing() {
                             </motion.p>
                             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mt-8 justify-center lg:justify-start">
                                 <Link to="/registro"
-                                    className="bg-primary hover:bg-black text-white px-6 sm:px-8 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline group"
+                                    className="bg-primary hover:bg-primary/90 text-white px-6 sm:px-8 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline group"
                                 >
                                     Prueba gratis{' '}
                                     <FiArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -602,7 +602,7 @@ export default function Landing() {
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
                                 <Link to="/registro"
-                                    className="bg-primary hover:bg-black text-white px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline group"
+                                    className="bg-primary hover:bg-primary/90 text-white px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm no-underline group"
                                 >
                                     Crear cuenta gratis{' '}
                                     <FiArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

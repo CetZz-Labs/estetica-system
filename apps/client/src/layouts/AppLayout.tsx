@@ -1,14 +1,24 @@
-import { useState } from "react";
-import { useAuth, UserButton } from "@clerk/react";
-import { Navigate, NavLink, Outlet } from "react-router";
-import { FiMenu, FiX } from "react-icons/fi";
+import { useState, useRef } from "react";
+import { useAuth, useUser, UserButton } from "@clerk/react";
+import { Navigate, NavLink, Outlet, useLocation } from "react-router";
+import { FiMenu, FiX, FiHome, FiUsers, FiScissors, FiPackage, FiCalendar, FiUser, FiBriefcase, FiClock, FiBell } from "react-icons/fi";
 import { useQuery } from '@tanstack/react-query';
 import { getMe } from '../api/adminApi';
 import type { AdminInfo, AdminRole } from '../types';
+import ThemeToggle from '../components/ui/ThemeToggle';
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+    ADMIN: 'Administrador',
+    PROFESSIONAL: 'Profesional',
+    RECEPTIONIST: 'Recepción',
+};
 
 export default function AppLayout() {
     const { isLoaded, userId } = useAuth();
+    const { user } = useUser();
+    const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const footerRef = useRef<HTMLDivElement>(null);
 
     const { data: adminInfo } = useQuery<AdminInfo>({
         queryKey: ['admin-me'],
@@ -31,19 +41,26 @@ export default function AppLayout() {
         return <Navigate to="/login" replace />;
     }
 
-    // Función auxiliar para cerrar el menú al hacer clic en un enlace (solo en móvil)
     const closeMenu = () => setIsMobileMenuOpen(false);
 
+    const handleUserFooterClick = () => {
+        const userButton = footerRef.current?.querySelector('button');
+        userButton?.click();
+    };
+
+    const userFullName = user?.fullName || user?.username || '';
+    const userRole = ROLE_LABELS[role] || role;
+
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-        `block p-3 rounded-lg font-medium transition-colors ${isActive
-            ? 'bg-background text-foreground border border-border'
-            : 'text-gray-500 hover:text-foreground hover:bg-gray-50 border border-transparent'
+        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+            : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
         }`;
 
     return (
         <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-background text-foreground font-sans">
 
-            {/* Header Móvil (Solo visible en pantallas chicas) */}
+            {/* Header Móvil */}
             <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-30">
                 <div>
                     <img src="/shear-logo.png" alt="Shear" className="h-11 w-auto" />
@@ -64,76 +81,106 @@ export default function AppLayout() {
                 />
             )}
 
-            {/* Sidebar (Menú Lateral) */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
-                <div className="p-6 border-b border-border flex items-center justify-between">
-                    <div>
-                        <img src="/shear-logo.png" alt="Shear" className="h-12 w-auto" />
-                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-1 ml-1">Estudio · CRM</p>
+            {/* Sidebar */}
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+                {/* Brand */}
+                <div className="p-5 border-b border-sidebar-border flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <img src="/shear-logo.png" alt="Shear" className="w-24 h-auto" />
                     </div>
-                    {/* Botón de cerrar solo visible en móvil */}
                     <button onClick={closeMenu} className="md:hidden p-2 text-gray-400 hover:text-gray-700">
-                        <FiX size={24} />
+                        <FiX size={20} />
                     </button>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+                {/* Navigation */}
+                <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto custom-scrollbar">
                     <NavLink to="/dashboard" onClick={closeMenu} className={navLinkClass}>
-                        Inicio
+                        <FiHome size={18} />
+                        <span>Inicio</span>
                     </NavLink>
 
                     <NavLink to="/clientes" onClick={closeMenu} className={navLinkClass}>
-                        Clientes
+                        <FiUsers size={18} />
+                        <span>Clientes</span>
                     </NavLink>
 
                     <NavLink to="/servicios" onClick={closeMenu} className={navLinkClass}>
-                        Servicios
+                        <FiScissors size={18} />
+                        <span>Servicios</span>
                     </NavLink>
 
                     {role !== 'RECEPTIONIST' && (
                         <NavLink to="/inventario" onClick={closeMenu} className={navLinkClass}>
-                            Inventario
+                            <FiPackage size={18} />
+                            <span>Inventario</span>
                         </NavLink>
                     )}
 
                     <NavLink to="/turnos" onClick={closeMenu} className={navLinkClass}>
-                        Turnos
+                        <FiCalendar size={18} />
+                        <span>Turnos</span>
                     </NavLink>
 
                     {role === 'ADMIN' && (
-                        <div className="pt-4 mt-2 border-t border-border">
-                            <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>
+                        <>
+                            <div className="pt-3 mt-2 border-t border-sidebar-border">
+                                <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">Equipo</p>
+                            </div>
                             <NavLink to="/profesionales" onClick={closeMenu} className={navLinkClass}>
-                                Profesionales
+                                <FiUser size={18} />
+                                <span>Profesionales</span>
                             </NavLink>
-                        </div>
+                        </>
                     )}
 
                     {role === 'ADMIN' && (
-                        <div className="pt-4 mt-2 border-t border-border">
-                            <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Configuración</p>
+                        <>
+                            <div className="pt-3 mt-2 border-t border-sidebar-border">
+                                <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">Configuración</p>
+                            </div>
                             <NavLink to="/configuracion/negocio" onClick={closeMenu} className={navLinkClass}>
-                                Mi Negocio
+                                <FiBriefcase size={18} />
+                                <span>Mi Negocio</span>
                             </NavLink>
                             <NavLink to="/configuracion/disponibilidad" onClick={closeMenu} className={navLinkClass}>
-                                Disponibilidad
+                                <FiClock size={18} />
+                                <span>Disponibilidad</span>
                             </NavLink>
                             <NavLink to="/configuracion/notificaciones" onClick={closeMenu} className={navLinkClass}>
-                                Notificaciones
+                                <FiBell size={18} />
+                                <span>Notificaciones</span>
                             </NavLink>
-                        </div>
+                        </>
                     )}
                 </nav>
 
-                <div className="p-4 border-t border-border flex items-center gap-3">
-                    <UserButton />
-                    <span className="text-sm font-medium">Mi Cuenta</span>
+                {/* Footer */}
+                <div className="p-3 border-t border-sidebar-border space-y-0.5">
+                    <ThemeToggle />
+                    <div
+                        ref={footerRef}
+                        onClick={handleUserFooterClick}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
+                    >
+                        <UserButton />
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p>
+                            <p className="text-xs text-sidebar-foreground/50 truncate">{userRole}</p>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
             {/* Área de Contenido Principal */}
-            <main className="flex-1 p-4 md:p-8 overflow-x-hidden overflow-y-auto">
-                <Outlet />
+            <main className="flex-1 p-3 md:p-4 overflow-x-hidden overflow-y-auto">
+                <div className="bg-card border border-border rounded-xl shadow-lg min-h-full">
+                    <div className="p-4 md:p-8">
+                        <div key={location.pathname} className="animate-page-in">
+                            <Outlet />
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     );

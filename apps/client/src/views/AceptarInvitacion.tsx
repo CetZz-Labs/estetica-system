@@ -78,7 +78,7 @@ export default function AceptarInvitacion() {
                         <p className="text-xs text-gray-400 text-center">Iniciá sesión con <strong>{info.inviteEmail}</strong> para continuar.</p>
                         <a
                             href={`/login?redirect_url=${encodeURIComponent(`/unirse?token=${token}`)}`}
-                            className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-black text-white py-3 rounded-lg font-medium transition-colors cursor-pointer"
+                            className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"
                         >
                             <FiLogIn /> Iniciar sesión
                         </a>
@@ -90,7 +90,7 @@ export default function AceptarInvitacion() {
                             type="button"
                             onClick={() => accept()}
                             disabled={isPending}
-                            className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-black disabled:bg-gray-400 text-white py-3 rounded-lg font-medium transition-colors cursor-pointer"
+                            className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 disabled:bg-gray-400 text-white py-3 rounded-lg font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"
                         >
                             <FiCheckCircle /> {isPending ? 'Procesando...' : 'Confirmar y unirme'}
                         </button>

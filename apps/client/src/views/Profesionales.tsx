@@ -78,7 +78,7 @@ export default function Profesionales() {
             <button
                 type="button"
                 onClick={closeConflict}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"
             >
                 Volver
             </button>
@@ -86,7 +86,7 @@ export default function Profesionales() {
                 type="button"
                 onClick={handleForceDeactivate}
                 disabled={isDeactivating}
-                className="bg-destructive hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-destructive hover:bg-destructive/90 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"
             >
                 {isDeactivating ? 'Desactivando...' : 'Desactivar de todas formas'}
             </button>
@@ -95,12 +95,12 @@ export default function Profesionales() {
 
     return (
         <div className="max-w-6xl mx-auto">
-            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
+            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-10">
                 <div>
-                    <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Equipo</h2>
+                    <h2 className="text-xs font-semibold tracking-widest text-muted-foreground mb-2 uppercase">Equipo</h2>
                     <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Profesionales</h3>
                 </div>
-                <button onClick={handleCreate} className="bg-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
+                <button onClick={handleCreate} className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer shadow-sm self-start sm:self-auto">
                     <FiPlus className="text-lg" /> Agregar Profesional
                 </button>
             </header>
@@ -108,24 +108,24 @@ export default function Profesionales() {
             {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-card border border-border rounded-lg p-6 shadow-sm animate-pulse">
+                        <div key={i} className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-6 shadow-sm animate-pulse">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="w-11 h-11 bg-gray-200 rounded-full"></div>
+                                <div className="w-11 h-11 bg-muted rounded-full"></div>
                             </div>
-                            <div className="h-6 bg-gray-200 rounded w-3/4 mb-3 mt-1"></div>
-                            <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                            <div className="h-6 bg-muted rounded w-3/4 mb-3 mt-1"></div>
+                            <div className="h-6 bg-muted rounded w-1/2"></div>
                         </div>
                     ))}
                 </div>
             ) : isError ? (
-                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-6 text-destructive shadow-sm">
+                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-destructive shadow-sm">
                     <FiAlertCircle aria-hidden className="shrink-0 text-xl" />
                     <span className="text-sm font-medium">No se pudieron cargar las profesionales. Reintentá en unos segundos.</span>
                 </div>
             ) : profesionales?.length === 0 ? (
-                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm">
                     <div className="w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiUsers className="text-2xl text-gray-400" />
+                        <FiUsers className="text-2xl text-muted-foreground" />
                     </div>
                     <h4 className="text-lg font-serif text-foreground mb-2">No hay profesionales registradas</h4>
                     <p className="text-sm text-gray-500">Agregá tu primera profesional para empezar a agendar turnos.</p>
@@ -133,26 +133,26 @@ export default function Profesionales() {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {profesionales?.map((profesional) => (
-                        <div key={profesional._id} className={`bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-all group ${profesional.isActive ? '' : 'opacity-75'}`}>
+                        <div key={profesional._id} className={`bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-6 shadow-sm hover:border-t-primary/60 hover:shadow-md transition-all duration-200 group ${profesional.isActive ? '' : 'opacity-75'}`}>
                             <div className="flex justify-between items-start mb-4">
-                                <div className="w-11 h-11 rounded-full border border-border shrink-0" style={{ backgroundColor: profesional.color }} aria-hidden />
-                                <div className="flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleEdit(profesional)} aria-label="Editar profesional" title="Editar" className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer"><FiEdit2 size={16} /></button>
+                                <div className="w-11 h-11 rounded-full border-2 border-border shrink-0" style={{ backgroundColor: profesional.color }} aria-hidden />
+                                <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity duration-200">
+                                    <button onClick={() => handleEdit(profesional)} aria-label="Editar profesional" title="Editar" className="p-2 bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/40 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"><FiEdit2 size={16} /></button>
                                     {profesional.isActive ? (
-                                        <button onClick={() => handleDeactivate(profesional)} aria-label="Desactivar profesional" title="Desactivar" className="p-2 text-gray-400 hover:text-destructive transition-colors cursor-pointer"><FiSlash size={16} /></button>
+                                        <button onClick={() => handleDeactivate(profesional)} aria-label="Desactivar profesional" title="Desactivar" className="p-2 bg-background border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive-subtle rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"><FiSlash size={16} /></button>
                                     ) : (
-                                        <button onClick={() => reactivate(profesional._id)} aria-label="Reactivar profesional" title="Reactivar" className="p-2 text-gray-400 hover:text-ring transition-colors cursor-pointer"><FiRotateCcw size={16} /></button>
+                                        <button onClick={() => reactivate(profesional._id)} aria-label="Reactivar profesional" title="Reactivar" className="p-2 bg-background border border-border text-muted-foreground hover:text-ring hover:border-ring/40 hover:bg-ring-subtle rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"><FiRotateCcw size={16} /></button>
                                     )}
                                 </div>
                             </div>
-                            <h4 className="text-xl font-serif text-foreground mb-3">{profesional.name}</h4>
+                            <h4 className="text-xl font-serif font-semibold text-foreground mb-3">{profesional.name}</h4>
                             <div className="flex flex-wrap gap-2">
                                 {profesional.isActive ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-lg text-xs font-semibold uppercase tracking-widest text-ring">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ring-subtle border border-ring/20 rounded-lg text-xs font-semibold uppercase tracking-widest text-ring">
                                         <FiCheckCircle /> Activa
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold uppercase tracking-widest text-gray-500">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted border border-border rounded-lg text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                                         <FiSlash /> Inactiva
                                     </span>
                                 )}
@@ -173,9 +173,9 @@ export default function Profesionales() {
                 footer={conflictFooter}
             >
                 <div className="space-y-4">
-                    <div className="flex items-start gap-2 rounded-lg border border-orange-100 bg-orange-50 p-4 text-warning">
+                    <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-4 text-warning">
                         <FiAlertTriangle aria-hidden className="shrink-0 mt-0.5" />
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-warning-foreground">
                             Reasigná estos turnos a otra profesional desde la sección Turnos antes de desactivar,
                             o desactivá de todas formas: los turnos quedarán sin profesional activa.
                         </p>
@@ -184,12 +184,12 @@ export default function Profesionales() {
                     <ul className="space-y-2">
                         {conflictAppointments.map((appt) => (
                             <li key={appt._id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
-                                <div className="p-2 bg-white rounded-full border border-border text-gray-500 shrink-0">
+                                <div className="p-2 bg-card rounded-full border border-border text-muted-foreground shrink-0">
                                     <FiCalendar />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-foreground">{appt.client.firstName} {appt.client.lastName} · {appt.service.name}</p>
-                                    <p className="text-xs text-gray-500">{formatStartTime(appt.startTime)}</p>
+                                    <p className="text-xs text-muted-foreground">{formatStartTime(appt.startTime)}</p>
                                 </div>
                             </li>
                         ))}

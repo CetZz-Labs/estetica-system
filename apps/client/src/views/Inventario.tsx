@@ -39,43 +39,43 @@ export default function Inventario() {
 
     return (
         <div className="max-w-6xl mx-auto">
-            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
+            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-10">
                 <div>
-                    <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Gestión de Insumos</h2>
+                    <h2 className="text-xs font-semibold tracking-widest text-muted-foreground mb-2 uppercase">Gestión de Insumos</h2>
                     <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Inventario ✿</h3>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <button onClick={() => setIsCargaMasivaModalOpen(true)} className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                    <button onClick={() => setIsCargaMasivaModalOpen(true)} className="bg-card border border-border hover:border-primary/40 text-muted-foreground px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer">
                         <FiUploadCloud className="text-lg" /> Importar
                     </button>
-                    <button onClick={handleNewProduct} className="bg-primary hover:bg-black text-white px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                    <button onClick={handleNewProduct} className="bg-primary hover:bg-primary/90 text-white px-4 sm:px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer">
                         <FiPlus className="text-lg" /> <span>Nuevo Producto</span>
                     </button>
                 </div>
             </header>
 
-            {/* BENTO GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {/* BENTO GRID — Stat Cards (Dashboard pattern) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-10">
                 {isLoading ? (
                     [1, 2, 3].map(i => (
-                        <div key={i} className="bg-card border border-border rounded-lg p-5 flex items-start gap-4 animate-pulse">
-                            <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
-                            <div className="space-y-2 flex-1 mt-1"><div className="h-3 bg-gray-200 rounded w-1/2"></div><div className="h-8 bg-gray-200 rounded w-1/4 mt-2"></div></div>
+                        <div key={i} className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 animate-pulse">
+                            <div className="w-10 h-10 bg-muted rounded-lg shrink-0"></div>
+                            <div className="space-y-2 flex-1"><div className="h-2.5 bg-muted rounded w-1/2"></div><div className="h-6 bg-muted rounded w-1/4 mt-1"></div></div>
                         </div>
                     ))
                 ) : (
                     <>
-                        <div className="bg-card border border-border rounded-lg p-5 flex items-start gap-4">
-                            <div className="bg-background p-3 rounded-lg border border-border"><FiLayers className="text-xl text-gray-600" /></div>
-                            <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Total de Productos</h4><span className="text-3xl font-serif">{totalProducts}</span></div>
+                        <div className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 hover:shadow-md hover:border-t-primary/60 transition-all duration-200 cursor-default group">
+                            <div className="bg-primary/10 p-2.5 rounded-lg shrink-0 group-hover:bg-primary/20 transition-colors"><FiLayers className="text-lg text-primary" /></div>
+                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Total de Productos</h4><span className="text-2xl font-serif text-foreground leading-tight">{totalProducts}</span></div>
                         </div>
-                        <div className={`bg-card border rounded-lg p-5 flex items-start gap-4 transition-colors ${lowStock > 0 ? 'border-orange-200 bg-orange-50/30' : 'border-border'}`}>
-                            <div className={`p-3 rounded-lg border ${lowStock > 0 ? 'bg-orange-100 border-orange-200' : 'bg-background border-border'}`}><FiAlertTriangle className={`text-xl ${lowStock > 0 ? 'text-orange-500' : 'text-gray-600'}`} /></div>
-                            <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Stock Bajo (≤ 5)</h4><span className="text-3xl font-serif">{lowStock}</span></div>
+                        <div className={`bg-card border rounded-lg p-4 flex items-center gap-3 hover:shadow-md transition-all duration-200 cursor-default group ${lowStock > 0 ? 'border-t-2 border-t-warning/60' : 'border-border border-t-2 border-t-primary/30 hover:border-t-primary/60'}`}>
+                            <div className={`p-2.5 rounded-lg shrink-0 group-hover:bg-orange-200/30 transition-colors ${lowStock > 0 ? 'bg-warning/20' : 'bg-primary/10'}`}><FiAlertTriangle className={`text-lg ${lowStock > 0 ? 'text-warning' : 'text-primary'}`} /></div>
+                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Stock Bajo (≤ 5)</h4><span className="text-2xl font-serif text-foreground leading-tight">{lowStock}</span></div>
                         </div>
-                        <div className={`bg-card border rounded-lg p-5 flex items-start gap-4 transition-colors ${outOfStock > 0 ? 'border-red-200 bg-red-50/30' : 'border-border'}`}>
-                            <div className={`p-3 rounded-lg border ${outOfStock > 0 ? 'bg-red-100 border-red-200' : 'bg-background border-border'}`}><FiBox className={`text-xl ${outOfStock > 0 ? 'text-red-500' : 'text-gray-600'}`} /></div>
-                            <div><h4 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Sin Stock</h4><span className="text-3xl font-serif">{outOfStock}</span></div>
+                        <div className={`bg-card border rounded-lg p-4 flex items-center gap-3 hover:shadow-md transition-all duration-200 cursor-default group ${outOfStock > 0 ? 'border-destructive/40 border-t-2 border-t-destructive' : 'border-border border-t-2 border-t-primary/30 hover:border-t-primary/60'}`}>
+                            <div className={`p-2.5 rounded-lg shrink-0 group-hover:bg-red-200/30 transition-colors ${outOfStock > 0 ? 'bg-destructive/20' : 'bg-primary/10'}`}><FiBox className={`text-lg ${outOfStock > 0 ? 'text-destructive' : 'text-primary'}`} /></div>
+                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Sin Stock</h4><span className="text-2xl font-serif text-foreground leading-tight">{outOfStock}</span></div>
                         </div>
                     </>
                 )}
@@ -92,13 +92,13 @@ export default function Inventario() {
                         placeholder="Buscar por nombre o marca..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all shadow-sm"
+                        className="w-full pl-11 pr-4 py-2.5 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-all shadow-sm"
                     />
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer self-start sm:self-auto text-sm font-medium text-gray-700 bg-card border border-border px-4 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+                <label className="flex items-center gap-2 cursor-pointer self-start sm:self-auto text-sm font-medium text-muted-foreground bg-card border border-border px-4 py-2.5 rounded-lg shadow-sm hover:bg-muted/50 transition-colors">
                     <input
                         type="checkbox"
-                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-ring"
                         checked={filterLowStock}
                         onChange={(e) => setFilterLowStock(e.target.checked)}
                     />
@@ -106,52 +106,52 @@ export default function Inventario() {
                 </label>
             </div>
 
-            {/* TABLE — scroll horizontal en móvil */}
-            <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+            {/* TABLE */}
+            <div className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg shadow-sm overflow-hidden hover:border-t-primary/60 transition-all duration-200">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[520px]">
                         <thead>
                             <tr className="border-b border-border bg-background/50">
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Producto</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Marca</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase text-center">Stock</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase text-right">Acciones</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Producto</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Marca</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase text-center">Stock</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {isLoading ? (
                                 [1, 2, 3, 4].map(i => (
                                     <tr key={i} className="animate-pulse">
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-3/4"></div></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/2"></div></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-6 bg-gray-200 rounded-full w-16 mx-auto"></div></td>
-                                        <td className="px-4 sm:px-6 py-4 flex justify-end"><div className="h-8 bg-gray-200 rounded w-20"></div></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-3/4"></div></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-1/2"></div></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-6 bg-muted rounded-full w-16 mx-auto"></div></td>
+                                        <td className="px-4 sm:px-6 py-4 flex justify-end"><div className="h-8 bg-muted rounded w-20"></div></td>
                                     </tr>
                                 ))
                             ) : products?.length === 0 ? (
-                                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500">No hay productos registrados en el inventario.</td></tr>
+                                <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No hay productos registrados en el inventario.</td></tr>
                             ) : filteredProducts?.length === 0 ? (
-                                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500">No se encontraron productos con los filtros aplicados.</td></tr>
+                                <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No se encontraron productos con los filtros aplicados.</td></tr>
                             ) : (
                                 filteredProducts?.map((product) => {
                                     const isOutOfStock = product.stock === 0;
                                     const isLowStock = product.stock > 0 && product.stock <= 5;
                                     return (
-                                        <tr key={product._id} className="hover:bg-gray-50 transition-colors group">
+                                        <tr key={product._id} className="hover:bg-muted/50 transition-colors group">
                                             <td className="px-4 sm:px-6 py-4">
                                                 <p className="font-medium text-foreground">{product.name}</p>
-                                                {product.description && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[180px] sm:max-w-xs">{product.description}</p>}
+                                                {product.description && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[180px] sm:max-w-xs">{product.description}</p>}
                                             </td>
-                                            <td className="px-4 sm:px-6 py-4"><span className="text-sm text-gray-600">{product.brand}</span></td>
+                                            <td className="px-4 sm:px-6 py-4"><span className="text-sm text-muted-foreground">{product.brand}</span></td>
                                             <td className="px-4 sm:px-6 py-4 text-center">
-                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border ${isOutOfStock ? 'bg-red-50 text-red-600 border-red-200' : isLowStock ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-green-50 text-green-600 border-green-200'}`}>
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border ${isOutOfStock ? 'bg-red-50 text-destructive border-red-200' : isLowStock ? 'bg-orange-50 text-warning border-orange-200' : 'bg-green-50 text-ring border-green-200'}`}>
                                                     {product.stock} {product.stock === 1 ? 'unid.' : 'unids.'}
                                                 </span>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4">
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={() => handleAdjustStock(product)} className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 text-gray-600 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer" title="Ajustar Stock"><FiActivity /> Stock</button>
-                                                    <button onClick={() => handleEditProduct(product)} className="p-1.5 text-gray-400 hover:text-foreground transition-colors cursor-pointer" title="Editar detalles"><FiEdit2 size={16} /></button>
+                                                    <button onClick={() => handleAdjustStock(product)} className="px-3 py-1.5 text-xs font-medium bg-card border border-border text-muted-foreground rounded-lg hover:border-primary/40 hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm flex items-center gap-1.5 shadow-sm cursor-pointer" title="Ajustar Stock"><FiActivity /> Stock</button>
+                                                    <button onClick={() => handleEditProduct(product)} className="p-1.5 text-muted-foreground hover:text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer" title="Editar detalles"><FiEdit2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>

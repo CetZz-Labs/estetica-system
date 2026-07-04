@@ -266,7 +266,7 @@ export default function Notificaciones() {
                         <button
                             type="submit"
                             disabled={isPending}
-                            className="bg-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                            className="bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer"
                         >
                             {isPending ? 'Guardando...' : 'Guardar cambios'}
                         </button>

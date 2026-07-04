@@ -13,7 +13,7 @@ export default function NotFound() {
                 </p>
                 <Link
                     to="/dashboard"
-                    className="inline-flex items-center gap-2 bg-primary hover:bg-black text-white px-6 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer"
                 >
                     <FiArrowLeft /> Volver al inicio
                 </Link>
