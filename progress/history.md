@@ -680,3 +680,6 @@
 
 **UX-22 (nuevo, no estaba en el triage original) — Cerrar modal al clickear afuera (backdrop):**
 * Pedido directo del usuario durante la sesión, sobre el componente compartido `Modal.tsx` (usado por toda la app). Decisión de producto confirmada: aplica a TODOS los modales, incluidos formularios con datos sin guardar (riesgo de pérdida de datos aceptado explícitamente, sin prop de opt-out).
+* Implementer: agregó `onClick={onClose}` al overlay y `onClick={(e) => e.stopPropagation()}` al contenedor interno de `Modal.tsx`. Auditó los 12 consumidores del componente — ninguno usa `menuPortalTarget` en sus `react-select`, sin conflicto de portal.
+* Reviewer: **APROBADO** en primera pasada, verificó independientemente el grep de los 12 consumidores. Build client `exit 0`; lint con el único error preexistente ya conocido. Sin prop de opt-out agregada, consistente con la decisión de producto.
+* **`feature_list.json`:** UX-22 → `"done"`.

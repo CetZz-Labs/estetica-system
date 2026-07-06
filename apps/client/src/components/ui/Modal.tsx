@@ -48,8 +48,12 @@ export default function Modal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+        >
             <div
+                onClick={(e) => e.stopPropagation()}
                 className={`bg-maison-card border border-maison-border rounded-2xl w-full ${maxWidth} shadow-xl overflow-hidden flex flex-col max-h-[90vh] ${containerClassName}`}
             >
                 {/* ── Header ── */}

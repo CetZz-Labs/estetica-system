@@ -401,7 +401,7 @@
             "name": "Cerrar modal al clickear afuera (backdrop)",
             "module": "UI",
             "phase": "Fase 1",
-            "status": "pending",
+            "status": "done",
             "description": "Pedido directo del usuario (2026-07-06) durante la sesión de UX-16: el componente compartido `Modal.tsx` (`apps/client/src/components/ui/Modal.tsx`) no cierra al clickear el overlay/backdrop, solo con el botón X. Decisión confirmada: aplica a TODOS los modales de la app, incluidos formularios con datos sin guardar (riesgo de pérdida de datos aceptado explícitamente por el usuario, no se agrega una prop de opt-out).",
             "acceptance_criteria": [
                 "Clickear el overlay/backdrop fuera del contenedor del modal invoca onClose, igual que el botón X",
