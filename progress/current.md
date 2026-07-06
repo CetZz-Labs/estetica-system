@@ -3,7 +3,7 @@
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-07-06
 - **Sesión:** Triage de feedback QA/funcional post-revisión
-- **Feature en curso:** ninguna — **tanda 1 completa**, a la espera de definir si se continúa con la tanda 2
+- **Feature en curso:** UX-16 (usuario confirmó continuar con la tanda 2)
 
 ## Plan de Acción
 Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triagueado y volcado a `feature_list.json` como 10 items nuevos (UX-12 a UX-21), insertados antes de EP-18 por prioridad. Secuenciación acordada con el usuario: **bugs de correctitud primero**, mejoras UX en segunda tanda.
@@ -16,15 +16,17 @@ Checkpoint commiteado en `9aac2a5` (UX-12+UX-13+UX-14). UX-15 pendiente de commi
 3. ~~UX-14 — Desfasaje horario en hora de visita/retoque~~ → **done**
 4. ~~UX-15 — Crash de página en blanco al clickear turno pasado/tachado en calendario~~ → **done**
 
-**Tanda 2 — Mejoras UX (pendiente, a confirmar si se arranca ahora):**
-5. UX-16 — Modal de detalle clickeable en cards de turno/retoque (dashboard + calendario) con acciones aceptar/cancelar
+**Tanda 2 — Mejoras UX (en curso):**
+5. UX-16 — Modal de detalle clickeable en cards de turno/retoque (dashboard + calendario) con acciones aceptar/cancelar ⬅ **en curso**
 6. UX-17 — Selector de horario con intervalos fijos + slots según disponibilidad real (EP-16)
 7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo)
 8. UX-19 — Eliminación rápida (ícono) de producto en Inventario
 9. UX-20 — Eliminación rápida (ícono) de turno en calendario
 10. UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)
 
-**Próximo paso:** confirmar con el usuario si se continúa con UX-16 (tanda 2) en esta sesión o se corta acá.
+**Nota de scope UX-16:** el diagnóstico de UX-15 confirmó que el calendario de turnos (`Turnos.tsx`) YA tiene un modal de detalle clickeable (`isDetailModalOpen`/`selectedAppointment`, con acciones de cancelar/completar). El gap real reportado por QA parece estar en el **Dashboard** (`Dashboard.tsx`, paneles "Próximos turnos"/"Próximos retoques") — a confirmar con un explorer antes de asumir el alcance.
+
+**Próximo paso:** lanzar un `explorer` para confirmar el estado actual de las cards del Dashboard (clickeables o no, qué acciones tienen disponibles) antes de definir el alcance exacto de UX-16.
 
 ## Estado del Backlog
 - UX-15 Crash de página en blanco al clickear un turno pasado (tachado) → **done**

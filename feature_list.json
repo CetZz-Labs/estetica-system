@@ -316,15 +316,18 @@
         },
         {
             "id": "UX-16",
-            "name": "Modal de detalle al click en card de turno/retoque",
-            "module": "Appointments",
+            "name": "Modal de detalle al click en card de turno/retoque (Dashboard)",
+            "module": "Dashboard",
             "phase": "Fase 4",
-            "status": "pending",
-            "description": "Las cards de turnos y retoques en el dashboard y el calendario no son clickeables para ver el detalle. Implementar un modal con información completa (cliente, servicio, profesional, fecha/hora, productos usados, notas) y las acciones correspondientes (confirmar, cancelar).",
+            "status": "done",
+            "description": "Diagnóstico (explore_UX-16.md, 2026-07-06): el calendario (Turnos.tsx) YA tiene modal de detalle clickeable (resuelto en UX-15). El gap real está en el Dashboard: las cards de 'Próximos turnos' y 'Próximos retoques' son <div> sin interactividad (solo botones sueltos con stopPropagation). Decisiones de scope confirmadas con el usuario (2026-07-06): (1) extraer el contenido del modal de detalle de Turnos.tsx a un componente compartido de solo-lectura + acciones por props, reutilizado en Turnos.tsx y en un nuevo modal del Dashboard; (2) mantener los botones rápidos (X/check) en las cards ADEMÁS de hacerlas clickeables para abrir el modal; (3) agregar link 'Ir a ficha del cliente' en ambos modales (turno y retoque). El retoque es el mismo ServiceRecord de la visita original (no una entidad separada) — requiere ampliar el populate en getUpcomingTouchups (serviceRecordController.ts) para traer professional y productsUsed.product, que el tipo frontend ya espera.",
             "acceptance_criteria": [
-                "Al clickear una card de turno o retoque (dashboard o calendario) se abre un modal con el detalle completo",
-                "El modal incluye botones de acción según el estado (confirmar, cancelar, ir a ficha del cliente)",
-                "Sigue el sistema de diseño (Modal compartido, trifecta de accesibilidad en los estados)"
+                "Ambas cards del Dashboard ('Próximos turnos' y 'Próximos retoques') son <button type=\"button\"> clickeables que abren un modal de detalle completo",
+                "El modal de turno reutiliza el componente compartido extraído de Turnos.tsx (no se duplica JSX/lógica)",
+                "El modal de retoque muestra servicio, profesional, notas y productos usados de la visita original (requiere populate ampliado en backend)",
+                "Ambos modales incluyen un link/botón 'Ir a ficha del cliente' que navega al perfil (EP-07)",
+                "Los botones rápidos existentes (X cancelar, check completar/registrar) se preservan sobre la card, con stopPropagation para no disparar la apertura del modal",
+                "Cards siguen HTML semántico (.claude/rules/frontend.md §3): <button type=\"button\">, no <div onClick>"
             ]
         },
         {
@@ -391,6 +394,19 @@
                 "No debe poder crearse (ni renombrarse a) un servicio con el mismo nombre que otro servicio activo del mismo tenant (case-insensitive)",
                 "El error se muestra de forma clara en el formulario (inline, no solo toast genérico)",
                 "La validación respeta el aislamiento multi-tenant (EP-08): el mismo nombre puede existir en tenants distintos"
+            ]
+        },
+        {
+            "id": "UX-22",
+            "name": "Cerrar modal al clickear afuera (backdrop)",
+            "module": "UI",
+            "phase": "Fase 1",
+            "status": "pending",
+            "description": "Pedido directo del usuario (2026-07-06) durante la sesión de UX-16: el componente compartido `Modal.tsx` (`apps/client/src/components/ui/Modal.tsx`) no cierra al clickear el overlay/backdrop, solo con el botón X. Decisión confirmada: aplica a TODOS los modales de la app, incluidos formularios con datos sin guardar (riesgo de pérdida de datos aceptado explícitamente por el usuario, no se agrega una prop de opt-out).",
+            "acceptance_criteria": [
+                "Clickear el overlay/backdrop fuera del contenedor del modal invoca onClose, igual que el botón X",
+                "Clickear DENTRO del contenedor del modal (header/body/footer) NO cierra el modal (el evento no debe propagar al backdrop)",
+                "Comportamiento aplicado uniformemente a todos los usos existentes de <Modal> sin cambios por-instancia"
             ]
         },
         {

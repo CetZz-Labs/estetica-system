@@ -149,6 +149,8 @@ export const getUpcomingTouchups = async (req: Request, res: Response) => {
         })
             .populate('client', 'firstName lastName phone')
             .populate('service', 'name')
+            .populate('professional', 'name color')
+            .populate('productsUsed.product', 'name')
             .sort({ nextTouchupDate: 1 }) // Ascendente: los más urgentes (fechas más tempranas) primero
             .limit(7);
 

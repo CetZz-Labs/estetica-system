@@ -20,6 +20,7 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 - `[BREAKING]` (permitido — feature `in_progress`) **Forma de respuesta de `professional`**: el populate cambió de `{ _id, email }` a `{ _id, name, color }` en `GET /api/turnos`, `GET /api/turnos/:id`, `GET /api/turnos/client/:clientId`. Además `GET /api/registros/cliente/:clientId` ahora incluye `professional { _id, name, color }` (poblado; ausente en registros legacy).
 - `[CHANGED]` **UX-10**: `POST /api/turnos` — `service` y `professional` pasan a ser **opcionales** (antes requeridos según EP-11). `GET /api/turnos` y `GET /api/turnos/:id` pueden retornar appointments sin `service` ni `professional` poblados (campos ausentes cuando el turno fue creado sin ellos). `PATCH /api/turnos/:id/complete` ahora acepta `service` y `professional` del body como override cuando el turno no los tiene.
 - `Appointment.professional` y `ServiceRecord.professional` referencian ahora `Professional` (antes `Appointment.professional` era `ref: 'Admin'`). `ServiceRecord.professional` es opcional en el schema (registros legacy) pero requerido al crear.
+- **UX-16**: `GET /api/registros/retoques` (`getUpcomingTouchups`) ahora popula `professional { _id, name, color }` y `productsUsed[].product { _id, name }` (antes `ObjectId` crudo), mismo patrón ya usado en `GET /api/registros/cliente/:clientId`.
 
 ### Deprecated
 

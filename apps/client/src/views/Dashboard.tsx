@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle, FiTrash2, FiUser, FiClock, FiExternalLink } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
@@ -12,6 +12,8 @@ import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import Modal from '../components/ui/Modal';
+import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
 import { Link } from 'react-router';
 
 const getGreeting = (): string => {
@@ -32,6 +34,8 @@ export default function Dashboard() {
     const [completedAppointmentId, setCompletedAppointmentId] = useState<string | undefined>(undefined);
     const [prefillProfessional, setPrefillProfessional] = useState<string | undefined>(undefined);
     const [prefillServiceDate, setPrefillServiceDate] = useState<string | undefined>(undefined);
+    const [selectedAppointmentDetail, setSelectedAppointmentDetail] = useState<Appointment | null>(null);
+    const [selectedRetoqueDetail, setSelectedRetoqueDetail] = useState<ServiceRecord | null>(null);
 
     const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
         queryKey: ['dashboard-stats'],
@@ -69,6 +73,7 @@ export default function Dashboard() {
     };
 
     const handleTouchupCheck = (clientId: string, serviceId: string) => {
+        setSelectedRetoqueDetail(null);
         setCompletedAppointmentId(undefined);
         setPrefillClient(clientId);
         setPrefillService(serviceId);
@@ -103,8 +108,7 @@ export default function Dashboard() {
         onError: (error) => handleApiError(error, 'Error al cancelar el turno')
     });
 
-    const handleCancelAppointment = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
+    const confirmCancelAppointment = (id: string) => {
         toast('¿Cancelar este turno?', {
             action: { label: 'Confirmar', onClick: () => cancelAppointmentMutate(id) },
             cancel: { label: 'No', onClick: () => {} },
@@ -112,7 +116,13 @@ export default function Dashboard() {
         });
     };
 
+    const handleCancelAppointment = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        confirmCancelAppointment(id);
+    };
+
     const handleCompleteFromDashboard = (appt: Appointment) => {
+        setSelectedAppointmentDetail(null);
         setCompletedAppointmentId(appt._id);
         setPrefillClient(appt.client._id);
         setPrefillService(appt.service?._id);
@@ -220,19 +230,25 @@ export default function Dashboard() {
                                 const status = getTimelineStatus(registro.nextTouchupDate);
                                 const initials = registro.client.firstName.charAt(0).toUpperCase();
                                 return (
-                                    <div key={registro._id} className="relative flex justify-between items-center bg-white border border-maison-border rounded-xl p-4 shadow-sm ml-6 hover:border-gray-300 transition-colors group">
+                                    <div key={registro._id} className="relative ml-6 group">
                                         <div className={`absolute -left-11.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full ${status.dotColor} ring-4 ring-white`}></div>
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 shrink-0 rounded-full bg-maison-bg border border-maison-border flex items-center justify-center font-serif text-lg text-maison-text shadow-sm">{initials}</div>
-                                            <div className="min-w-0">
-                                                <p className="font-medium text-maison-text truncate">{registro.client.firstName} {registro.client.lastName}</p>
-                                                <p className="text-sm text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedRetoqueDetail(registro)}
+                                            className="w-full flex justify-between items-center bg-white border border-maison-border rounded-xl p-4 shadow-sm hover:border-gray-300 transition-colors text-left cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 shrink-0 rounded-full bg-maison-bg border border-maison-border flex items-center justify-center font-serif text-lg text-maison-text shadow-sm">{initials}</div>
+                                                <div className="min-w-0">
+                                                    <p className="font-medium text-maison-text truncate">{registro.client.firstName} {registro.client.lastName}</p>
+                                                    <p className="text-sm text-gray-500 mt-0.5 truncate">{registro.service.name}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="text-right flex flex-col items-end shrink-0 ml-2">
-                                            <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mb-1.5 ${status.pillClass}`}>{status.label}</span>
-                                            <p className="text-xs text-gray-400 font-medium">{formatDate(registro.nextTouchupDate)}</p>
-                                        </div>
+                                            <div className="text-right flex flex-col items-end shrink-0 ml-2">
+                                                <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mb-1.5 ${status.pillClass}`}>{status.label}</span>
+                                                <p className="text-xs text-gray-400 font-medium">{formatDate(registro.nextTouchupDate)}</p>
+                                            </div>
+                                        </button>
                                         <div className="absolute -right-3 -top-3 flex gap-1 opacity-100 transition-all">
                                             <button
                                                 onClick={(e) => handleCancelTouchup(e, registro._id)}
@@ -287,19 +303,25 @@ export default function Dashboard() {
                             {proximosTurnos?.map(appt => {
                                 return (
                                     <div key={appt._id} className="flex items-center gap-3 p-3 bg-white border border-maison-border rounded-xl hover:border-gray-300 transition-colors">
-                                        <div
-                                            className="shrink-0 w-3 h-3 rounded-full border border-maison-border"
-                                            style={{ backgroundColor: appt.professional?.color || '#9CA3AF' }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-maison-text text-sm truncate">
-                                                {appt.client.firstName} {appt.client.lastName}
-                                            </p>
-                                            <p className="text-xs text-gray-500 truncate">{appt.service?.name ?? 'Sin servicio'}</p>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                {formatDateTime(appt.startTime)}
-                                            </p>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedAppointmentDetail(appt)}
+                                            className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+                                        >
+                                            <div
+                                                className="shrink-0 w-3 h-3 rounded-full border border-maison-border"
+                                                style={{ backgroundColor: appt.professional?.color || '#9CA3AF' }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-maison-text text-sm truncate">
+                                                    {appt.client.firstName} {appt.client.lastName}
+                                                </p>
+                                                <p className="text-xs text-gray-500 truncate">{appt.service?.name ?? 'Sin servicio'}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                    {formatDateTime(appt.startTime)}
+                                                </p>
+                                            </div>
+                                        </button>
                                         <div className="flex gap-1.5 shrink-0">
                                             <button
                                                 onClick={(e) => handleCancelAppointment(e, appt._id)}
@@ -356,6 +378,125 @@ export default function Dashboard() {
                     </ul>
                 )}
             </div>
+
+            <Modal
+                isOpen={selectedAppointmentDetail !== null}
+                onClose={() => setSelectedAppointmentDetail(null)}
+                title="Detalle del Turno"
+                maxWidth="max-w-lg"
+                footer={selectedAppointmentDetail && (
+                    <AppointmentDetailFooter
+                        appointment={selectedAppointmentDetail}
+                        onCancel={() => { confirmCancelAppointment(selectedAppointmentDetail._id); setSelectedAppointmentDetail(null); }}
+                        onComplete={() => handleCompleteFromDashboard(selectedAppointmentDetail)}
+                    />
+                )}
+            >
+                {selectedAppointmentDetail && <AppointmentDetail appointment={selectedAppointmentDetail} />}
+            </Modal>
+
+            <Modal
+                isOpen={selectedRetoqueDetail !== null}
+                onClose={() => setSelectedRetoqueDetail(null)}
+                title="Detalle del Retoque"
+                maxWidth="max-w-lg"
+                footer={selectedRetoqueDetail && selectedRetoqueDetail.touchupStatus === 'pending' && (
+                    <>
+                        <button
+                            onClick={() => { setConfirmCancelId(selectedRetoqueDetail._id); setSelectedRetoqueDetail(null); }}
+                            aria-label="Cancelar retoque"
+                            title="Cancelar retoque"
+                            className="p-2 text-gray-400 hover:text-maison-red transition-colors cursor-pointer"
+                        >
+                            <FiTrash2 className="text-lg" />
+                        </button>
+                        <button
+                            onClick={() => handleTouchupCheck(selectedRetoqueDetail.client._id, selectedRetoqueDetail.service._id)}
+                            className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                            <FiCheck /> Registrar Visita
+                        </button>
+                    </>
+                )}
+            >
+                {selectedRetoqueDetail && (
+                    <div className="space-y-5">
+                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                <FiUser className="text-lg" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-maison-text">{selectedRetoqueDetail.client.firstName} {selectedRetoqueDetail.client.lastName}</p>
+                                {selectedRetoqueDetail.client.phone && (
+                                    <p className="text-xs text-gray-500 mt-0.5">{selectedRetoqueDetail.client.phone}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                <FiScissors className="text-lg" />
+                            </div>
+                            <p className="text-sm font-medium text-maison-text">{selectedRetoqueDetail.service.name}</p>
+                        </div>
+
+                        {selectedRetoqueDetail.professional && (
+                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                    <FiUser className="text-lg" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="h-3 w-3 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: selectedRetoqueDetail.professional.color }} aria-hidden />
+                                    <p className="text-sm font-medium text-maison-text">{selectedRetoqueDetail.professional.name}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedRetoqueDetail.nextTouchupDate && (
+                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                                    <FiClock className="text-lg" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-maison-text">Retoque: {formatDate(selectedRetoqueDetail.nextTouchupDate)}</p>
+                                    <p className="text-xs text-gray-500">Visita original: {formatDate(selectedRetoqueDetail.serviceDate)}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedRetoqueDetail.productsUsed && selectedRetoqueDetail.productsUsed.length > 0 && (
+                            <div>
+                                <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Productos utilizados</h4>
+                                <ul className="space-y-1.5">
+                                    {selectedRetoqueDetail.productsUsed.map((pu, idx) => {
+                                        const productName = typeof pu.product === 'object' ? pu.product.name : 'Producto';
+                                        return (
+                                            <li key={idx} className="flex justify-between items-center text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                                <span className="text-maison-text">{productName}</span>
+                                                <span className="text-gray-500 font-medium">x{pu.quantity}</span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+
+                        {selectedRetoqueDetail.notes && (
+                            <div>
+                                <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Notas</h4>
+                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-200">{selectedRetoqueDetail.notes}</p>
+                            </div>
+                        )}
+
+                        <Link
+                            to={`/clientes/${selectedRetoqueDetail.client._id}`}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-maison-primary hover:underline"
+                        >
+                            <FiExternalLink /> Ir a ficha del cliente
+                        </Link>
+                    </div>
+                )}
+            </Modal>
 
             <RegistroModal
                 isOpen={isRegistroModalOpen}

@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useRef, type ReactElement } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { FiPlus, FiAlertCircle, FiAlertTriangle, FiCalendar, FiClock, FiUser, FiPhone, FiCheck, FiX, FiCheckCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiAlertCircle } from 'react-icons/fi';
 import { toast } from 'sonner';
 import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select';
@@ -25,7 +25,8 @@ import type { AxiosError } from 'axios';
 import type { Appointment, Client, Service, Professional } from '../types';
 import Modal from '../components/ui/Modal';
 import RegistroModal from '../components/RegistroModal';
-import { formatDateTime } from '../utils/dates';
+import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
+import { getStatusPalette, getStatusIcon, getRenderStatus } from '../utils/appointmentStatus';
 
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
@@ -45,53 +46,12 @@ const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     })
 };
 
-const STATUS_PALETTE: Record<string, { bg: string; border: string; text: string }> = {
-    confirmed: { bg: '#ECFDF5', border: '#BBF7D0', text: '#54A885' },
-    cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
-    completed: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
-    pending: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
-    overdue: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
-};
-
-function getStatusPalette(status: string): { bg: string; border: string; text: string } {
-    return STATUS_PALETTE[status] || STATUS_PALETTE.pending;
-}
-
-function getStatusLabel(status: string): string {
-    switch (status) {
-        case 'pending': return 'Pendiente';
-        case 'confirmed': return 'Confirmado';
-        case 'cancelled': return 'Cancelado';
-        case 'completed': return 'Completado';
-        case 'overdue': return 'Atrasado';
-        default: return status;
-    }
-}
-
-function getStatusIcon(status: string): ReactElement {
-    switch (status) {
-        case 'confirmed': return <FiCheck />;
-        case 'cancelled': return <FiX />;
-        case 'completed': return <FiCheckCircle />;
-        case 'overdue': return <FiAlertTriangle />;
-        default: return <FiClock />;
-    }
-}
-
 function hexToRgba(hex: string, alpha: number): string {
     const clean = hex.replace('#', '');
     const r = parseInt(clean.substring(0, 2), 16);
     const g = parseInt(clean.substring(2, 4), 16);
     const b = parseInt(clean.substring(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function isOverduePending(appointment: Appointment): boolean {
-    return appointment.status === 'pending' && new Date(appointment.endTime) < new Date();
-}
-
-function getRenderStatus(appointment: Appointment): string {
-    return isOverduePending(appointment) ? 'overdue' : appointment.status;
 }
 
 function getNowLocalDateTimeString(): string {
@@ -366,28 +326,12 @@ export default function Turnos() {
     );
 
     const detailFooter = selectedAppointment && (
-        <>
-            {selectedAppointment.status !== 'cancelled' && selectedAppointment.status !== 'completed' && (
-                <>
-                    <button onClick={() => openCancelModal(selectedAppointment)}
-                        aria-label="Cancelar turno"
-                        title="Cancelar turno"
-                        className="p-2 text-gray-400 hover:text-maison-red transition-colors cursor-pointer">
-                        <FiTrash2 className="text-lg" />
-                    </button>
-                    <button onClick={() => openEditModal(selectedAppointment)}
-                        aria-label="Editar turno"
-                        title="Editar turno"
-                        className="p-2 text-gray-400 hover:text-maison-primary transition-colors cursor-pointer">
-                        <FiEdit2 className="text-lg" />
-                    </button>
-                    <button onClick={() => handleCompleteAppointment(selectedAppointment)}
-                        className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
-                        <FiCheck /> Completar y Registrar
-                    </button>
-                </>
-            )}
-        </>
+        <AppointmentDetailFooter
+            appointment={selectedAppointment}
+            onCancel={() => openCancelModal(selectedAppointment)}
+            onEdit={() => openEditModal(selectedAppointment)}
+            onComplete={() => handleCompleteAppointment(selectedAppointment)}
+        />
     );
 
     const cancelFooter = (
@@ -405,10 +349,6 @@ export default function Turnos() {
 
     const selectedServiceId = watch('service');
     const selectedService = (servicesData || []).find(s => s._id === selectedServiceId);
-
-    const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es-AR', {
-        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -674,87 +614,7 @@ export default function Turnos() {
                 maxWidth="max-w-lg"
                 footer={detailFooter}
             >
-                {selectedAppointment && (
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
-                                getRenderStatus(selectedAppointment) === 'confirmed' ? 'bg-green-50 text-maison-green border-green-200' :
-                                getRenderStatus(selectedAppointment) === 'cancelled' ? 'bg-red-50 text-maison-red border-red-200' :
-                                getRenderStatus(selectedAppointment) === 'overdue' ? 'bg-red-50 text-maison-red border-red-200' :
-                                getRenderStatus(selectedAppointment) === 'completed' ? 'bg-gray-50 text-gray-500 border-gray-200' :
-                                'bg-gray-50 text-gray-500 border-gray-200'
-                            }`}>
-                                {getStatusIcon(getRenderStatus(selectedAppointment))}
-                                {getStatusLabel(getRenderStatus(selectedAppointment))}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
-                                <FiUser className="text-lg" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-maison-text">{selectedAppointment.client.firstName} {selectedAppointment.client.lastName}</p>
-                                {selectedAppointment.client.phone && (
-                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><FiPhone /> {selectedAppointment.client.phone}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {selectedAppointment.service && (
-                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
-                                    <FiCalendar className="text-lg" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.service.name}</p>
-                                    <p className="text-xs text-gray-500">{selectedAppointment.service.duration} min</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {selectedAppointment.professional && typeof selectedAppointment.professional === 'object' && (
-                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
-                                    <FiUser className="text-lg" />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-3 w-3 rounded-full border border-maison-border shrink-0" style={{ backgroundColor: selectedAppointment.professional.color }} aria-hidden />
-                                    <p className="text-sm font-medium text-maison-text">{selectedAppointment.professional.name}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                            <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
-                                <FiClock className="text-lg" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-maison-text">{formatDate(selectedAppointment.startTime)}</p>
-                                <p className="text-xs text-gray-500">Hasta {new Date(selectedAppointment.endTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
-                        </div>
-
-                        {selectedAppointment.notes && (
-                            <div>
-                                <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Notas</h4>
-                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-200">{selectedAppointment.notes}</p>
-                            </div>
-                        )}
-
-                        {selectedAppointment.status === 'cancelled' && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                                <h4 className="text-xs font-bold tracking-widest text-maison-red uppercase mb-2">Cancelación</h4>
-                                {selectedAppointment.cancelReason && (
-                                    <p className="text-sm text-red-700 mb-1">Motivo: {selectedAppointment.cancelReason}</p>
-                                )}
-                                {selectedAppointment.cancelledAt && (
-                                    <p className="text-xs text-red-500">{formatDateTime(selectedAppointment.cancelledAt)}</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {selectedAppointment && <AppointmentDetail appointment={selectedAppointment} />}
             </Modal>
 
             <Modal

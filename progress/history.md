@@ -663,3 +663,20 @@
 * Implementer frontend: reemplazó la línea por el helper compartido `formatDateTime`. **Nota de proceso:** el implementer aplicó el fix correctamente pero su sesión se interrumpió dos veces por un error de infraestructura (Cloudflare 522) antes de escribir su bitácora; el leader verificó el diff, corrió build/lint y completó la bitácora en su nombre.
 * Reviewer: **APROBADO**, con verificación extra por rigor (dado el proceso atípico): reprodujo el crash original con Node (`toLocaleDateString`+`timeStyle` → `TypeError`) y confirmó que `formatDateTime` con el mismo input no lanza. Build client `exit 0`; lint con el único error preexistente ya conocido.
 * **`feature_list.json`:** UX-15 → `"done"`. **Tanda 1 (bugs de correctitud, UX-12 a UX-15) completa.** Tanda 2 (UX-16 a UX-21, mejoras UX) queda `"pending"`, a definir con el usuario si se continúa en esta misma sesión.
+
+---
+
+## 2026-07-06 (cont.) — Tanda 2: UX-16 (modal de detalle en Dashboard) + UX-22 (nuevo pedido: backdrop-close)
+
+* El usuario confirmó continuar con la tanda 2 en la misma sesión.
+
+**UX-16 — Modal de detalle al click en card de turno/retoque (Dashboard):**
+* Explorer (`explore_UX-16.md`, archivado) confirmó que el calendario (`Turnos.tsx`) ya tenía modal de detalle (resuelto por UX-15) — el gap real estaba en el Dashboard, cuyas cards de "Próximos turnos"/"Próximos retoques" eran `<div>` no interactivos.
+* Decisiones de producto confirmadas con el usuario: (1) extraer el modal de detalle de `Turnos.tsx` a un componente compartido de solo-lectura con acciones por props, en vez de duplicar lógica; (2) mantener los botones rápidos (X/check) de las cards ADEMÁS de hacerlas clickeables; (3) agregar link "Ir a ficha del cliente" en ambos modales.
+* Implementers en paralelo — backend: amplió el `populate` de `getUpcomingTouchups` (`serviceRecordController.ts`) para incluir `professional` y `productsUsed.product` (un "retoque" es el mismo `ServiceRecord` de la visita original). Frontend: extrajo `apps/client/src/components/AppointmentDetail.tsx` (+ `utils/appointmentStatus.tsx`) desde `Turnos.tsx`, reutilizado en `Dashboard.tsx`; resolvió el anti-patrón de `<button>` anidado dejando el botón clickeable de la card como hermano (no ancestro) de los botones de acción rápida.
+* **Primera pasada del reviewer: CHANGES_REQUESTED.** Dos violaciones de gates: (1) el componente nuevo `AppointmentDetail.tsx` reimplementaba formateo de fecha/hora ad-hoc en vez de usar el helper compartido (gate ya documentado en `.claude/rules/frontend.md §4`); (2) faltaba entrada en `CHANGELOG.md` para el cambio de contrato de `GET /api/registros/retoques` (C8). Fixes: se agregaron helpers `formatFullDateTime`/`formatTime` en `utils/dates.ts` y se documentó el cambio en `CHANGELOG.md`.
+* **Segunda pasada: APROBADO.** Builds server+client en verde; lint con el único error preexistente ya conocido.
+* **`feature_list.json`:** UX-16 → `"done"`.
+
+**UX-22 (nuevo, no estaba en el triage original) — Cerrar modal al clickear afuera (backdrop):**
+* Pedido directo del usuario durante la sesión, sobre el componente compartido `Modal.tsx` (usado por toda la app). Decisión de producto confirmada: aplica a TODOS los modales, incluidos formularios con datos sin guardar (riesgo de pérdida de datos aceptado explícitamente, sin prop de opt-out).

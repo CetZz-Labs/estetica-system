@@ -91,3 +91,27 @@ export const formatCalendarDate = (dateString: string): string => {
         timeZone: 'UTC',
     }).format(new Date(dateString));
 };
+
+/**
+ * Formatea un timestamp real (ISO con hora, ej. `startTime`/`endTime` de un turno) como
+ * fecha larga ("5 de julio de 2026") + hora ("14:30"). Usar cuando se necesita el detalle
+ * completo de un evento de agenda, a diferencia de `formatDateTime` (fecha corta + hora).
+ */
+export const formatFullDateTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const datePart = new Intl.DateTimeFormat('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    }).format(date);
+    const timePart = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${datePart}, ${timePart}`;
+};
+
+/**
+ * Formatea solo la hora ("14:30") de un timestamp real. Usar para mostrar el extremo de
+ * un rango horario (ej. "Hasta [hora]") cuando la fecha ya se muestra por separado.
+ */
+export const formatTime = (dateString: string): string => {
+    return new Date(dateString).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+};
