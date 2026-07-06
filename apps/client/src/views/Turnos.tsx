@@ -25,6 +25,7 @@ import type { AxiosError } from 'axios';
 import type { Appointment, Client, Service, Professional } from '../types';
 import Modal from '../components/ui/Modal';
 import RegistroModal from '../components/RegistroModal';
+import { formatDateTime } from '../utils/dates';
 
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
@@ -748,7 +749,7 @@ export default function Turnos() {
                                     <p className="text-sm text-red-700 mb-1">Motivo: {selectedAppointment.cancelReason}</p>
                                 )}
                                 {selectedAppointment.cancelledAt && (
-                                    <p className="text-xs text-red-500">{new Date(selectedAppointment.cancelledAt).toLocaleDateString('es-AR', { dateStyle: 'long', timeStyle: 'short' })}</p>
+                                    <p className="text-xs text-red-500">{formatDateTime(selectedAppointment.cancelledAt)}</p>
                                 )}
                             </div>
                         )}

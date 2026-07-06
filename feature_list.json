@@ -306,12 +306,12 @@
             "name": "Crash de página en blanco al clickear un turno pasado (tachado)",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
-            "description": "En el calendario de turnos, al hacer click sobre un turno pasado/cancelado (mostrado tachado), la aplicación navega a una página en blanco en vez de abrir el modal de detalle/edición.",
+            "status": "done",
+            "description": "Diagnóstico (explore_UX-15.md, 2026-07-06): no es un bug de navegación ni de routing. `Turnos.tsx:751` llama `toLocaleDateString('es-AR', { dateStyle: 'long', timeStyle: 'short' })`, combinación inválida según ECMA-402 (timeStyle no es válido en toLocaleDateString) que siempre lanza excepción. Esa línea solo se ejecuta en el bloque de detalle de turnos `status === 'cancelled'` (los tachados), y al no existir ErrorBoundary en main.tsx, la excepción no capturada desmonta toda la app → pantalla en blanco. Fix: reemplazar esa línea por el helper compartido `formatDateTime` de `utils/dates.ts` (ya usado en otras vistas, ya separa fecha/hora correctamente).",
             "acceptance_criteria": [
-                "Al clickear un turno pasado/cancelado se abre el mismo modal de detalle que para cualquier otro turno",
-                "El modal permite ver el detalle y, si corresponde, eliminar/reagendar el turno",
-                "No debe ocurrir ninguna navegación a ruta inválida ni pantalla en blanco"
+                "Al clickear un turno cancelado/tachado se abre el modal de detalle sin crash, mostrando la fecha/hora de cancelación con formatDateTime",
+                "El modal sigue funcionando igual para el resto de los estados (pending/confirmed/completed)",
+                "No se introduce ningún ErrorBoundary nuevo ni se toca otro código — fix de una línea"
             ]
         },
         {

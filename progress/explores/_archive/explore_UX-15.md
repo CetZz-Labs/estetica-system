@@ -1,0 +1,35 @@
+# Reporte de Exploración — UX-15
+
+**Pregunta:** ¿Por qué al clickear un turno pasado/cancelado (tachado) en el calendario la app navega a una página en blanco en vez de abrir el modal de detalle?
+**Contexto:** UX-15 (feature_list.json, status "in_progress") — bug de correctitud reportado por QA, tanda 1 de feedback 2026-07-06.
+**Timestamp:** 2026-07-06
+
+## Hallazgos
+
+1. **[apps/client/src/views/Turnos.tsx:751]** — Causa raíz exacta. Dentro del bloque exclusivo para turnos `cancelled` (línea 744: `{selectedAppointment.status === 'cancelled' && (...)}`), la sección "Cancelación" renderiza:
+   ```
+   {new Date(selectedAppointment.cancelledAt).toLocaleDateString('es-AR', { dateStyle: 'long', timeStyle: 'short' })}
+   ```
+   `Date.prototype.toLocaleDateString` internamente llama al abstract op `ToDateTimeOptions(options, "date", "date")` del spec ECMA-402: si se especifica `timeStyle` cuando el `required` es `"date"`, el spec manda `throw a TypeError`. En V8/Node esto se manifiesta como `RangeError: Value time is out of range for Date.prototype.toLocaleDateString options property timeStyle` (o `TypeError` equivalente según engine) — es decir, **esta línea siempre revienta cuando se ejecuta**, sin excepción.
+
+2. **[apps/client/src/views/Turnos.tsx:224]** — `cancelledAt` (y por lo tanto el bloque de la línea 744) solo existe/se popula cuando `a.status === 'cancelled'` (confirmado en backend, `apps/server/src/controllers/appointmentController.ts:410-437`, función `cancelAppointment`, seteando `cancelledAt: new Date()` únicamente al cancelar). Por eso el crash es **exclusivo de turnos cancelados** (los que se ven tachados vía `classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : '']`, línea 224, y CSS `.appointment-event.cancelled { text-decoration: line-through }`, línea 490). Para `pending`/`confirmed`/`completed`/`overdue` este bloque nunca se ejecuta (el `&&` corta antes) — de ahí que "funcione bien para otros estados".
+
+3. **[apps/client/src/main.tsx:25-35]** — No existe ningún `ErrorBoundary` en el árbol de React (confirmado también con `grep -r "ErrorBoundary" apps/client/src` → sin resultados). `createRoot(...).render(<StrictMode><ClerkProvider><QueryClientProvider><Router/></QueryClientProvider></ClerkProvider></StrictMode>)` no tiene ninguna capa de contención. Cuando el render de `Turnos` lanza la excepción no capturada de la línea 751, React desmonta el árbol completo → pantalla en blanco. **No hay ninguna navegación real**: `handleEventClick` (línea 272-276) solo hace `setSelectedAppointment(appointment); setIsDetailModalOpen(true)`, no invoca `navigate()`, no hay `<Link>` ni `window.location` involucrados. Se descartó también el router (`apps/client/src/router.tsx`) como causa: la ruta `/turnos` existe y está bien definida; el bug ocurre en el mismo URL, sin cambio de ruta.
+
+4. **[apps/client/src/utils/dates.ts:74-79, 86-93]** — El helper compartido correcto ya existe (`formatDateTime` separa `toLocaleDateString`/`toLocaleTimeString` en dos llamadas independientes, sin mezclar `dateStyle`+`timeStyle`; `formatCalendarDate` usa `Intl.DateTimeFormat` con opciones de componente, nunca `dateStyle`/`timeStyle`). La línea 751 de `Turnos.tsx` es la **única** ocurrencia en todo `apps/client/src` del patrón `toLocaleDateString(..., { ..., timeStyle: ... })` (verificado con grep dirigido) — no reutiliza el helper, violando además `.claude/rules/frontend.md §4` ("Formateo de Fechas: Helper Compartido Obligatorio"), en la misma línea que ya había sido señalada como deuda de higiene en UX-14 (`progress/current.md`, deuda "Turnos.tsx:527,733 formatea hora con toLocaleTimeString ad-hoc") — el catálogo de deuda de esa sesión no incluía la línea 751 porque en ese momento el foco era otro bug.
+
+5. **Descartes relevantes:** se revisó exhaustivamente el resto del modal de detalle (`Turnos.tsx:669-757`) — bloques de `service` (703), `professional` (715-725, incluye `professional.color` en línea 721) y `client` (696-698) están correctamente guardados con checks de truthiness/`typeof === 'object'`, y el título del evento en el calendario (línea 216-217, `a.client.firstName`) ya ejercita esos mismos campos exitosamente antes del click (si `client`/`professional` fueran `null` el crash ocurriría al cargar el calendario, no selectivamente al clickear). El patrón "acceso inseguro a `professional.color` cuando `professional` es `null`" (hipótesis planteada como posible causa) **no aplica aquí** — ese acceso está correctamente guardado. El riesgo real y aislado es específicamente la combinación inválida de opciones de `Intl`/`toLocaleDateString` en la línea 751.
+
+## Diagnóstico
+
+El crash es una excepción de JavaScript no capturada (no una navegación ni un bug de routing): `toLocaleDateString` con `timeStyle` en las opciones es una combinación inválida según ECMA-402 y siempre lanza. Esta línea solo se ejecuta cuando `selectedAppointment.status === 'cancelled'` (turnos tachados), lo que explica el 100% de reproducibilidad reportada por QA y por qué otros estados no la disparan. Al no existir `ErrorBoundary` en `main.tsx`, la excepción de render burbujea hasta la raíz y React desmonta toda la app, produciendo la "página en blanco". El resto del modal de detalle está bien defendido contra `professional`/`client`/`service` nulos o no poblados.
+
+## Recomendación
+
+Acción única y acotada: en `apps/client/src/views/Turnos.tsx:751`, reemplazar la llamada ad-hoc `new Date(selectedAppointment.cancelledAt).toLocaleDateString('es-AR', { dateStyle: 'long', timeStyle: 'short' })` por el helper compartido `formatDateTime(selectedAppointment.cancelledAt)` de `apps/client/src/utils/dates.ts` (ya importable, ya usado en otras vistas, ya separa fecha/hora sin mezclar `dateStyle`+`timeStyle`). No requiere tocar backend ni el modelo de datos — es un fix de una sola línea en frontend. Cambio trivial (1 archivo, 1 línea) → no amerita escalado de PR fragmentado.
+
+## Riesgos / efectos secundarios
+
+* **No hay riesgo de recurrencia en otros componentes**: el grep dirigido confirmó que este patrón inválido (`toLocaleDateString` + `timeStyle`) es único en todo `apps/client/src`; no hace falta un barrido más amplio.
+* **Deuda de higiene preexistente relacionada, fuera de alcance de UX-15** (ya señalada en `progress/current.md` como deuda UX-14, no corregida): `Turnos.tsx:527,733` usa `toLocaleTimeString` ad-hoc en vez de `formatDateTime`. Si el `implementer` de UX-15 toca la línea 751, es candidato natural (pero opcional, y debe decidirlo el leader) a resolver también esas dos líneas en el mismo diff, ya que están en el mismo archivo y usan el mismo patrón de violación — evaluar si conviene incluirlas para no reabrir el archivo por una segunda feature de limpieza menor.
+* **Ningún otro turno con `cancelledAt`/`professional`/`client` nulo representa riesgo** distinto al ya identificado; los accesos a `professional.color`/`client.firstName` en el resto del modal ya están correctamente guardados y no requieren cambios adicionales para esta feature.
