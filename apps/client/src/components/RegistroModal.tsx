@@ -167,7 +167,13 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         onError: (error) => handleApiError(error, 'Error al registrar la visita')
     });
 
-    const onSubmit = (data: ServiceRecordPayload) => mutate(data);
+    const onSubmit = (data: ServiceRecordPayload) => {
+        const payload: ServiceRecordPayload = {
+            ...data,
+            ...(data.nextTouchupDate ? { nextTouchupDate: new Date(data.nextTouchupDate).toISOString() } : {}),
+        };
+        mutate(payload);
+    };
 
     const handleAddProduct = () => {
         if (!selectedProductOption || !quantityToAdd) return;

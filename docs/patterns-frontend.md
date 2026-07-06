@@ -366,4 +366,36 @@ const role: AdminRole = adminInfo?.role ?? 'ADMIN';
 
 ---
 
+## P8 — Validar solo el campo que cambió al editar un registro con valor "vencido"
+
+> **Origen:** UX-12 (2026-07-06) — bug real detectado en review. Aplica a cualquier formulario de edición donde un campo tiene una regla de validación que depende del momento actual (`Date.now()`, "no puede ser pasado", "no puede estar vencido") y el registro editado puede legítimamente tener ya ese valor vencido (ej. reprogramar no, pero sí editar notas/otros campos de un turno atrasado).
+
+**Problema:** si la regla "no puede ser pasado" se aplica tanto en el `validate` de react-hook-form como al construir el payload del `PUT`, es fácil resolver la validación del formulario (permitir el submit cuando el valor no cambió) y olvidar que el payload igual reenvía el campo vencido — el backend, que sí valida siempre, lo rechaza con 400 y reintroduce el bloqueo que la validación de UI pretendía evitar.
+
+**Mandato:** guardar el valor original en un `useRef` al abrir el modal de edición, comparar por igualdad exacta de string tanto en el `validate` de react-hook-form como al construir el payload — si no cambió, **omitir el campo del payload** en vez de solo permitir el submit.
+
+```typescript
+const originalStartTimeRef = useRef<string>('');
+
+// Al abrir edición: originalStartTimeRef.current = valorActualDelCampo;
+// Al abrir creación: originalStartTimeRef.current = '';
+
+// register(...):
+validate: (value) =>
+    (originalStartTimeRef.current && value === originalStartTimeRef.current) ||
+    new Date(value) >= new Date() ||
+    'La fecha y hora no pueden ser anteriores al momento actual',
+
+// onSubmit — la parte que se suele olvidar:
+const unchanged = editing && originalStartTimeRef.current !== '' && data.field === originalStartTimeRef.current;
+const payload = {
+    ...otherFields,
+    ...(unchanged ? {} : { field: data.field }),
+};
+```
+
+**Gotcha:** la comparación es por igualdad de string exacta — el string capturado en el ref y el valor del input deben construirse con la misma función de formateo (mismo padding, mismo formato `YYYY-MM-DDTHH:mm`), si no la comparación nunca es `true` y el bug persiste.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

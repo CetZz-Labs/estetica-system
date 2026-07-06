@@ -262,6 +262,138 @@
             ]
         },
         {
+            "id": "UX-12",
+            "name": "Validación de fecha/hora al crear turnos",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "done",
+            "description": "El sistema permite crear turnos en fechas/horas pasadas (no hay ninguna validación, ni en appointmentController ni en el frontend). Diagnóstico (explore_UX-12.md, 2026-07-06) confirmó además que el chequeo de superposición existente (appointmentController.ts create/update) es correcto pero solo corre cuando hay `professional` asignado en el body; como el campo es opcional en el form, decisión de producto confirmada: se deja así (riesgo aceptado, no se valida overlap cuando no hay profesional). Alcance de esta feature: únicamente bloquear la creación/edición de turnos con fecha/hora pasada.",
+            "acceptance_criteria": [
+                "No debe permitirse crear NI editar un turno con fecha/hora anterior al momento actual",
+                "Backend: appointmentController rechaza con 400 y mensaje descriptivo (create y update)",
+                "Frontend: el formulario de turnos (Turnos.tsx) valida inline antes de enviar y muestra el error sin duplicarlo en toast",
+                "No se modifica la lógica de superposición existente — queda documentado como limitación conocida (overlap no se valida si el turno no tiene profesional asignado)"
+            ]
+        },
+        {
+            "id": "UX-13",
+            "name": "Retoques futuros ocultos cuando existe un retoque pendiente",
+            "module": "ServiceRecords",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Diagnóstico (explore_UX-13.md, 2026-07-06): NO es un bug de visualización del dashboard (ni la query ni el frontend dedupean por cliente). La causa real es el auto-completado de EP-05: al registrar una visita nueva, `createServiceRecord` (serviceRecordController.ts) y `completeAppointment` (appointmentController.ts) cierran con `updateMany` TODOS los retoques `pending` del mismo cliente+servicio, sin comparar `nextTouchupDate` contra la fecha de la nueva visita — un retoque futuro legítimo (fecha posterior a la visita registrada) queda marcado `completed` prematuramente. Fix: solo auto-completar retoques cuyo `nextTouchupDate` sea anterior o igual a la fecha de la nueva visita; los que tengan fecha posterior quedan `pending` intactos. Aplicar el mismo fix en ambos controllers (lógica duplicada).",
+            "acceptance_criteria": [
+                "Al registrar una visita nueva, solo se auto-completan los retoques pendientes del mismo cliente+servicio cuya fecha (nextTouchupDate) sea anterior o igual a la fecha de la visita registrada",
+                "Un retoque pendiente con fecha futura respecto a la nueva visita permanece `pending` y sigue visible en el timeline de próximos retoques",
+                "El fix se aplica de forma consistente en serviceRecordController.ts (createServiceRecord) y appointmentController.ts (completeAppointment)"
+            ]
+        },
+        {
+            "id": "UX-14",
+            "name": "Desfasaje horario al mostrar la hora de una visita/retoque",
+            "module": "ServiceRecords",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Diagnóstico (explore_UX-14.md, 2026-07-06): NO es un problema de los helpers de formateo (formatDateTime/formatCalendarDate ya están bien aplicados). La causa real es que `RegistroModal.tsx` envía `nextTouchupDate` (input datetime-local) como string naive sin offset, a diferencia del campo análogo `startTime` en `Turnos.tsx:294` que sí se convierte con `new Date(value).toISOString()` antes de enviarse. El backend interpreta ese string naive según la timezone del proceso Node (no la del usuario), produciendo el corrimiento de -3h reportado. Fix: aplicar la misma conversión a ISO-UTC en `RegistroModal.tsx` al armar el payload, replicando el patrón ya probado en Turnos.tsx. No requiere cambios en backend ni en los helpers de formateo. Los registros históricos ya persistidos con el offset incorrecto NO se migran en esta feature (fuera de alcance, riesgo aceptado — ver progress/current.md).",
+            "acceptance_criteria": [
+                "El payload enviado por RegistroModal.tsx para nextTouchupDate viaja como ISO string con offset UTC correcto (misma conversión que Turnos.tsx aplica a startTime)",
+                "La hora mostrada luego en dashboard/calendario para un retoque coincide exactamente con la hora ingresada al registrar la visita, independientemente de la timezone del servidor",
+                "No se modifican formatDateTime/formatCalendarDate ni el backend"
+            ]
+        },
+        {
+            "id": "UX-15",
+            "name": "Crash de página en blanco al clickear un turno pasado (tachado)",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "En el calendario de turnos, al hacer click sobre un turno pasado/cancelado (mostrado tachado), la aplicación navega a una página en blanco en vez de abrir el modal de detalle/edición.",
+            "acceptance_criteria": [
+                "Al clickear un turno pasado/cancelado se abre el mismo modal de detalle que para cualquier otro turno",
+                "El modal permite ver el detalle y, si corresponde, eliminar/reagendar el turno",
+                "No debe ocurrir ninguna navegación a ruta inválida ni pantalla en blanco"
+            ]
+        },
+        {
+            "id": "UX-16",
+            "name": "Modal de detalle al click en card de turno/retoque",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Las cards de turnos y retoques en el dashboard y el calendario no son clickeables para ver el detalle. Implementar un modal con información completa (cliente, servicio, profesional, fecha/hora, productos usados, notas) y las acciones correspondientes (confirmar, cancelar).",
+            "acceptance_criteria": [
+                "Al clickear una card de turno o retoque (dashboard o calendario) se abre un modal con el detalle completo",
+                "El modal incluye botones de acción según el estado (confirmar, cancelar, ir a ficha del cliente)",
+                "Sigue el sistema de diseño (Modal compartido, trifecta de accesibilidad en los estados)"
+            ]
+        },
+        {
+            "id": "UX-17",
+            "name": "Selector de horario mejorado con slots de disponibilidad",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "El selector de hora al agendar turnos/retoques es un input de texto libre poco práctico. Reemplazar por un selector con intervalos fijos (15/30 min) que además solo muestre los horarios efectivamente disponibles según la disponibilidad configurada del negocio (EP-16) y los turnos ya agendados del profesional seleccionado.",
+            "acceptance_criteria": [
+                "El selector de hora presenta opciones en intervalos fijos, no texto libre",
+                "Las opciones se filtran según el horario de atención configurado (EP-16) y los turnos existentes del profesional (sin superposición)",
+                "El selector se actualiza dinámicamente al cambiar de fecha o profesional"
+            ]
+        },
+        {
+            "id": "UX-18",
+            "name": "Rediseño visual del calendario de turnos (vista por profesional)",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Rediseñar el calendario de turnos con columnas por profesional (avatar + color identificador en el encabezado), bloques de turno con colores más sólidos y legibles, y tooltip/hover que muestre la información del turno sin necesidad de click. Referencia visual provista por el equipo funcional (estilo agenda tipo Fresha).",
+            "acceptance_criteria": [
+                "El calendario muestra una columna por profesional con su avatar/inicial y color identificador",
+                "Los bloques de turno usan colores sólidos (no washed-out) manteniendo la trifecta de accesibilidad",
+                "Al hacer hover sobre un turno se muestra un tooltip con cliente, servicio y horario",
+                "La vista se mantiene responsive y no rompe las vistas diaria/semanal existentes (EP-13)"
+            ]
+        },
+        {
+            "id": "UX-19",
+            "name": "Eliminación rápida de producto desde el listado de inventario",
+            "module": "Inventory",
+            "phase": "Fase 1",
+            "status": "pending",
+            "description": "Agregar un ícono de eliminación en cada fila del listado de inventario para dar de baja un producto sin entrar a un formulario, reutilizando el flujo de soft delete existente.",
+            "acceptance_criteria": [
+                "Cada fila del listado de productos tiene un botón con ícono de eliminación",
+                "Al confirmar (modal de confirmación, no window.confirm), el producto queda con isActive:false",
+                "El listado se actualiza sin recargar la página"
+            ]
+        },
+        {
+            "id": "UX-20",
+            "name": "Eliminación rápida de turno desde el calendario",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Agregar una acción rápida de eliminación sobre el bloque de turno en el calendario, para cancelar/eliminar sin necesidad de abrir el modal completo.",
+            "acceptance_criteria": [
+                "Cada bloque de turno tiene una acción rápida de eliminación/cancelación visible al hover",
+                "Al confirmar (modal de confirmación, no window.confirm), el turno se cancela/elimina según la regla de negocio vigente (EP-14)",
+                "El calendario se actualiza sin recargar la página"
+            ]
+        },
+        {
+            "id": "UX-21",
+            "name": "Validar unicidad de nombre de servicio en el catálogo",
+            "module": "Services",
+            "phase": "Fase 1",
+            "status": "pending",
+            "description": "El catálogo de servicios (EP-03) permite crear dos servicios activos con el mismo nombre. Agregar validación de unicidad (case-insensitive, entre servicios activos del mismo tenant) con mensaje de error claro.",
+            "acceptance_criteria": [
+                "No debe poder crearse (ni renombrarse a) un servicio con el mismo nombre que otro servicio activo del mismo tenant (case-insensitive)",
+                "El error se muestra de forma clara en el formulario (inline, no solo toast genérico)",
+                "La validación respeta el aislamiento multi-tenant (EP-08): el mismo nombre puede existir en tenants distintos"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",

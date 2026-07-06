@@ -626,3 +626,27 @@
 **Deuda técnica nueva identificada (no bloqueante):**
 * Sin tests automatizados para `mailService`/`reminderScheduler`.
 * `Tenant.notificationSettings.smtpPort` sin valor `default` (el usuario tiene que completarlo manualmente; podría defaultear a 587).
+
+---
+
+## 2026-07-06 — Triage de feedback QA/funcional + UX-12: Validación de fecha/hora al crear turnos
+
+* **Agente:** Claude (Leader) + 1 explorer + 2 implementers (backend, frontend) + 1 reviewer (2 pasadas).
+* **Disparador:** el usuario trajo una lista de ~11 puntos de feedback del equipo funcional/test tras revisar la app en producción (bugs de agenda/retoques, UX de horario, rediseño de calendario, eliminación rápida, duplicados de servicio).
+* **Triage:** se aclararon 3 ambigüedades con el usuario (AskUserQuestion) y se volcó el feedback a `feature_list.json` como 10 items nuevos, **UX-12 a UX-21**, insertados antes de EP-18 por prioridad. Secuenciación acordada: tanda 1 = bugs de correctitud (UX-12 a UX-15), tanda 2 = mejoras UX (UX-16 a UX-21). Detalle completo del plan en `progress/current.md`.
+* **UX-12 (primera feature de la tanda 1) — cerrada en esta sesión:**
+  - Explorer (`explore_UX-12.md`, archivado) diagnosticó dos causas independientes: (1) la validación de "no fecha pasada" nunca existió, ni backend ni frontend; (2) el chequeo de superposición de turnos (`appointmentController.ts`) es matemáticamente correcto pero solo corre `if (professionalId)` — como el campo Profesional es opcional en el form y no se auto-selecciona, la mayoría de los turnos se crean sin profesional y el chequeo se salta. Sin relación con el `post_ep14_hook` de EP-11 (esa migración ya está bien aplicada).
+  - Decisión de producto confirmada con el usuario: alcance de UX-12 acotado a **bloquear fecha pasada únicamente** (backend 400 + frontend inline, sin confirmación). El overlap-sin-profesional queda como **limitación conocida aceptada** (documentada en `progress/current.md` § Bloqueos y Riesgos Conocidos) — no reabrir sin nueva decisión de producto.
+  - Implementer backend: `appointmentController.ts` (`createAppointment`, `updateAppointment`) rechaza con 400 fecha/hora pasada; `startTime` sigue siendo opcional en update para no romper ediciones que no tocan la fecha.
+  - Implementer frontend: `Turnos.tsx` — validación inline react-hook-form + `min` en el input `datetime-local`, con `useRef` (`originalStartTimeRef`) para permitir editar turnos ya vencidos sin bloquear el submit.
+  - **Primera pasada del reviewer: CHANGES_REQUESTED.** El `onSubmit` reenviaba `startTime` incondicionalmente en el payload del `PUT`, reintroduciendo el 400 del backend al editar un turno vencido sin cambiar su fecha (ej. solo notas/profesional). Fix: omitir `startTime` del payload cuando coincide con `originalStartTimeRef.current`.
+  - **Segunda pasada: APROBADO.** Builds server+client en verde; lint con el único error preexistente ya conocido en `ProductoModal.tsx:37` (no bloqueante, no tocado).
+* **Patrón nuevo documentado:** `docs/patterns-frontend.md` § **P8 — Validar solo el campo que cambió al editar un registro con valor "vencido"** — extraído del bug real encontrado en la primera pasada del reviewer, reutilizable para cualquier formulario de edición con reglas de validación dependientes de `Date.now()`.
+* **`feature_list.json`:** UX-12 → `"done"`.
+
+**UX-13 — Retoques futuros ocultos cuando existe un retoque pendiente — cerrada en esta misma sesión:**
+* Explorer (`explore_UX-13.md`, archivado) descartó un bug de visualización (ni la query del dashboard `getUpcomingTouchups` ni el frontend dedupean por cliente) y encontró la causa real en la regla de auto-completado de EP-05: `createServiceRecord` (`serviceRecordController.ts`) y `completeAppointment` (`appointmentController.ts`) cerraban con `updateMany` **todos** los `ServiceRecord` `pending` del mismo cliente+servicio sin comparar `nextTouchupDate` contra la fecha de la nueva visita — un retoque futuro legítimo se marcaba `completed` prematuramente.
+* Implementer backend: agregó `nextTouchupDate: { $lte: fecha de la nueva visita }` al filtro del `updateMany` en ambos controllers (lógica duplicada, ajuste quirúrgico sin refactor).
+* Reviewer: **APROBADO** en primera pasada. Verificó empíricamente con `mongodb-memory-server` el caso borde de `ServiceRecord` con `nextTouchupDate` null/ausente — esos registros quedan excluidos del `$lte` y ya no se auto-completan nunca (documentado como deuda técnica, no regresión respecto al criterio de aceptación). Confirmó también (vía `git stash`) que las 4 fallas de `tenantIsolation.test.ts` son preexistentes de EP-11, no del diff. Build server `exit 0`.
+* **`feature_list.json`:** UX-13 → `"done"`. UX-14 a UX-21 quedan `"pending"` para continuar la tanda.
+* **Limpieza:** se eliminaron dos archivos de debris sin relación con ninguna feature (`progress/explores/_test.md`, `_test2.md` — contenido de prueba genérico, sin autor identificable).

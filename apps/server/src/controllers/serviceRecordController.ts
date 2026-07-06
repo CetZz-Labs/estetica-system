@@ -60,12 +60,16 @@ export const createServiceRecord = async (req: Request, res: Response) => {
 
         // ⭐️ 3. LÓGICA DE AUTO-COMPLETADO DE RETOQUES (NUEVO)
         // Buscamos si el cliente tenía retoques pendientes para este mismo servicio y los cerramos.
+        // UX-13: solo se auto-completan los retoques cuya fecha (nextTouchupDate) ya fue superada
+        // por esta nueva visita (anterior o igual a serviceDate). Un retoque pendiente con fecha
+        // futura respecto a esta visita debe permanecer intacto ('pending').
         await ServiceRecord.updateMany(
             {
                 tenantId: tenantId,
                 client: client,
                 service: service,
-                touchupStatus: 'pending'
+                touchupStatus: 'pending',
+                nextTouchupDate: { $lte: new Date(serviceDate) }
             },
             {
                 $set: { touchupStatus: 'completed' }

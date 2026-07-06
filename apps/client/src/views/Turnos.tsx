@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, type ReactElement } from 'react';
+import { useState, useMemo, useCallback, useRef, type ReactElement } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { FiPlus, FiAlertCircle, FiAlertTriangle, FiCalendar, FiClock, FiUser, FiPhone, FiCheck, FiX, FiCheckCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { toast } from 'sonner';
@@ -93,6 +93,12 @@ function getRenderStatus(appointment: Appointment): string {
     return isOverduePending(appointment) ? 'overdue' : appointment.status;
 }
 
+function getNowLocalDateTimeString(): string {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
 interface AppointmentFormData {
     client: string;
     service?: string;
@@ -118,6 +124,7 @@ export default function Turnos() {
     const [prefillService, setPrefillService] = useState<string | undefined>(undefined);
     const [prefillProfessional, setPrefillProfessional] = useState<string | undefined>(undefined);
     const [prefillServiceDate, setPrefillServiceDate] = useState<string | undefined>(undefined);
+    const originalStartTimeRef = useRef<string>('');
 
     const { data: appointments, isLoading, isError, isFetching } = useQuery<Appointment[]>({
         queryKey: ['appointments', dateRange.start, dateRange.end, professionalFilter],
@@ -251,6 +258,7 @@ export default function Turnos() {
             const mm = String(now.getMinutes()).padStart(2, '0');
             startTime = `${startTime}T${hh}:${mm}`;
         }
+        originalStartTimeRef.current = '';
         reset({
             client: '',
             service: '',
@@ -276,10 +284,14 @@ export default function Turnos() {
     }, [updateMutate]);
 
     const onSubmit = (data: AppointmentFormData) => {
-        const payload: Partial<AppointmentFormData> & { startTime: string; client: string } = {
+        const startTimeUnchanged = editingAppointment
+            && originalStartTimeRef.current !== ''
+            && data.startTime === originalStartTimeRef.current;
+
+        const payload: Partial<AppointmentFormData> & { client: string } = {
             client: data.client,
-            startTime: new Date(data.startTime).toISOString(),
             notes: data.notes,
+            ...(startTimeUnchanged ? {} : { startTime: new Date(data.startTime).toISOString() }),
             ...(data.service ? { service: data.service } : {}),
             ...(data.professional ? { professional: data.professional } : {}),
         };
@@ -296,6 +308,7 @@ export default function Turnos() {
         const d = new Date(appointment.startTime);
         const pad = (n: number) => String(n).padStart(2, '0');
         const localStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        originalStartTimeRef.current = localStart;
         reset({
             client: appointment.client._id,
             service: appointment.service?._id || '',
@@ -408,6 +421,7 @@ export default function Turnos() {
                     const now = new Date();
                     const pad = (n: number) => String(n).padStart(2, '0');
                     const localNow = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                    originalStartTimeRef.current = '';
                     reset({
                         client: '',
                         service: '',
@@ -624,8 +638,17 @@ export default function Turnos() {
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha y Hora *</label>
                         <input type="datetime-local"
+                            min={getNowLocalDateTimeString()}
                             className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.startTime ? 'border-maison-red' : 'border-maison-border'}`}
-                            {...register('startTime', { required: 'La fecha y hora son obligatorias' })}
+                            {...register('startTime', {
+                                required: 'La fecha y hora son obligatorias',
+                                validate: (value) => {
+                                    if (originalStartTimeRef.current && value === originalStartTimeRef.current) {
+                                        return true;
+                                    }
+                                    return new Date(value) >= new Date() || 'La fecha y hora no pueden ser anteriores al momento actual';
+                                }
+                            })}
                         />
                         {errors.startTime && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.startTime.message}</span>}
                     </div>

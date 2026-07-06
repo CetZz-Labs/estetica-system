@@ -78,6 +78,11 @@ export const createAppointment = async (req: Request, res: Response) => {
         const startDate = new Date(startTime);
         const endDate = new Date(startDate.getTime() + duration * 60000);
 
+        // Regla de negocio (UX-12): no se puede agendar un turno en el pasado.
+        if (startDate.getTime() < Date.now()) {
+            return res.status(400).json({ error: 'No se puede agendar un turno en una fecha u hora pasada' });
+        }
+
         // Verificar solapamiento solo si hay profesional asignada.
         if (professionalId) {
             const overlap = await Appointment.findOne({
@@ -182,6 +187,11 @@ export const updateAppointment = async (req: Request, res: Response) => {
         const existing = await Appointment.findOne({ _id: id, tenantId: req.tenantId, isActive: true });
         if (!existing) {
             return res.status(404).json({ error: 'Turno no encontrado' });
+        }
+
+        // Regla de negocio (UX-12): no se puede reprogramar un turno a una fecha u hora pasada.
+        if (startTime && new Date(startTime).getTime() < Date.now()) {
+            return res.status(400).json({ error: 'No se puede reprogramar un turno a una fecha u hora pasada' });
         }
 
         // EP-11: si se reasigna la profesional, validar pertenencia al tenant + activa
@@ -312,12 +322,16 @@ export const completeAppointment = async (req: Request, res: Response) => {
         }
 
         // Auto-complete previous pending touchups for this client+service
+        // UX-13: solo se auto-completan los retoques cuya fecha (nextTouchupDate) ya fue superada
+        // por esta visita (anterior o igual a serviceDate). Un retoque pendiente con fecha futura
+        // respecto a esta visita debe permanecer intacto ('pending').
         await ServiceRecord.updateMany(
             {
                 tenantId: req.tenantId,
                 client: appointment.client,
                 service: effectiveService,
-                touchupStatus: 'pending'
+                touchupStatus: 'pending',
+                nextTouchupDate: { $lte: serviceDate }
             },
             { $set: { touchupStatus: 'completed' } }
         );
