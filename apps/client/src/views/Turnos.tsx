@@ -14,6 +14,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import esLocale from '@fullcalendar/core/locales/es';
 
 import { getAppointments, createAppointment, updateAppointment, cancelAppointment } from '../api/appointmentApi';
+import type { AppointmentFormData as AppointmentApiPayload } from '../api/appointmentApi';
 import { getClients } from '../api/clientApi';
 import { getServices } from '../api/serviceApi';
 import { getProfessionals } from '../api/professionalApi';
@@ -27,6 +28,7 @@ import Modal from '../components/ui/Modal';
 import RegistroModal from '../components/RegistroModal';
 import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
 import { getStatusPalette, getStatusIcon, getRenderStatus } from '../utils/appointmentStatus';
+import { getAvailableSlots, getLocalDayRangeISO } from '../utils/timeSlots';
 
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
@@ -54,17 +56,18 @@ function hexToRgba(hex: string, alpha: number): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function getNowLocalDateTimeString(): string {
+function getTodayDateString(): string {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-interface AppointmentFormData {
+interface AppointmentFormValues {
     client: string;
     service?: string;
     professional?: string;
-    startTime: string;
+    date: string;
+    time: string;
     notes?: string;
 }
 
@@ -119,7 +122,7 @@ export default function Turnos() {
     });
 
     const { mutate: createMutate, isPending: isCreating } = useMutation({
-        mutationFn: (data: AppointmentFormData) => createAppointment(data),
+        mutationFn: (data: AppointmentApiPayload) => createAppointment(data),
         onSuccess: () => {
             toast.success('Turno creado exitosamente', {
                 style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
@@ -138,7 +141,7 @@ export default function Turnos() {
     });
 
     const { mutate: updateMutate, isPending: isUpdating } = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<AppointmentFormData> }) => updateAppointment(id, data),
+        mutationFn: ({ id, data }: { id: string; data: Partial<AppointmentApiPayload> }) => updateAppointment(id, data),
         onSuccess: () => {
             toast.success('Turno actualizado');
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -204,7 +207,25 @@ export default function Turnos() {
 
     const professionals = professionalsData || [];
 
-    const { register, handleSubmit, control, formState: { errors }, reset, watch } = useForm<AppointmentFormData>();
+    const { register, handleSubmit, control, formState: { errors }, reset, watch } = useForm<AppointmentFormValues>();
+
+    const watchedDate = watch('date');
+    const watchedTime = watch('time');
+    const watchedProfessional = watch('professional');
+
+    const { data: dayAppointments } = useQuery<Appointment[]>({
+        queryKey: ['appointments', 'day', watchedDate, watchedProfessional],
+        queryFn: () => {
+            const { start, end } = getLocalDayRangeISO(watchedDate);
+            return getAppointments({
+                startDate: start,
+                endDate: end,
+                ...(watchedProfessional ? { professional: watchedProfessional } : {}),
+            });
+        },
+        enabled: isFormModalOpen && !!watchedDate,
+        placeholderData: keepPreviousData,
+    });
 
     const handleDatesSet = useCallback((arg: DatesSetArg) => {
         setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
@@ -212,19 +233,21 @@ export default function Turnos() {
 
     const handleDateClick = useCallback((clickInfo: DateClickArg) => {
         setEditingAppointment(null);
-        let startTime = clickInfo.dateStr.slice(0, 16);
-        if (!startTime.includes('T')) {
+        const dateStr = clickInfo.dateStr.slice(0, 10);
+        let timeStr: string;
+        if (clickInfo.dateStr.includes('T')) {
+            timeStr = clickInfo.dateStr.slice(11, 16);
+        } else {
             const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
-            startTime = `${startTime}T${hh}:${mm}`;
+            timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         }
         originalStartTimeRef.current = '';
         reset({
             client: '',
             service: '',
             professional: '',
-            startTime,
+            date: dateStr,
+            time: timeStr,
             notes: ''
         });
         setIsFormModalOpen(true);
@@ -244,15 +267,16 @@ export default function Turnos() {
         updateMutate({ id: appointment._id, data: { startTime: newStart.toISOString() } });
     }, [updateMutate]);
 
-    const onSubmit = (data: AppointmentFormData) => {
+    const onSubmit = (data: AppointmentFormValues) => {
+        const combinedStartTime = `${data.date}T${data.time}`;
         const startTimeUnchanged = editingAppointment
             && originalStartTimeRef.current !== ''
-            && data.startTime === originalStartTimeRef.current;
+            && combinedStartTime === originalStartTimeRef.current;
 
-        const payload: Partial<AppointmentFormData> & { client: string } = {
+        const payload: Partial<AppointmentApiPayload> & { client: string } = {
             client: data.client,
             notes: data.notes,
-            ...(startTimeUnchanged ? {} : { startTime: new Date(data.startTime).toISOString() }),
+            ...(startTimeUnchanged ? {} : { startTime: new Date(combinedStartTime).toISOString() }),
             ...(data.service ? { service: data.service } : {}),
             ...(data.professional ? { professional: data.professional } : {}),
         };
@@ -260,7 +284,7 @@ export default function Turnos() {
         if (editingAppointment) {
             updateMutate({ id: editingAppointment._id, data: payload });
         } else {
-            createMutate(payload as AppointmentFormData);
+            createMutate(payload as AppointmentApiPayload);
         }
     };
 
@@ -268,13 +292,15 @@ export default function Turnos() {
         setEditingAppointment(appointment);
         const d = new Date(appointment.startTime);
         const pad = (n: number) => String(n).padStart(2, '0');
-        const localStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        originalStartTimeRef.current = localStart;
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        originalStartTimeRef.current = `${dateStr}T${timeStr}`;
         reset({
             client: appointment.client._id,
             service: appointment.service?._id || '',
             professional: appointment.professional?._id || '',
-            startTime: localStart,
+            date: dateStr,
+            time: timeStr,
             notes: appointment.notes || ''
         });
         setIsDetailModalOpen(false);
@@ -349,6 +375,28 @@ export default function Turnos() {
 
     const selectedServiceId = watch('service');
     const selectedService = (servicesData || []).find(s => s._id === selectedServiceId);
+    const selectedDurationMin = selectedService?.duration ?? 60;
+
+    const availableSlots = useMemo(() => {
+        if (!watchedDate) return [];
+        return getAvailableSlots({
+            dateStr: watchedDate,
+            professionalId: watchedProfessional || undefined,
+            durationMin: selectedDurationMin,
+            businessHours: businessHoursData,
+            dayAppointments,
+            excludeAppointmentId: editingAppointment?._id,
+        });
+    }, [watchedDate, watchedProfessional, selectedDurationMin, businessHoursData, dayAppointments, editingAppointment]);
+
+    const timeOptions = useMemo(() => {
+        const slots = [...availableSlots];
+        if (watchedTime && !slots.includes(watchedTime)) {
+            slots.push(watchedTime);
+            slots.sort();
+        }
+        return slots.map((t) => ({ value: t, label: t }));
+    }, [availableSlots, watchedTime]);
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -361,13 +409,15 @@ export default function Turnos() {
                     setEditingAppointment(null);
                     const now = new Date();
                     const pad = (n: number) => String(n).padStart(2, '0');
-                    const localNow = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
                     originalStartTimeRef.current = '';
                     reset({
                         client: '',
                         service: '',
                         professional: '',
-                        startTime: localNow,
+                        date: dateStr,
+                        time: timeStr,
                         notes: ''
                     });
                     setIsFormModalOpen(true);
@@ -576,22 +626,45 @@ export default function Turnos() {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha y Hora *</label>
-                        <input type="datetime-local"
-                            min={getNowLocalDateTimeString()}
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.startTime ? 'border-maison-red' : 'border-maison-border'}`}
-                            {...register('startTime', {
-                                required: 'La fecha y hora son obligatorias',
-                                validate: (value) => {
-                                    if (originalStartTimeRef.current && value === originalStartTimeRef.current) {
-                                        return true;
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha *</label>
+                            <input type="date"
+                                min={getTodayDateString()}
+                                className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.date ? 'border-maison-red' : 'border-maison-border'}`}
+                                {...register('date', { required: 'La fecha es obligatoria' })}
+                            />
+                            {errors.date && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.date.message}</span>}
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Hora *</label>
+                            <Controller
+                                name="time"
+                                control={control}
+                                rules={{
+                                    required: 'La hora es obligatoria',
+                                    validate: (value) => {
+                                        const combined = `${watchedDate}T${value}`;
+                                        if (originalStartTimeRef.current && combined === originalStartTimeRef.current) {
+                                            return true;
+                                        }
+                                        return new Date(combined) >= new Date() || 'La hora no puede ser anterior al momento actual';
                                     }
-                                    return new Date(value) >= new Date() || 'La fecha y hora no pueden ser anteriores al momento actual';
-                                }
-                            })}
-                        />
-                        {errors.startTime && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.startTime.message}</span>}
+                                }}
+                                render={({ field }) => (
+                                    <Select
+                                        options={timeOptions}
+                                        placeholder="Seleccionar horario..."
+                                        styles={selectStyles}
+                                        noOptionsMessage={() => "No hay horarios disponibles para esta fecha"}
+                                        value={timeOptions.find(t => t.value === field.value) || null}
+                                        onChange={(val) => field.onChange(val?.value)}
+                                    />
+                                )}
+                            />
+                            {errors.time && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.time.message}</span>}
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">

@@ -87,6 +87,25 @@
 
 ---
 
+## 2026-07-07 — UX-17: Selector de horario mejorado con slots de disponibilidad (Fase 4, Tanda 2 UX)
+
+* **Agente:** Claude (Leader) + explorer + implementer + reviewer (1 ronda). Feature más grande de la tanda 2.
+* **Objetivo:** Reemplazar el input de hora libre (`datetime-local`) por un selector con slots de 15 min, calculados en frontend a partir del horario de atención (EP-16) y los turnos existentes del profesional. Alcance ampliado por decisión del usuario para incluir también el campo de fecha/hora del próximo retoque en `RegistroModal.tsx` (no solo `Turnos.tsx`).
+
+* **Cambios Frontend (100% frontend, backend intacto):**
+  - `apps/client/src/utils/timeSlots.ts` (nuevo) — `getAvailableSlots(...)` pura, replica exacto `checkBusinessHours` (día-numbering, `blockedDates`, horario por día) y el overlap Mongo (`pending`/`confirmed`, exclusión del propio turno al editar) del backend.
+  - `apps/client/src/views/Turnos.tsx` — campo `startTime` partido en `date`+`time` (Select de slots), nueva query de turnos del día scopeada al form (no al calendario grande).
+  - `apps/client/src/components/RegistroModal.tsx` — mismo tratamiento para `nextTouchupDate` → `touchupDate`+`touchupTime`; se agregaron las queries de disponibilidad y turnos del día que antes no existían en este modal.
+
+* **Patrón promovido:** `docs/patterns-frontend.md` § P10 — Selector de horario con slots calculados en frontend (reutilizable para cualquier campo futuro que agende un `Appointment`).
+
+* **Decisión de alcance (usuario, 2026-07-07):** incluir `RegistroModal.tsx` en el alcance pese a la ambigüedad detectada por el explorer (ADR de EP-16 exime a `completeAppointment` de validar horario al registrar la visita ya ocurrida — pero el campo de retoque agenda algo a futuro, mismo objeto de negocio que un turno). Intervalo fijado en 15 minutos (explícito del usuario, contra la recomendación inicial de 30 min del explorer por consistencia visual con FullCalendar).
+
+* **Verificación:** client build Exit 0, lint sin errores/warnings nuevos (comparado contra baseline con `git stash`). Reviewer: **APPROVED** → `progress/reviews/review_UX-17.md`. UX-17 → **done**.
+  - **Nota de proceso:** no se pudo hacer verificación en navegador real (login vía Clerk requiere credenciales de una cuenta de prueba que no están disponibles en este entorno) — consistente con todas las revisiones previas de este repo, que se validan por lectura de código + build/lint, nunca con un browser real. Si se quiere habilitar testing E2E en el futuro, hace falta una cuenta de prueba de Clerk.
+
+---
+
 ## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).

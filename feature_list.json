@@ -335,7 +335,7 @@
             "name": "Selector de horario mejorado con slots de disponibilidad",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "El selector de hora al agendar turnos/retoques es un input de texto libre poco práctico. Reemplazar por un selector con intervalos fijos (15/30 min) que además solo muestre los horarios efectivamente disponibles según la disponibilidad configurada del negocio (EP-16) y los turnos ya agendados del profesional seleccionado.",
             "acceptance_criteria": [
                 "El selector de hora presenta opciones en intervalos fijos, no texto libre",

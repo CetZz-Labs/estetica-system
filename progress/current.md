@@ -16,18 +16,21 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 
 **Tanda 2 — Mejoras UX (en curso):**
 5. ~~UX-16 — Modal de detalle clickeable en cards de turno/retoque (Dashboard)~~ → **done**
-6. UX-17 — Selector de horario con intervalos fijos + slots según disponibilidad real (EP-16)
-7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo). Confirmado con el usuario (2026-07-07): NINGÚN criterio de aceptación está cubierto todavía — hoy solo hay tintado pastel + dot + filtro de un solo profesional a la vez, sin columnas por profesional (`@fullcalendar/resource-timegrid` no está instalado), sin sidebar de profesionales, sin hover tooltip. Es la feature más grande de la tanda.
+6. ~~UX-17 — Selector de horario con intervalos fijos (15 min) + slots según disponibilidad real (EP-16), alcance ampliado a `Turnos.tsx` + `RegistroModal.tsx`~~ → **done**
+7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo). Confirmado con el usuario (2026-07-07): NINGÚN criterio de aceptación está cubierto todavía — hoy solo hay tintado pastel + dot + filtro de un solo profesional a la vez, sin columnas por profesional (`@fullcalendar/resource-timegrid` no está instalado), sin sidebar de profesionales, sin hover tooltip. Es la feature más grande de la tanda que queda.
 8. ~~UX-19 — Eliminación rápida (ícono) de producto en Inventario~~ → **done**
 9. UX-20 — Eliminación rápida (ícono) de turno en calendario
 10. ~~UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)~~ → **done**
 11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
 
-**Bug fuera de tanda (hallazgo del leader, 2026-07-07):** UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**, commit pendiente.
+**Bug fuera de tanda (hallazgo del leader, 2026-07-07):** UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**.
 
-**Próximo paso:** a definir con el usuario — continuar con UX-17, UX-20 o UX-18 (quedan en la tanda 2) o cortar la sesión acá.
+**Limitación de proceso anotada (2026-07-07):** este repo no tiene forma de hacer testing E2E en navegador real — el login vía Clerk requiere credenciales de una cuenta de prueba que no están disponibles en el entorno del agente. Todas las features se verifican por lectura de código + build/lint. Si se quiere cambiar esto, hace falta que el usuario provea una cuenta de prueba de Clerk.
+
+**Próximo paso:** a definir con el usuario — continuar con UX-18 o UX-20 (quedan en la tanda 2) o cortar la sesión acá.
 
 ## Estado del Backlog
+- UX-17 Selector de horario con slots de disponibilidad → **done**
 - UX-23 Bug: duplicado de producto no excluía eliminados → **done**
 - UX-21 Validar unicidad de nombre de servicio en catálogo → **done**
 - UX-19 Eliminación rápida de producto en Inventario → **done**

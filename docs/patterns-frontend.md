@@ -439,4 +439,25 @@ const { mutate: deleteItem, isPending: isDeleting } = useMutation({
 
 ---
 
+## P10 — Selector de horario con slots calculados en frontend
+
+> **Origen:** UX-17 (2026-07-07) — reemplaza un `<input type="datetime-local">` libre por un `<Select>` de horarios válidos, replicando en frontend las mismas reglas de negocio que ya valida el backend (`checkBusinessHours` + overlap de turnos). Aplica a cualquier campo de formulario que agende un `Appointment` a futuro (turno, retoque).
+
+Función pura en `src/utils/timeSlots.ts` (`getAvailableSlots`), sin dependencias de React/Express:
+
+```typescript
+getAvailableSlots({ dateStr, professionalId?, durationMin, businessHours?, dayAppointments?, intervalMin = 15, excludeAppointmentId? }): string[]
+```
+
+- Día bloqueado (`blockedDates`) o cerrado (`!daySchedule.isOpen`) → `[]`.
+- Genera candidatos desde `openTime` en pasos de `intervalMin` mientras el turno completo (`start + durationMin`) entre antes de `closeTime`.
+- Con `professionalId`, descarta candidatos que se superpongan (`start < b.end && end > b.start`) con turnos `pending`/`confirmed` de esa profesional ese día; sin `professionalId`, omite el filtro (igual que el backend).
+- El componente arma la query de turnos del día (`useQuery(['appointments', 'day', watchedDate, watchedProfessional], ...)`, scopeada a la fecha/profesional elegidos DENTRO del form, no al rango visible de ningún calendario grande) y pasa el resultado + `businessHoursData` (ya cargado vía `getDisponibilidad`) a `getAvailableSlots` dentro de un `useMemo`.
+
+**Gotcha — dos interpretaciones de fecha distintas, no mezclar:** el cálculo de día-de-semana usa `new Date(dateStr).getUTCDay()` (mismo método que el backend, sobre un string `YYYY-MM-DD` de un `<input type="date">`), mientras que el rango horario del día para la query de turnos existentes necesita interpretación *local* (`new Date(`${dateStr}T00:00:00`)`, sin `Z`). Son dos cálculos con propósitos distintos — usar el método equivocado en cada uno reintroduce el bug de off-by-one de timezone ya documentado en `.claude/rules/frontend.md`.
+
+**Gotcha — no perder el valor ya guardado:** si el valor actualmente seleccionado (`watch('time')`) no aparece entre los slots recién calculados (turno editado que quedó "vencido" respecto a la disponibilidad configurada, o un horario prellenado que no cae en la grilla), agregarlo igual a las opciones del `<Select>` en vez de descartarlo — generaliza el patrón P8 a selects computados dinámicamente.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

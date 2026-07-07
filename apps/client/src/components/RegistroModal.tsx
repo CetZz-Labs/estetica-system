@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FiPlus, FiTrash2, FiBox } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos react-select
@@ -10,10 +10,13 @@ import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { getProfessionals } from "../api/professionalApi";
 import { createServiceRecord, type ServiceRecordPayload } from "../api/serviceRecordApi";
-import { completeAppointment } from "../api/appointmentApi";
+import { completeAppointment, getAppointments } from "../api/appointmentApi";
+import { getDisponibilidad } from "../api/disponibilidadApi";
+import type { BusinessHours } from "../api/disponibilidadApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Product, Client, Service, Professional } from "../types";
+import type { Product, Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
+import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 
 interface SelectOption {
     value: string;
@@ -52,6 +55,11 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     })
 };
 
+interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate"> {
+    touchupDate: string;
+    touchupTime: string;
+}
+
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate }: Props) {
     const queryClient = useQueryClient();
 
@@ -79,6 +87,12 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         enabled: isOpen
     });
 
+    const { data: businessHoursData } = useQuery<BusinessHours>({
+        queryKey: ['business-hours'],
+        queryFn: getDisponibilidad,
+        enabled: isOpen
+    });
+
     // ⭐️ Formateamos los datos para que react-select los entienda ({ label, value })
     const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
@@ -93,14 +107,15 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
-    const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ServiceRecordPayload>({
+    const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<RegistroFormValues>({
         defaultValues: {
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
             professional: preselectedProfessionalId || '',
             serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
             notes: '',
-            nextTouchupDate: '',
+            touchupDate: '',
+            touchupTime: '',
             productsUsed: []
         }
     });
@@ -109,8 +124,49 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
 
     const watchedServiceId = watch('service');
     const watchedServiceDate = watch('serviceDate');
+    const watchedProfessional = watch('professional');
+    const watchedTouchupDate = watch('touchupDate');
+    const watchedTouchupTime = watch('touchupTime');
     const selectedService = services?.find(s => s._id === watchedServiceId);
     const hasSuggestedTouchup = (selectedService?.defaultTouchupDays ?? 0) > 0 && !!watchedServiceDate;
+
+    // Turnos del profesional en la fecha elegida para el retoque — insumo para calcular
+    // los horarios libres, independiente de la fecha del servicio que se está registrando.
+    const { data: touchupDayAppointments } = useQuery<Appointment[]>({
+        queryKey: ['appointments', 'day', watchedTouchupDate, watchedProfessional],
+        queryFn: () => {
+            const { start, end } = getLocalDayRangeISO(watchedTouchupDate);
+            return getAppointments({
+                startDate: start,
+                endDate: end,
+                ...(watchedProfessional ? { professional: watchedProfessional } : {}),
+            });
+        },
+        enabled: isOpen && !!watchedTouchupDate,
+        placeholderData: keepPreviousData,
+    });
+
+    const touchupDurationMin = selectedService?.duration ?? 60;
+
+    const availableTouchupSlots = useMemo(() => {
+        if (!watchedTouchupDate) return [];
+        return getAvailableSlots({
+            dateStr: watchedTouchupDate,
+            professionalId: watchedProfessional || undefined,
+            durationMin: touchupDurationMin,
+            businessHours: businessHoursData,
+            dayAppointments: touchupDayAppointments,
+        });
+    }, [watchedTouchupDate, watchedProfessional, touchupDurationMin, businessHoursData, touchupDayAppointments]);
+
+    const touchupTimeOptions = useMemo(() => {
+        const slots = [...availableTouchupSlots];
+        if (watchedTouchupTime && !slots.includes(watchedTouchupTime)) {
+            slots.push(watchedTouchupTime);
+            slots.sort();
+        }
+        return slots.map((t) => ({ value: t, label: t }));
+    }, [availableTouchupSlots, watchedTouchupTime]);
 
     const handleUseSuggestedDate = () => {
         if (!selectedService || !watchedServiceDate) return;
@@ -118,8 +174,9 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         const date = new Date(year, month - 1, day);
         date.setDate(date.getDate() + (selectedService.defaultTouchupDays || 0));
         const pad = (n: number) => String(n).padStart(2, '0');
-        const suggested = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T09:00`;
-        setValue('nextTouchupDate', suggested);
+        const suggestedDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        setValue('touchupDate', suggestedDate);
+        setValue('touchupTime', '09:00');
     };
 
     const handleCloseModal = () => {
@@ -136,7 +193,8 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                 professional: preselectedProfessionalId || '',
                 serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
                 notes: '',
-                nextTouchupDate: '',
+                touchupDate: '',
+                touchupTime: '',
                 productsUsed: []
             });
         }
@@ -167,10 +225,14 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         onError: (error) => handleApiError(error, 'Error al registrar la visita')
     });
 
-    const onSubmit = (data: ServiceRecordPayload) => {
+    const onSubmit = (data: RegistroFormValues) => {
+        const { touchupDate, touchupTime, ...rest } = data;
+        const nextTouchupDate = touchupDate && touchupTime
+            ? new Date(`${touchupDate}T${touchupTime}`).toISOString()
+            : undefined;
         const payload: ServiceRecordPayload = {
-            ...data,
-            ...(data.nextTouchupDate ? { nextTouchupDate: new Date(data.nextTouchupDate).toISOString() } : {}),
+            ...rest,
+            ...(nextTouchupDate ? { nextTouchupDate } : {}),
         };
         mutate(payload);
     };
@@ -289,7 +351,33 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 </button>
                             )}
                         </div>
-                        <input type="datetime-local" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('nextTouchupDate')} />
+                        <div className="grid grid-cols-2 gap-2">
+                            <input type="date" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('touchupDate')} />
+                            <Controller
+                                name="touchupTime"
+                                control={control}
+                                rules={{
+                                    validate: (value) => {
+                                        if (!!value !== !!watchedTouchupDate) {
+                                            return 'Completá fecha y hora, o dejá ambas vacías';
+                                        }
+                                        return true;
+                                    }
+                                }}
+                                render={({ field }) => (
+                                    <Select
+                                        options={touchupTimeOptions}
+                                        placeholder="Hora..."
+                                        styles={selectStyles}
+                                        noOptionsMessage={() => "Sin horarios disponibles"}
+                                        isDisabled={!watchedTouchupDate}
+                                        value={touchupTimeOptions.find(t => t.value === field.value) || null}
+                                        onChange={(val) => field.onChange(val?.value)}
+                                    />
+                                )}
+                            />
+                        </div>
+                        {errors.touchupTime && <span className="text-[10px] text-maison-red">{errors.touchupTime.message}</span>}
                     </div>
                 </div>
 
