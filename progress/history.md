@@ -76,6 +76,17 @@
 
 ---
 
+## 2026-07-07 — UX-23: Bug de duplicado de producto no excluye eliminados (Fase 1)
+
+* **Agente:** Claude (Leader, hallazgo propio verificando pedido explícito del usuario tras UX-19/UX-21) + implementer (backend) + reviewer (1 ronda).
+* **Objetivo:** El usuario pidió verificar que la validación de duplicados en creación no interfiera con productos/servicios ya eliminados (soft-delete). Servicios ya estaba bien (UX-21); Inventario tenía el mismo bug sin corregir.
+
+* **Cambio Backend:** `apps/server/src/controllers/productController.ts::createProduct` — se agregó `isActive: true` al filtro de `Product.findOne` del chequeo de duplicado (1 línea), mismo patrón que `createService`/`updateService` de UX-21. `updateProduct` queda con su gap preexistente distinto (no valida duplicados al renombrar), documentado y fuera de alcance.
+
+* **Verificación:** server build Exit 0. Reviewer: **APPROVED** → `progress/reviews/review_UX-23.md`. UX-23 → **done**.
+
+---
+
 ## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).

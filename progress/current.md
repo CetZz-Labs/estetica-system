@@ -23,9 +23,12 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 10. ~~UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)~~ → **done**
 11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
 
+**Bug fuera de tanda (hallazgo del leader, 2026-07-07):** UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**, commit pendiente.
+
 **Próximo paso:** a definir con el usuario — continuar con UX-17, UX-20 o UX-18 (quedan en la tanda 2) o cortar la sesión acá.
 
 ## Estado del Backlog
+- UX-23 Bug: duplicado de producto no excluía eliminados → **done**
 - UX-21 Validar unicidad de nombre de servicio en catálogo → **done**
 - UX-19 Eliminación rápida de producto en Inventario → **done**
 - UX-22 Cerrar modal al clickear afuera (backdrop) → **done**

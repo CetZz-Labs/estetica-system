@@ -14,6 +14,7 @@ export const createProduct = async (req: Request, res: Response) => {
         // Búsqueda insensible a mayúsculas/minúsculas y espacios extra, acotada al tenant
         const existingProduct = await Product.findOne({
             tenantId: req.tenantId,
+            isActive: true,
             name: { $regex: new RegExp(`^${safeName}$`, 'i') },
             brand: { $regex: new RegExp(`^${safeBrand}$`, 'i') }
         });

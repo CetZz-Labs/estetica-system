@@ -410,6 +410,19 @@
             ]
         },
         {
+            "id": "UX-23",
+            "name": "Bug: duplicado de producto bloquea reutilizar nombre de un producto eliminado",
+            "module": "Inventory",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Hallazgo del leader (2026-07-07) durante verificación pedida por el usuario tras UX-19/UX-21: el check de duplicado en `createProduct` (`apps/server/src/controllers/productController.ts:15-19`) no filtra `isActive: true`, a diferencia del mismo check ya corregido en `createService`/`updateService` (UX-21). Si se elimina (soft-delete) un producto y se intenta crear uno nuevo con el mismo nombre+marca, el sistema lo rechaza erróneamente como duplicado aunque el existente esté desactivado.",
+            "acceptance_criteria": [
+                "Crear un producto con el mismo nombre+marca que uno ya desactivado (isActive:false) del mismo tenant DEBE permitirse",
+                "Crear un producto con el mismo nombre+marca que uno ACTIVO del mismo tenant sigue bloqueado con el mensaje existente",
+                "La validación sigue acotada al tenant (EP-08), sin cambios de comportamiento cross-tenant"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",
