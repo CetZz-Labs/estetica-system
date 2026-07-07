@@ -57,6 +57,25 @@
 
 ---
 
+## 2026-07-07 — UX-21: Validar unicidad de nombre de servicio en el catálogo (Fase 1, Tanda 2 UX)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Objetivo:** Impedir crear o renombrar un servicio a un nombre ya usado por otro servicio ACTIVO del mismo tenant (case-insensitive), mostrando el error inline en el formulario (no solo toast).
+
+* **Cambios Backend:**
+  - `apps/server/src/controllers/serviceController.ts` — helper `escapeRegex` (duplicado desde `productController.ts`, sin abstracción nueva); check de duplicado tenant-scoped + `isActive: true` en `createService`; mismo check + `_id: { $ne: id }` en `updateService`. Mensaje `400`: `'Ya existe un servicio activo con este nombre.'`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/ServicioModal.tsx` — `setError('name', ...)` vía `axios.isAxiosError` cuando el mensaje del backend matchea exacto el contrato acordado; fallback a `handleApiError` para cualquier otro error. Reutiliza el bloque JSX de error inline ya existente para `name` (sin componente nuevo).
+
+* **Coordinación entre implementers en paralelo:** el mensaje de error `'Ya existe un servicio activo con este nombre.'` se fijó como contrato exacto en ambos prompts del leader antes de lanzar los dos implementers, evitando dependencia secuencial entre backend y frontend.
+
+* **Deuda ya conocida, no tocada:** `productController.updateProduct` no valida duplicados al renombrar (ni tiene `$ne`) — gap preexistente, fuera de alcance de UX-21.
+
+* **Verificación:** server build Exit 0, client build Exit 0, lint sin errores/warnings nuevos (`ServicioModal.tsx` limpio). Reviewer: **APPROVED** → `progress/reviews/review_UX-21.md`. UX-21 → **done**.
+
+---
+
 ## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).

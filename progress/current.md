@@ -17,15 +17,16 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 **Tanda 2 — Mejoras UX (en curso):**
 5. ~~UX-16 — Modal de detalle clickeable en cards de turno/retoque (Dashboard)~~ → **done**
 6. UX-17 — Selector de horario con intervalos fijos + slots según disponibilidad real (EP-16)
-7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo)
+7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo). Confirmado con el usuario (2026-07-07): NINGÚN criterio de aceptación está cubierto todavía — hoy solo hay tintado pastel + dot + filtro de un solo profesional a la vez, sin columnas por profesional (`@fullcalendar/resource-timegrid` no está instalado), sin sidebar de profesionales, sin hover tooltip. Es la feature más grande de la tanda.
 8. ~~UX-19 — Eliminación rápida (ícono) de producto en Inventario~~ → **done**
 9. UX-20 — Eliminación rápida (ícono) de turno en calendario
-10. UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)
+10. ~~UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)~~ → **done**
 11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
 
-**Próximo paso:** a definir con el usuario — continuar con UX-17, UX-20 o UX-21 (quedan en la tanda 2) o cortar la sesión acá.
+**Próximo paso:** a definir con el usuario — continuar con UX-17, UX-20 o UX-18 (quedan en la tanda 2) o cortar la sesión acá.
 
 ## Estado del Backlog
+- UX-21 Validar unicidad de nombre de servicio en catálogo → **done**
 - UX-19 Eliminación rápida de producto en Inventario → **done**
 - UX-22 Cerrar modal al clickear afuera (backdrop) → **done**
 - UX-16 Modal de detalle al click en card de turno/retoque (Dashboard) → **done**
@@ -42,7 +43,7 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 - EP-11 Gestión de Profesionales agendables → done
 
 ### Pendientes
-- UX-17, UX-18, UX-20, UX-21 Mejoras UX (tanda 2, feedback QA 2026-07-06)
+- UX-17, UX-18, UX-20 Mejoras UX (tanda 2, feedback QA 2026-07-06)
 - EP-18 a EP-22 Reportes (Fase 5)
 - EP-23 a EP-25 Pagos (Fase 6)
 

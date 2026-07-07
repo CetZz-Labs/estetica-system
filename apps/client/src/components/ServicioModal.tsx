@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import axios from "axios";
 import { FiAlertCircle } from "react-icons/fi";
 
 import { createService, updateService, type ServiceFormData } from "../api/serviceApi";
@@ -19,7 +20,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
 
     const queryClient = useQueryClient();
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<ServiceFormData>({
+    const { register, handleSubmit, formState: { errors }, reset, setError } = useForm<ServiceFormData>({
         defaultValues: { name: '', defaultTouchupDays: 0, duration: 60 }
     });
 
@@ -41,7 +42,14 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
             queryClient.invalidateQueries({ queryKey: ['services'] });
             onClose();
         },
-        onError: (error) => handleApiError(error, 'Error al guardar el servicio')
+        onError: (error) => {
+            const message = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+            if (message === 'Ya existe un servicio activo con este nombre.') {
+                setError('name', { type: 'manual', message });
+                return;
+            }
+            handleApiError(error, 'Error al guardar el servicio');
+        }
     });
 
     const onSubmit = (data: ServiceFormData) => mutate(data);

@@ -388,7 +388,7 @@
             "name": "Validar unicidad de nombre de servicio en el catálogo",
             "module": "Services",
             "phase": "Fase 1",
-            "status": "pending",
+            "status": "done",
             "description": "El catálogo de servicios (EP-03) permite crear dos servicios activos con el mismo nombre. Agregar validación de unicidad (case-insensitive, entre servicios activos del mismo tenant) con mensaje de error claro.",
             "acceptance_criteria": [
                 "No debe poder crearse (ni renombrarse a) un servicio con el mismo nombre que otro servicio activo del mismo tenant (case-insensitive)",

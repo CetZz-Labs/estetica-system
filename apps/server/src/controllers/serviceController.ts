@@ -1,10 +1,24 @@
 import { Request, Response } from 'express';
 import { Service } from '../models/Service';
 
+const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
 // 1. Create (POST /api/servicios)
 export const createService = async (req: Request, res: Response) => {
     try {
         const { name, defaultTouchupDays, duration } = req.body;
+
+        // Búsqueda insensible a mayúsculas/minúsculas, acotada al tenant y a servicios activos
+        const safeName = escapeRegex(name.trim());
+        const existingService = await Service.findOne({
+            tenantId: req.tenantId,
+            isActive: true,
+            name: { $regex: new RegExp(`^${safeName}$`, 'i') }
+        });
+
+        if (existingService) {
+            return res.status(400).json({ error: 'Ya existe un servicio activo con este nombre.' });
+        }
 
         const newService = new Service({
             tenantId: req.tenantId,
@@ -61,6 +75,22 @@ export const updateService = async (req: Request, res: Response) => {
 
         if (!req.body) {
             return res.status(400).json({ error: 'Bad request' });
+        }
+
+        if (name !== undefined) {
+            // Búsqueda insensible a mayúsculas/minúsculas, acotada al tenant, a servicios activos
+            // y excluyendo el propio documento (para no chocar contra sí mismo al no cambiar el nombre)
+            const safeName = escapeRegex(name.trim());
+            const existingService = await Service.findOne({
+                _id: { $ne: id },
+                tenantId: req.tenantId,
+                isActive: true,
+                name: { $regex: new RegExp(`^${safeName}$`, 'i') }
+            });
+
+            if (existingService) {
+                return res.status(400).json({ error: 'Ya existe un servicio activo con este nombre.' });
+            }
         }
 
         const updatedService = await Service.findOneAndUpdate(
