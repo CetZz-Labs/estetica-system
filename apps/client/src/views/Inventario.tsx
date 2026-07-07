@@ -1,25 +1,40 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { FiBox, FiAlertTriangle, FiPlus, FiEdit2, FiLayers, FiActivity, FiUploadCloud, FiSearch } from 'react-icons/fi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FiBox, FiAlertTriangle, FiPlus, FiEdit2, FiTrash2, FiLayers, FiActivity, FiUploadCloud, FiSearch } from 'react-icons/fi';
+import { toast } from 'sonner';
 
-import { getProducts } from '../api/productApi';
+import { getProducts, deleteProduct as deleteProductApi } from '../api/productApi';
+import { handleApiError } from '../api/errorHandler';
 import type { Product } from '../types';
 import ProductoModal from '../components/ProductoModal';
 import AjusteStockModal from '../components/AjusteStockModal';
 import CargaMasivaModal from '../components/CargaMasivaModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 export default function Inventario() {
 
+    const queryClient = useQueryClient();
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isCargaMasivaModalOpen, setIsCargaMasivaModalOpen] = useState(false);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterLowStock, setFilterLowStock] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
     const { data: products, isLoading } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: getProducts
+    });
+
+    const { mutate: deleteProduct, isPending: isDeleting } = useMutation({
+        mutationFn: (id: string) => deleteProductApi(id),
+        onSuccess: () => {
+            toast.success('Producto eliminado');
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            setConfirmDelete(null);
+        },
+        onError: (error) => handleApiError(error, 'No se puede eliminar el producto')
     });
 
     const filteredProducts = products?.filter(product => {
@@ -36,6 +51,7 @@ export default function Inventario() {
     const handleNewProduct = () => { setSelectedProduct(null); setIsProductModalOpen(true); };
     const handleEditProduct = (product: Product) => { setSelectedProduct(product); setIsProductModalOpen(true); };
     const handleAdjustStock = (product: Product) => { setSelectedProduct(product); setIsStockModalOpen(true); };
+    const handleDeleteProduct = (id: string, name: string) => { setConfirmDelete({ id, name }); };
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -152,6 +168,7 @@ export default function Inventario() {
                                                 <div className="flex justify-end gap-2">
                                                     <button onClick={() => handleAdjustStock(product)} className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 text-gray-600 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer" title="Ajustar Stock"><FiActivity /> Stock</button>
                                                     <button onClick={() => handleEditProduct(product)} className="p-1.5 text-gray-400 hover:text-maison-text transition-colors cursor-pointer" title="Editar detalles"><FiEdit2 size={16} /></button>
+                                                    <button type="button" onClick={() => handleDeleteProduct(product._id, product.name)} className="p-1.5 text-gray-400 hover:text-maison-red transition-colors cursor-pointer" title="Eliminar producto"><FiTrash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -166,6 +183,15 @@ export default function Inventario() {
             <ProductoModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} productToEdit={selectedProduct} />
             <AjusteStockModal isOpen={isStockModalOpen} onClose={() => setIsStockModalOpen(false)} product={selectedProduct} />
             <CargaMasivaModal isOpen={isCargaMasivaModalOpen} onClose={() => setIsCargaMasivaModalOpen(false)} />
+            <ConfirmModal
+                isOpen={confirmDelete !== null}
+                onClose={() => setConfirmDelete(null)}
+                onConfirm={() => { if (confirmDelete) deleteProduct(confirmDelete.id); }}
+                title="Eliminar producto"
+                message={`¿Seguro que querés eliminar el producto "${confirmDelete?.name}"? Esta acción no se puede deshacer.`}
+                confirmLabel="Eliminar producto"
+                isPending={isDeleting}
+            />
         </div>
     );
 }

@@ -1,14 +1,12 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-06
+- **Última actualización:** 2026-07-07
 - **Sesión:** Triage de feedback QA/funcional post-revisión
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
 Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triagueado y volcado a `feature_list.json` como 10 items nuevos (UX-12 a UX-21), insertados antes de EP-18 por prioridad. Secuenciación acordada con el usuario: **bugs de correctitud primero**, mejoras UX en segunda tanda.
-
-Checkpoint commiteado en `9aac2a5` (UX-12+UX-13+UX-14). UX-15 pendiente de commit.
 
 **Tanda 1 — Bugs de correctitud (COMPLETA):**
 1. ~~UX-12 — Validación de fecha/hora al crear turnos~~ → **done**
@@ -16,18 +14,19 @@ Checkpoint commiteado en `9aac2a5` (UX-12+UX-13+UX-14). UX-15 pendiente de commi
 3. ~~UX-14 — Desfasaje horario en hora de visita/retoque~~ → **done**
 4. ~~UX-15 — Crash de página en blanco al clickear turno pasado/tachado en calendario~~ → **done**
 
-**Tanda 2 — Mejoras UX:**
+**Tanda 2 — Mejoras UX (en curso):**
 5. ~~UX-16 — Modal de detalle clickeable en cards de turno/retoque (Dashboard)~~ → **done**
 6. UX-17 — Selector de horario con intervalos fijos + slots según disponibilidad real (EP-16)
 7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo)
-8. UX-19 — Eliminación rápida (ícono) de producto en Inventario
+8. ~~UX-19 — Eliminación rápida (ícono) de producto en Inventario~~ → **done**
 9. UX-20 — Eliminación rápida (ícono) de turno en calendario
 10. UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)
 11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
 
-**Próximo paso:** a definir con el usuario — continuar con UX-17 (siguiente en la tanda 2) o cortar la sesión acá.
+**Próximo paso:** a definir con el usuario — continuar con UX-17, UX-20 o UX-21 (quedan en la tanda 2) o cortar la sesión acá.
 
 ## Estado del Backlog
+- UX-19 Eliminación rápida de producto en Inventario → **done**
 - UX-22 Cerrar modal al clickear afuera (backdrop) → **done**
 - UX-16 Modal de detalle al click en card de turno/retoque (Dashboard) → **done**
 - UX-15 Crash de página en blanco al clickear un turno pasado (tachado) → **done**
@@ -43,8 +42,7 @@ Checkpoint commiteado en `9aac2a5` (UX-12+UX-13+UX-14). UX-15 pendiente de commi
 - EP-11 Gestión de Profesionales agendables → done
 
 ### Pendientes
-- UX-12 a UX-15 Bugs de correctitud (tanda 1, feedback QA 2026-07-06)
-- UX-16 a UX-21 Mejoras UX (tanda 2, feedback QA 2026-07-06)
+- UX-17, UX-18, UX-20, UX-21 Mejoras UX (tanda 2, feedback QA 2026-07-06)
 - EP-18 a EP-22 Reportes (Fase 5)
 - EP-23 a EP-25 Pagos (Fase 6)
 

@@ -362,7 +362,7 @@
             "name": "Eliminación rápida de producto desde el listado de inventario",
             "module": "Inventory",
             "phase": "Fase 1",
-            "status": "pending",
+            "status": "done",
             "description": "Agregar un ícono de eliminación en cada fila del listado de inventario para dar de baja un producto sin entrar a un formulario, reutilizando el flujo de soft delete existente.",
             "acceptance_criteria": [
                 "Cada fila del listado de productos tiene un botón con ícono de eliminación",

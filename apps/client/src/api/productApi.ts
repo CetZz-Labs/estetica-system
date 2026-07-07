@@ -58,3 +58,8 @@ export const createBulkProducts = async (data: BulkProductData[]): Promise<BulkR
     const response = await api.post<BulkResponse>('/productos/bulk', data);
     return response.data;
 };
+
+/** DELETE /api/productos/:id — Soft delete de un producto */
+export const deleteProduct = async (id: string): Promise<void> => {
+    await api.delete(`/productos/${id}`);
+};

@@ -398,4 +398,45 @@ const payload = {
 
 ---
 
+## P9 — Eliminación rápida de fila con `ConfirmModal`
+
+> **Origen:** `Servicios.tsx` (borrado de servicio) + UX-19 (2026-07-07, borrado de producto en Inventario). Aplica a cualquier acción destructiva de catálogo (fila de tabla o card) que deba pedir confirmación sin usar `window.confirm`.
+
+Reutilizar `src/components/ui/ConfirmModal.tsx` (ya existente, no crear uno nuevo por feature) + `useMutation` + estado local con el registro a borrar:
+
+```typescript
+const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
+const { mutate: deleteItem, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => deleteItemApi(id),
+    onSuccess: () => {
+        toast.success('Elemento eliminado');
+        queryClient.invalidateQueries({ queryKey: ['items'] });
+        setConfirmDelete(null);
+    },
+    onError: (error) => handleApiError(error, 'No se puede eliminar el elemento'),
+});
+
+// Botón por fila:
+<button type="button" onClick={() => setConfirmDelete({ id: item._id, name: item.name })}
+    className="p-1.5 text-gray-400 hover:text-maison-red transition-colors cursor-pointer" title="Eliminar">
+    <FiTrash2 size={16} />
+</button>
+
+// Al final del componente:
+<ConfirmModal
+    isOpen={confirmDelete !== null}
+    onClose={() => setConfirmDelete(null)}
+    onConfirm={() => { if (confirmDelete) deleteItem(confirmDelete.id); }}
+    title="Eliminar elemento"
+    message={`¿Seguro que querés eliminar "${confirmDelete?.name}"? Esta acción no se puede deshacer.`}
+    confirmLabel="Eliminar"
+    isPending={isDeleting}
+/>
+```
+
+**Gotcha — cuándo cerrar el modal:** cerrar en `onSuccess` (no de forma optimista en `onConfirm`) y pasar `isPending={isDeleting}` al `ConfirmModal` — evita doble submit y mantiene el modal abierto si la request falla (ej. error de red o 400 por regla de negocio), en vez de cerrarlo antes de saber el resultado.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

@@ -40,6 +40,23 @@
 
 ---
 
+## 2026-07-07 — UX-19: Eliminación rápida de producto desde el listado de inventario (Fase 1, Tanda 2 UX)
+
+* **Agente:** Claude (Leader) + explorer + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** Agregar un ícono de eliminación por fila en el listado de Inventario para dar de baja un producto (soft delete) sin abrir el formulario completo, con modal de confirmación (no `window.confirm`) y refresco sin recargar página.
+
+* **Alcance:** 100% frontend. El endpoint `DELETE /api/productos/:id` ya existía en el backend (soft-delete tenant-scoped, rol ADMIN) — no se tocó `apps/server/`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/api/productApi.ts` — nueva función `deleteProduct(id)` (mismo patrón que `deleteService`).
+  - `apps/client/src/views/Inventario.tsx` — estado `confirmDelete`, `useMutation` de borrado con invalidación de `queryKey: ['products']`, botón `FiTrash2` por fila, `<ConfirmModal>` reutilizado (sin crear uno nuevo).
+
+* **Patrón promovido:** `docs/patterns-frontend.md` § P9 — Eliminación rápida de fila con `ConfirmModal` (template reutilizable para UX-20 y futuros borrados de catálogo). Variación documentada respecto a `Servicios.tsx`: el modal cierra en `onSuccess` (no de forma optimista) y usa `isPending` para evitar doble submit y mantener el modal abierto si la request falla.
+
+* **Verificación:** `pnpm --filter @estetica/client build` → Exit 0. Lint: 0 errores/warnings nuevos (único error preexistente y documentado en `ProductoModal.tsx:37`, fuera de alcance). Reviewer: **APPROVED** → `progress/reviews/review_UX-19.md`. UX-19 → **done**.
+
+---
+
 ## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).
