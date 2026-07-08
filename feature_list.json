@@ -348,13 +348,14 @@
             "name": "Rediseño visual del calendario de turnos (vista por profesional)",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
-            "description": "Rediseñar el calendario de turnos con columnas por profesional (avatar + color identificador en el encabezado), bloques de turno con colores más sólidos y legibles, y tooltip/hover que muestre la información del turno sin necesidad de click. Referencia visual provista por el equipo funcional (estilo agenda tipo Fresha).",
+            "status": "done",
+            "description": "Rediseñar el calendario de turnos con una franja/sidebar de profesionales (avatar + color identificador) para rápida identificación, bloques de turno con colores más sólidos y legibles, y tooltip/hover que muestre la información del turno sin necesidad de click. Referencia visual provista por el equipo funcional (estilo agenda tipo Fresha). Alcance ajustado por decisión del usuario (2026-07-07): se descartó reconstruir el calendario como columnas fijas por profesional (hubiera requerido licencia paga de FullCalendar Scheduler o perder el drag&drop nativo en una vista custom) — se opta por la alternativa más simple que preserva el FullCalendar existente intacto.",
             "acceptance_criteria": [
-                "El calendario muestra una columna por profesional con su avatar/inicial y color identificador",
-                "Los bloques de turno usan colores sólidos (no washed-out) manteniendo la trifecta de accesibilidad",
+                "Se muestra una franja/leyenda con la lista de profesionales activos, cada uno con su avatar/inicial y color identificador, visible junto al calendario",
+                "Los bloques de turno usan colores sólidos del profesional (no washed-out) como fondo, con color de texto calculado dinámicamente para mantener contraste WCAG, preservando la trifecta de accesibilidad (color + ícono + texto)",
                 "Al hacer hover sobre un turno se muestra un tooltip con cliente, servicio y horario",
-                "La vista se mantiene responsive y no rompe las vistas diaria/semanal existentes (EP-13)"
+                "El drag&drop y el resto de la funcionalidad de las vistas día/semana/mes existentes (EP-13) NO se modifican ni se rompen",
+                "La vista se mantiene responsive"
             ]
         },
         {
@@ -420,6 +421,19 @@
                 "Crear un producto con el mismo nombre+marca que uno ya desactivado (isActive:false) del mismo tenant DEBE permitirse",
                 "Crear un producto con el mismo nombre+marca que uno ACTIVO del mismo tenant sigue bloqueado con el mensaje existente",
                 "La validación sigue acotada al tenant (EP-08), sin cambios de comportamiento cross-tenant"
+            ]
+        },
+        {
+            "id": "UX-24",
+            "name": "Bug visual: el selector de hora (react-select) se tapa con el borde inferior del modal de turno",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Hallazgo del usuario (2026-07-07) tras UX-17: en el modal de crear/editar turno (y probablemente en RegistroModal.tsx, mismo patrón), el menú desplegable del `<Select>` de horario (react-select) queda recortado/tapado por el borde inferior del contenedor del modal en vez de flotar por encima. Típico problema de `overflow` del contenedor del modal recortando el menú del select en vez de usar un portal.",
+            "acceptance_criteria": [
+                "El menú desplegable del selector de hora se muestra completo, sin recortarse contra los bordes del modal",
+                "Verificar ambos formularios afectados por UX-17: Turnos.tsx (crear/editar turno) y RegistroModal.tsx (próximo retoque)",
+                "No debe romper el cierre del modal al clickear afuera (UX-22) ni el resto de los selects existentes (cliente, servicio, profesional)"
             ]
         },
         {

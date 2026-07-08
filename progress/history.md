@@ -106,6 +106,25 @@
 
 ---
 
+## 2026-07-07 — UX-18: Rediseño visual del calendario de turnos (Fase 4, Tanda 2 UX)
+
+* **Agente:** Claude (Leader) + explorer + implementer (3 rondas: implementación inicial + 2 fixes) + reviewer (2 rondas). Feature más grande de la sesión.
+* **Objetivo original del backlog:** columnas fijas por profesional estilo Fresha. **Alcance ajustado en vivo con el usuario** tras hallazgo del explorer: `@fullcalendar/resource-timegrid` (necesario para columnas nativas) pertenece al bundle comercial "Scheduler" de FullCalendar y requiere licencia paga — descartado. Se optó por la alternativa sin costo: franja/leyenda de profesionales (avatar+color) + colores sólidos con contraste dinámico + tooltip al hover, preservando el FullCalendar existente (EP-13) intacto, sin drag&drop afectado.
+
+* **Cambios Frontend (100% frontend):**
+  - `apps/client/src/utils/contrastColor.ts` (nuevo) — `getContrastTextColor(hex)`, fórmula de brillo YIQ, decide texto blanco o `maison-text` oscuro sobre el color sólido arbitrario de cada profesional.
+  - `apps/client/src/views/Turnos.tsx` — leyenda de profesionales, colores sólidos en bloques de turno (reemplaza `hexToRgba` pastel), tooltip vía `eventDidMount` + nueva dependencia `react-tooltip@^6.0.8` (MIT, aprobada por el usuario).
+
+* **Bugs encontrados y corregidos en vivo durante la sesión:**
+  1. El usuario probó la app y reportó que el tooltip aparecía "detrás de otro elemento" — causa: `<Tooltip>` sin portal quedaba atrapado en el stacking context del calendario. Fix: `portalRoot={document.body}` + `positionStrategy="fixed"`.
+  2. Reviewer (1ª ronda, ROJO): `handleEventDidMount` reimplementaba `toLocaleTimeString` en vez de usar el helper compartido `formatTime()` ya existente — fix de 1 línea + import, aprobado en la 2ª ronda.
+
+* **Patrón promovido:** `docs/patterns-frontend.md` § P11 — Elementos flotantes atrapados por el stacking context de un contenedor (portal a `document.body` + `positionStrategy`/`menuPortalTarget` como fix general). Relevante para el bug ya anotado UX-24 (mismo síntoma con react-select).
+
+* **Verificación:** client build Exit 0 en las 3 rondas, lint sin regresiones (comparado contra baseline). Reviewer: **APPROVED** (2ª ronda) → `progress/reviews/review_UX-18.md`. UX-18 → **done**.
+
+---
+
 ## 2026-06-25 — EP-12: Acceso diferenciado por rol (RBAC)
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).

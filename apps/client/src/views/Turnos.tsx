@@ -6,12 +6,14 @@ import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select';
 import type { StylesConfig } from 'react-select';
 import FullCalendar from '@fullcalendar/react';
-import type { DatesSetArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { DatesSetArg, EventClickArg, EventDropArg, EventMountArg } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import esLocale from '@fullcalendar/core/locales/es';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 import { getAppointments, createAppointment, updateAppointment, cancelAppointment } from '../api/appointmentApi';
 import type { AppointmentFormData as AppointmentApiPayload } from '../api/appointmentApi';
@@ -29,6 +31,8 @@ import RegistroModal from '../components/RegistroModal';
 import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
 import { getStatusPalette, getStatusIcon, getRenderStatus } from '../utils/appointmentStatus';
 import { getAvailableSlots, getLocalDayRangeISO } from '../utils/timeSlots';
+import { getContrastTextColor } from '../utils/contrastColor';
+import { formatTime } from '../utils/dates';
 
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
@@ -48,18 +52,16 @@ const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     })
 };
 
-function hexToRgba(hex: string, alpha: number): string {
-    const clean = hex.replace('#', '');
-    const r = parseInt(clean.substring(0, 2), 16);
-    const g = parseInt(clean.substring(2, 4), 16);
-    const b = parseInt(clean.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function getTodayDateString(): string {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function getProfessionalInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    return name.trim().slice(0, 2).toUpperCase();
 }
 
 interface AppointmentFormValues {
@@ -182,9 +184,9 @@ export default function Turnos() {
                 start: a.startTime,
                 end: a.endTime,
                 extendedProps: { appointment: a, type: 'appointment' as const, professionalColor },
-                backgroundColor: professionalColor ? hexToRgba(professionalColor, 0.13) : palette.bg,
+                backgroundColor: professionalColor || palette.bg,
                 borderColor: professionalColor || palette.border,
-                textColor: palette.text,
+                textColor: professionalColor ? getContrastTextColor(professionalColor) : palette.text,
                 classNames: ['appointment-event', a.status === 'cancelled' ? 'cancelled' : ''].filter(Boolean),
             };
         });
@@ -266,6 +268,14 @@ export default function Turnos() {
 
         updateMutate({ id: appointment._id, data: { startTime: newStart.toISOString() } });
     }, [updateMutate]);
+
+    const handleEventDidMount = useCallback((info: EventMountArg) => {
+        const appointment = info.event.extendedProps.appointment as Appointment;
+        const timeStr = formatTime(appointment.startTime);
+        const serviceLabel = appointment.service?.name || 'Sin servicio';
+        info.el.setAttribute('data-tooltip-id', 'appointment-tooltip');
+        info.el.setAttribute('data-tooltip-content', `${appointment.client.firstName} ${appointment.client.lastName} · ${serviceLabel} · ${timeStr}`);
+    }, []);
 
     const onSubmit = (data: AppointmentFormValues) => {
         const combinedStartTime = `${data.date}T${data.time}`;
@@ -440,6 +450,23 @@ export default function Turnos() {
                 </div>
             )}
 
+            {professionals.length > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 overflow-x-auto pb-1" aria-label="Referencia de profesionales">
+                    {professionals.map((p) => (
+                        <div key={p._id} className="flex shrink-0 items-center gap-2">
+                            <span
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-maison-border font-serif text-[0.65rem] shadow-sm"
+                                style={{ backgroundColor: p.color, color: getContrastTextColor(p.color) }}
+                                aria-hidden="true"
+                            >
+                                {getProfessionalInitials(p.name)}
+                            </span>
+                            <span className="whitespace-nowrap text-xs font-medium text-maison-text">{p.name}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden p-4 animate-pulse">
                     <div className="h-10 bg-gray-200 rounded-lg w-full mb-4" />
@@ -483,7 +510,6 @@ export default function Turnos() {
                         .appointment-event-content { display: flex; align-items: center; gap: 4px; overflow: hidden; }
                         .appointment-event-content .event-icon { display: flex; align-items: center; flex-shrink: 0; font-size: 0.85em; }
                         .appointment-event-content .event-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .appointment-event-content .event-prof-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
                         .fc-timegrid-event .fc-event-main { overflow: hidden; }
                     `}</style>
                     {isFetching && (
@@ -513,7 +539,6 @@ export default function Turnos() {
                         events={events}
                         eventContent={(arg) => {
                             const appointment = arg.event.extendedProps.appointment as Appointment;
-                            const professionalColor = arg.event.extendedProps.professionalColor as string | undefined;
                             const startDate = new Date(appointment.startTime);
                             const timeStr = startDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
                             const isDay = arg.view.type === 'timeGridDay';
@@ -521,10 +546,7 @@ export default function Turnos() {
                             if (!isDay) {
                                 return (
                                     <div className="appointment-event-content">
-                                        {professionalColor
-                                            ? <span className="event-prof-dot" style={{ backgroundColor: professionalColor }} aria-hidden />
-                                            : <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
-                                        }
+                                        <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
                                         <span className="event-title">{timeStr}</span>
                                     </div>
                                 );
@@ -536,15 +558,13 @@ export default function Turnos() {
                             return (
                                 <div className="appointment-event-content">
                                     <span className="event-icon">{getStatusIcon(getRenderStatus(appointment))}</span>
-                                    {professionalColor && (
-                                        <span className="event-prof-dot" style={{ backgroundColor: professionalColor }} aria-hidden />
-                                    )}
                                     <span className="event-title">
                                         {timeStr} · {arg.event.title}{professionalName ? ` · ${professionalName}` : ''}
                                     </span>
                                 </div>
                             );
                         }}
+                        eventDidMount={handleEventDidMount}
                         datesSet={handleDatesSet}
                         dateClick={handleDateClick}
                         eventClick={handleEventClick}
@@ -553,6 +573,13 @@ export default function Turnos() {
                     />
                 </div>
             )}
+
+            <Tooltip
+                id="appointment-tooltip"
+                className="!bg-maison-primary !text-white !text-xs !rounded-lg !py-1.5 !px-3"
+                portalRoot={document.body}
+                positionStrategy="fixed"
+            />
 
             <Modal
                 isOpen={isFormModalOpen}

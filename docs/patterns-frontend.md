@@ -460,4 +460,26 @@ getAvailableSlots({ dateStr, professionalId?, durationMin, businessHours?, dayAp
 
 ---
 
+## P11 — Elementos flotantes (tooltip/menú) atrapados por el stacking context de un contenedor
+
+> **Origen:** UX-18 (2026-07-07) — el `<Tooltip>` de `react-tooltip` sobre los eventos del calendario aparecía **detrás** de otros elementos en vez de flotar por encima. Aplica a cualquier librería que posicione un elemento "flotante" (tooltip, menú desplegable, popover) relativo a un anchor dentro de un layout complejo (calendario, tabla con scroll, modal).
+
+**Síntoma:** el elemento flotante se renderiza pero queda tapado, cortado, o mal posicionado — no es un problema de que "no aparece", sino de que aparece en el lugar/capa equivocada.
+
+**Causa típica:** la librería posiciona el flotante con `position: absolute` **inline en el árbol de React** (sin portal), por lo que su stacking queda sujeto al contexto de apilamiento del contenedor padre (ej. FullCalendar, un modal con `overflow: hidden`, una tabla con scroll). Sin escapar ese contexto, ningún `z-index` alcanza para "ganarle" al padre.
+
+**Fix:** casi todas las librerías de overlays (`react-tooltip`, `react-select`, Radix, etc.) exponen una forma de renderizar el flotante en un portal a `document.body` con posicionamiento de viewport (`fixed`) en vez de posicionamiento local (`absolute`):
+
+```tsx
+// react-tooltip
+<Tooltip id="my-tooltip" portalRoot={document.body} positionStrategy="fixed" />
+
+// react-select (ya usado en el proyecto para selects dentro de modales)
+<Select menuPortalTarget={document.body} styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }} />
+```
+
+**Gotcha:** no alcanza con subir el `z-index` del elemento si sigue renderizado dentro del contenedor con `overflow: hidden`/stacking context propio — el portal es la solución real, el `z-index` alto es un complemento necesario una vez que ya está fuera del contenedor (para no quedar detrás de otros elementos a nivel de `document.body`, ej. otro modal abierto).
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

@@ -19,17 +19,21 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 6. ~~UX-17 — Selector de horario con intervalos fijos (15 min) + slots según disponibilidad real (EP-16), alcance ampliado a `Turnos.tsx` + `RegistroModal.tsx`~~ → **done**
 7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo). Confirmado con el usuario (2026-07-07): NINGÚN criterio de aceptación está cubierto todavía — hoy solo hay tintado pastel + dot + filtro de un solo profesional a la vez, sin columnas por profesional (`@fullcalendar/resource-timegrid` no está instalado), sin sidebar de profesionales, sin hover tooltip. Es la feature más grande de la tanda que queda.
 8. ~~UX-19 — Eliminación rápida (ícono) de producto en Inventario~~ → **done**
-9. UX-20 — Eliminación rápida (ícono) de turno en calendario
+9. **UX-20 — Eliminación rápida (ícono) de turno en calendario → PENDIENTE, queda para la próxima sesión.**
 10. ~~UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)~~ → **done**
 11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
+12. ~~UX-18 — Rediseño visual del calendario. Alcance ajustado en vivo (2026-07-07): sin columnas fijas por profesional (`@fullcalendar/resource-timegrid` es licencia paga, descartado) — se implementó franja/leyenda de profesionales + colores sólidos con contraste dinámico + tooltip al hover~~ → **done**
 
-**Bug fuera de tanda (hallazgo del leader, 2026-07-07):** UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**.
+**Bugs fuera de tanda encontrados esta sesión:**
+- UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**.
+- **UX-24 — el `<Select>` de hora (react-select, agregado en UX-17) se recorta contra el borde inferior del modal en vez de flotar por encima → PENDIENTE, queda para la próxima sesión.** Reportado por el usuario. Afecta `Turnos.tsx` y probablemente `RegistroModal.tsx`. **Pista para la próxima sesión:** UX-18 tuvo el mismo tipo de bug (tooltip atrapado por el stacking context del calendario) y se resolvió con portal — ver `docs/patterns-frontend.md` § P11. El fix de UX-24 es casi con certeza `menuPortalTarget={document.body}` + `styles.menuPortal` con `zIndex` alto en el `<Select>` de react-select, mismo patrón.
 
 **Limitación de proceso anotada (2026-07-07):** este repo no tiene forma de hacer testing E2E en navegador real — el login vía Clerk requiere credenciales de una cuenta de prueba que no están disponibles en el entorno del agente. Todas las features se verifican por lectura de código + build/lint. Si se quiere cambiar esto, hace falta que el usuario provea una cuenta de prueba de Clerk.
 
-**Próximo paso:** a definir con el usuario — continuar con UX-18 o UX-20 (quedan en la tanda 2) o cortar la sesión acá.
+**Próximo paso (sesión siguiente):** UX-20 y UX-24 son los dos ítems pendientes. Después de eso, la tanda 2 de UX queda 100% cerrada y se podría pasar a EP-18+ (Reportes, Fase 5).
 
 ## Estado del Backlog
+- UX-18 Rediseño visual del calendario (leyenda + colores sólidos + tooltip) → **done**
 - UX-17 Selector de horario con slots de disponibilidad → **done**
 - UX-23 Bug: duplicado de producto no excluía eliminados → **done**
 - UX-21 Validar unicidad de nombre de servicio en catálogo → **done**
