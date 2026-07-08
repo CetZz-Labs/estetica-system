@@ -579,6 +579,7 @@ export default function Turnos() {
                 className="!bg-maison-primary !text-white !text-xs !rounded-lg !py-1.5 !px-3"
                 portalRoot={document.body}
                 positionStrategy="fixed"
+                style={{ zIndex: 9999 }}
             />
 
             <Modal
@@ -683,7 +684,8 @@ export default function Turnos() {
                                     <Select
                                         options={timeOptions}
                                         placeholder="Seleccionar horario..."
-                                        styles={selectStyles}
+                                        styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
                                         noOptionsMessage={() => "No hay horarios disponibles para esta fecha"}
                                         value={timeOptions.find(t => t.value === field.value) || null}
                                         onChange={(val) => field.onChange(val?.value)}

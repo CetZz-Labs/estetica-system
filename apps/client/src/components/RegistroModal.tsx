@@ -368,7 +368,8 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                     <Select
                                         options={touchupTimeOptions}
                                         placeholder="Hora..."
-                                        styles={selectStyles}
+                                        styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
                                         noOptionsMessage={() => "Sin horarios disponibles"}
                                         isDisabled={!watchedTouchupDate}
                                         value={touchupTimeOptions.find(t => t.value === field.value) || null}

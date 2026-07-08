@@ -33,23 +33,16 @@ Centros de estética registrados (Fase 2 / EP-08). Cada tenant es un negocio ind
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
 **Reglas de negocio:**
-- Modelo mínimo creado en EP-08. EP-09 (registro autónomo) agregó el flujo de alta. EP-10 agregó configuración (logo, zona horaria, moneda) con endpoints GET/PUT /api/negocio protegidos por `checkAdminAccess` y `checkTenantAccess`. EP-16 agregó el subdocumento `businessHours` (horarios y días bloqueados). EP-17 agregó el subdocumento `notificationSettings` (SMTP + ventana de anticipación del recordatorio de turno).
+- Modelo mínimo creado en EP-08. EP-09 (registro autónomo) agregó el flujo de alta. EP-10 agregó configuración (logo, zona horaria, moneda) con endpoints GET/PUT /api/negocio protegidos por `checkAdminAccess` y `checkTenantAccess`. EP-16 agregó el subdocumento `businessHours` (horarios y días bloqueados). EP-17 agregó el subdocumento `notificationSettings` (SMTP por tenant + ventana de anticipación del recordatorio de turno). EP-17-b (2026-07-08) migró el SMTP a una config global de la app vía variables de entorno (`src/config/mailConfig.ts`) — `notificationSettings` quedó reducido a `reminderHoursBefore`.
 - Los datos legados (pre multi-tenant) requieren backfill manual de `tenantId` antes de desplegar.
 
-**Subdocumento `notificationSettings` (EP-17, prerequisito del envío de recordatorios):**
+**Subdocumento `notificationSettings` (EP-17, recortado en EP-17-b):**
 
 | Campo | Tipo Mongoose | Requerido | Descripción |
 |-------|--------------|-----------|-------------|
-| `smtpHost` | `String` | No | Host del servidor SMTP del tenant. `trim` |
-| `smtpPort` | `Number` | No | Puerto SMTP (típicamente 465 o 587) |
-| `smtpSecure` | `Boolean` | No | `true` = TLS/SSL (puerto 465), `false` = STARTTLS (puerto 587) |
-| `smtpUser` | `String` | No | Usuario/login SMTP. `trim` |
-| `smtpPasswordEncrypted` | `String` | No | Contraseña SMTP cifrada en reposo con AES-256-GCM (`utils/crypto.ts`, clave `CREDENTIALS_ENCRYPTION_KEY`). **Nunca se expone vía API en texto plano ni cifrado** — `GET`/`PUT /api/notificaciones` solo devuelven `hasSmtpPassword: boolean` |
-| `fromEmail` | `String` | No | Email remitente de los recordatorios. `trim` |
-| `fromName` | `String` | No | Nombre remitente. `trim` |
 | `reminderHoursBefore` | `Number` | No, default `24` | Horas de anticipación del recordatorio de turno. `min: 1, max: 168` |
 
-Ver regla canónica completa en [`governance-rules.md#gov-notify`](governance-rules.md#gov-notify--notificaciones-por-mail-recordatorios-de-turno).
+El SMTP (host, puerto, usuario, contraseña, email remitente) ya **no** vive en este subdocumento — es una config global de la app leída de `process.env.SMTP_*` (ver `src/config/mailConfig.ts`). El nombre visible del remitente sigue siendo `tenant.name`. Ver regla canónica completa en [`governance-rules.md#gov-notify`](governance-rules.md#gov-notify--notificaciones-por-mail-recordatorios-de-turno).
 
 ---
 

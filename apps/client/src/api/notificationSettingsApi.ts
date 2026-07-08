@@ -1,24 +1,10 @@
 import api from '../libs/axios';
 
 export interface NotificationSettings {
-    smtpHost?: string;
-    smtpPort?: number;
-    smtpSecure?: boolean;
-    smtpUser?: string;
-    fromEmail?: string;
-    fromName?: string;
     reminderHoursBefore?: number;
-    hasSmtpPassword: boolean;
 }
 
 export interface NotificationSettingsFormData {
-    smtpHost?: string;
-    smtpPort?: number;
-    smtpSecure?: boolean;
-    smtpUser?: string;
-    smtpPassword?: string;   // vacío = no cambiar la contraseña guardada
-    fromEmail?: string;
-    fromName?: string;
     reminderHoursBefore?: number;
 }
 

@@ -2,9 +2,15 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { FiAlertCircle, FiSettings } from 'react-icons/fi';
+import { FiAlertCircle, FiBell, FiSettings } from 'react-icons/fi';
 
 import { getTenant, updateTenant, type TenantSettings } from '../api/tenantApi';
+import {
+    getNotificationSettings,
+    updateNotificationSettings,
+    type NotificationSettings,
+    type NotificationSettingsFormData,
+} from '../api/notificationSettingsApi';
 import { handleApiError } from '../api/errorHandler';
 
 const TIMEZONES = [
@@ -28,6 +34,10 @@ interface NegocioFormData {
     logo?: string;
     timezone: string;
     currency: string;
+}
+
+interface RecordatorioFormData {
+    reminderHoursBefore: number;
 }
 
 export default function Negocio() {
@@ -72,7 +82,42 @@ export default function Negocio() {
 
     const logoValue = watch('logo');
 
-    if (isLoading) {
+    const {
+        data: notificationSettings,
+        isLoading: isNotificationLoading,
+        isError: isNotificationError,
+    } = useQuery<NotificationSettings>({
+        queryKey: ['notification-settings'],
+        queryFn: getNotificationSettings,
+    });
+
+    const {
+        register: registerRecordatorio,
+        handleSubmit: handleSubmitRecordatorio,
+        reset: resetRecordatorio,
+        formState: { errors: recordatorioErrors },
+    } = useForm<RecordatorioFormData>({
+        defaultValues: { reminderHoursBefore: 24 },
+    });
+
+    useEffect(() => {
+        if (notificationSettings) {
+            resetRecordatorio({ reminderHoursBefore: notificationSettings.reminderHoursBefore ?? 24 });
+        }
+    }, [notificationSettings, resetRecordatorio]);
+
+    const { mutate: mutateRecordatorio, isPending: isRecordatorioPending } = useMutation({
+        mutationFn: (formData: NotificationSettingsFormData) => updateNotificationSettings(formData),
+        onSuccess: () => {
+            toast.success('Configuración guardada');
+            queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+        },
+        onError: (error) => handleApiError(error, 'Error al guardar el recordatorio de turno'),
+    });
+
+    const onSubmitRecordatorio = (formData: RecordatorioFormData) => mutateRecordatorio(formData);
+
+    if (isLoading || isNotificationLoading) {
         return (
             <div className="p-4 md:p-8 max-w-2xl mx-auto animate-pulse">
                 <div className="mb-8 space-y-2">
@@ -102,7 +147,7 @@ export default function Negocio() {
         );
     }
 
-    if (isError) {
+    if (isError || isNotificationError) {
         return (
             <div className="p-4 md:p-8 max-w-2xl mx-auto">
                 <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
@@ -213,6 +258,49 @@ export default function Negocio() {
                             className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
                         >
                             {isPending ? 'Guardando...' : 'Guardar cambios'}
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <form onSubmit={handleSubmitRecordatorio(onSubmitRecordatorio)} className="mt-6">
+                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                    <div className="flex items-center gap-2">
+                        <FiBell className="text-gray-400 text-lg" />
+                        <h2 className="font-serif text-xl text-maison-text">Recordatorio de turno</h2>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                            Horas de anticipación del recordatorio
+                        </label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={168}
+                            placeholder="Ej: 24"
+                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${recordatorioErrors.reminderHoursBefore ? 'border-maison-red' : 'border-maison-border'}`}
+                            {...registerRecordatorio('reminderHoursBefore', {
+                                valueAsNumber: true,
+                                required: 'Indicá con cuántas horas de anticipación se envía el recordatorio',
+                                min: { value: 1, message: 'El mínimo es 1 hora' },
+                                max: { value: 168, message: 'El máximo es 168 horas (7 días)' },
+                            })}
+                        />
+                        {recordatorioErrors.reminderHoursBefore && (
+                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                                <FiAlertCircle /> {recordatorioErrors.reminderHoursBefore.message}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            type="submit"
+                            disabled={isRecordatorioPending}
+                            className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                        >
+                            {isRecordatorioPending ? 'Guardando...' : 'Guardar cambios'}
                         </button>
                     </div>
                 </div>

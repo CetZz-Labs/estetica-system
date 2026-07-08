@@ -18,14 +18,7 @@ export interface IBusinessHours {
 }
 
 export interface INotificationSettings {
-    smtpHost?: string;
-    smtpPort?: number;
-    smtpSecure?: boolean;        // true = TLS/SSL (puerto 465), false = STARTTLS (puerto 587)
-    smtpUser?: string;
-    smtpPasswordEncrypted?: string;  // nunca texto plano — ver utils/crypto.ts
-    fromEmail?: string;
-    fromName?: string;
-    reminderHoursBefore?: number;    // default 24
+    reminderHoursBefore?: number;    // default 24 — el SMTP ya es global de la app (EP-17-b), ver config/mailConfig.ts
 }
 
 export interface ITenant extends Document {
@@ -62,13 +55,6 @@ const TenantSchema: Schema = new Schema({
     },
     notificationSettings: {
         _id: false,
-        smtpHost: { type: String, trim: true },
-        smtpPort: { type: Number },
-        smtpSecure: { type: Boolean },
-        smtpUser: { type: String, trim: true },
-        smtpPasswordEncrypted: { type: String },
-        fromEmail: { type: String, trim: true },
-        fromName: { type: String, trim: true },
         reminderHoursBefore: { type: Number, default: 24, min: 1, max: 168 }
     }
 }, {

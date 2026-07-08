@@ -118,9 +118,6 @@ export default function AppLayout() {
                             <NavLink to="/configuracion/disponibilidad" onClick={closeMenu} className={navLinkClass}>
                                 Disponibilidad
                             </NavLink>
-                            <NavLink to="/configuracion/notificaciones" onClick={closeMenu} className={navLinkClass}>
-                                Notificaciones
-                            </NavLink>
                         </div>
                     )}
                 </nav>

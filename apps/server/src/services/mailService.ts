@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { ITenant } from '../models/Tenant';
-import { decryptSecret } from '../utils/crypto';
+import { mailConfig } from '../config/mailConfig';
 
 interface ReminderAppointment {
     client: {
@@ -12,25 +12,18 @@ interface ReminderAppointment {
     startTime: Date;
 }
 
+// Transporter único de la app (EP-17-b): la config SMTP ya no depende del tenant, se arma una sola vez.
+const transporter = nodemailer.createTransport({
+    host: mailConfig.host,
+    port: mailConfig.port,
+    secure: mailConfig.secure,
+    auth: {
+        user: mailConfig.user,
+        pass: mailConfig.pass,
+    },
+});
+
 export const sendAppointmentReminder = async (tenant: ITenant, appointment: ReminderAppointment): Promise<void> => {
-    const settings = tenant.notificationSettings;
-
-    if (!settings?.smtpHost || !settings?.smtpUser || !settings?.smtpPasswordEncrypted) {
-        throw new Error(`Tenant ${tenant._id} no tiene configuración SMTP completa`);
-    }
-
-    const smtpPassword = decryptSecret(settings.smtpPasswordEncrypted);
-
-    const transporter = nodemailer.createTransport({
-        host: settings.smtpHost,
-        port: settings.smtpPort,
-        secure: settings.smtpSecure ?? false,
-        auth: {
-            user: settings.smtpUser,
-            pass: smtpPassword,
-        },
-    });
-
     const serviceName = appointment.service?.name ?? 'tu turno';
     const clientFullName = `${appointment.client.firstName} ${appointment.client.lastName}`.trim();
     const formattedDateTime = new Intl.DateTimeFormat('es-AR', {
@@ -39,8 +32,8 @@ export const sendAppointmentReminder = async (tenant: ITenant, appointment: Remi
         timeStyle: 'short',
     }).format(appointment.startTime);
 
-    const fromAddress = settings.fromEmail || settings.smtpUser;
-    const from = `"${settings.fromName || tenant.name}" <${fromAddress}>`;
+    const fromAddress = mailConfig.fromEmail;
+    const from = `"${tenant.name}" <${fromAddress}>`;
     const subject = `Recordatorio de tu turno en ${tenant.name}`;
 
     const text = `Hola ${clientFullName},

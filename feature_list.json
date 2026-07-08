@@ -249,6 +249,24 @@
             ]
         },
         {
+            "id": "EP-17-b",
+            "name": "Migrar envío de mails de SMTP por-tenant a SMTP global de la aplicación",
+            "module": "Notifications",
+            "phase": "Fase 4",
+            "status": "done",
+            "description": "Decisión de producto del usuario (2026-07-08): en el sistema multi-tenant NO hace falta que cada negocio configure su propio SMTP — se envían todos los mails (recordatorios de turno, EP-17) desde una única cuenta/config de la aplicación. Diagnóstico completo en `progress/explores/_archive/explore_mail-architecture.md`: hoy `mailService.ts` arma el transporter 100% desde `Tenant.notificationSettings` (7 subcampos SMTP cifrados), `Notificaciones.tsx` es la única UI que los edita, y `reminderScheduler.ts` usa la existencia de esas credenciales como filtro de elegibilidad de envío. Decisiones confirmadas con el usuario: (1) la config global sale de variables de entorno (`.env`), no de un documento Mongo; (2) todos los tenants activos (`isActive`) reciben recordatorios automáticamente, sin toggle nuevo; (3) el `fromName` del mail sigue siendo el nombre del negocio (personalización), aunque el SMTP real sea el de la app; (4) la vista `Notificaciones.tsx` se fusiona con `Negocio.tsx` (Ajustes generales), conservando solo el campo `reminderHoursBefore`. Requiere también actualizar `docs/governance-rules.md` (sección GOV-NOTIFY), que hoy documenta el modelo por-tenant como decisión de diseño intencional.",
+            "acceptance_criteria": [
+                "mailService.ts arma el transporter de nodemailer a partir de variables de entorno de la aplicación (SMTP_HOST/SMTP_PORT/SMTP_SECURE/SMTP_USER/SMTP_PASSWORD/SMTP_FROM_EMAIL), no desde Tenant.notificationSettings",
+                "Los 7 subcampos SMTP (smtpHost, smtpPort, smtpSecure, smtpUser, smtpPasswordEncrypted, fromEmail, fromName) se eliminan de INotificationSettings/TenantSchema; reminderHoursBefore se conserva",
+                "reminderScheduler.ts envía recordatorios a todos los tenants activos (isActive: true) sin filtrar por existencia de credenciales SMTP propias",
+                "El mail sigue usando tenant.name como fromName (nombre visible del negocio) sobre el SMTP único de la app",
+                "notificationSettingsController.ts/Routes.ts se recortan a exponer solo reminderHoursBefore (o se elimina el módulo si ese campo se muda al controller de Negocio/Tenant)",
+                "El bloque de configuración SMTP se elimina de Notificaciones.tsx; el campo reminderHoursBefore se fusiona a la vista Negocio.tsx (Ajustes generales) y se elimina la ruta/entrada de menú separada de Notificaciones",
+                "docs/governance-rules.md (GOV-NOTIFY) se actualiza para reflejar el nuevo modelo de SMTP global, reemplazando la justificación del modelo por-tenant anterior",
+                "No quedan referencias muertas a decryptSecret/smtpPasswordEncrypted en el flujo de envío de mail (utils/crypto.ts puede conservarse si se usa en otro lado, o eliminarse si queda huérfano)"
+            ]
+        },
+        {
             "id": "EP-17",
             "name": "Recordatorio de turno por mail",
             "module": "Appointments",
@@ -372,19 +390,6 @@
             ]
         },
         {
-            "id": "UX-20",
-            "name": "Eliminación rápida de turno desde el calendario",
-            "module": "Appointments",
-            "phase": "Fase 4",
-            "status": "pending",
-            "description": "Agregar una acción rápida de eliminación sobre el bloque de turno en el calendario, para cancelar/eliminar sin necesidad de abrir el modal completo.",
-            "acceptance_criteria": [
-                "Cada bloque de turno tiene una acción rápida de eliminación/cancelación visible al hover",
-                "Al confirmar (modal de confirmación, no window.confirm), el turno se cancela/elimina según la regla de negocio vigente (EP-14)",
-                "El calendario se actualiza sin recargar la página"
-            ]
-        },
-        {
             "id": "UX-21",
             "name": "Validar unicidad de nombre de servicio en el catálogo",
             "module": "Services",
@@ -428,12 +433,25 @@
             "name": "Bug visual: el selector de hora (react-select) se tapa con el borde inferior del modal de turno",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Hallazgo del usuario (2026-07-07) tras UX-17: en el modal de crear/editar turno (y probablemente en RegistroModal.tsx, mismo patrón), el menú desplegable del `<Select>` de horario (react-select) queda recortado/tapado por el borde inferior del contenedor del modal en vez de flotar por encima. Típico problema de `overflow` del contenedor del modal recortando el menú del select en vez de usar un portal.",
             "acceptance_criteria": [
                 "El menú desplegable del selector de hora se muestra completo, sin recortarse contra los bordes del modal",
                 "Verificar ambos formularios afectados por UX-17: Turnos.tsx (crear/editar turno) y RegistroModal.tsx (próximo retoque)",
                 "No debe romper el cierre del modal al clickear afuera (UX-22) ni el resto de los selects existentes (cliente, servicio, profesional)"
+            ]
+        },
+        {
+            "id": "UX-26",
+            "name": "Bug: tooltip de hover del calendario aparece detrás de otros elementos",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "done",
+            "description": "Reporte directo del usuario (2026-07-08): el tooltip de hover sobre los turnos del calendario (implementado en UX-18, vía react-tooltip adjunto a `.appointment-event` con `data-tooltip-id`/`data-tooltip-content`) aparece detrás de otros elementos en vez de flotar por encima — el fix de UX-18 no lo resolvió completamente. Requiere diagnóstico del explorer: probablemente un problema de z-index/stacking context similar al patrón P11 (portal), pero aplicado a react-tooltip en vez de react-select — a confirmar si react-tooltip ya usa portal (`document.body` por defecto en muchas versiones) y por qué igual queda tapado (candidato: z-index insuficiente respecto a otro elemento con z-index explícito, o el propio ícono de estado/otro turno con mayor z-index en el DOM).",
+            "acceptance_criteria": [
+                "El tooltip de hover sobre un turno se muestra completo, por encima de cualquier otro elemento del calendario (otros turnos, franja de profesionales, headers de columna/día)",
+                "Se verifica en las vistas semana y día (donde ya existe el tooltip de UX-18)",
+                "No se rompe el resto de la funcionalidad de UX-18 (colores sólidos, contraste dinámico) ni el drag&drop existente"
             ]
         },
         {

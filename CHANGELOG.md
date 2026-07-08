@@ -21,10 +21,13 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 - `[CHANGED]` **UX-10**: `POST /api/turnos` — `service` y `professional` pasan a ser **opcionales** (antes requeridos según EP-11). `GET /api/turnos` y `GET /api/turnos/:id` pueden retornar appointments sin `service` ni `professional` poblados (campos ausentes cuando el turno fue creado sin ellos). `PATCH /api/turnos/:id/complete` ahora acepta `service` y `professional` del body como override cuando el turno no los tiene.
 - `Appointment.professional` y `ServiceRecord.professional` referencian ahora `Professional` (antes `Appointment.professional` era `ref: 'Admin'`). `ServiceRecord.professional` es opcional en el schema (registros legacy) pero requerido al crear.
 - **UX-16**: `GET /api/registros/retoques` (`getUpcomingTouchups`) ahora popula `professional { _id, name, color }` y `productsUsed[].product { _id, name }` (antes `ObjectId` crudo), mismo patrón ya usado en `GET /api/registros/cliente/:clientId`.
+- `[BREAKING]` (permitido — feature `in_progress`) **EP-17-b**: `GET`/`PUT /api/notificaciones` dejan de exponer/aceptar `smtpHost`, `smtpPort`, `smtpSecure`, `smtpUser`, `fromEmail`, `fromName` y `hasSmtpPassword` — la forma de request/response queda reducida a `{ reminderHoursBefore }`. El envío de mails de recordatorio (EP-17) pasa de usar credenciales SMTP configuradas por-tenant a una única cuenta SMTP de la aplicación, leída desde variables de entorno (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` en `.env`). `reminderScheduler.ts` ya no filtra tenants por tener SMTP propio configurado — todos los tenants activos (`isActive: true`) reciben recordatorios automáticamente. El `fromName` del mail sigue siendo el nombre del negocio (`tenant.name`), personalizado por tenant sobre el SMTP único de la app.
 
 ### Deprecated
 
 ### Removed
+
+- **EP-17-b**: vista `Notificaciones.tsx` y su ruta/entrada de menú eliminadas (quedaba reducida a un solo campo tras sacar la configuración SMTP). El campo `reminderHoursBefore` se fusionó a la sección "Mi Negocio" (`Negocio.tsx`, EP-10).
 
 ### Fixed
 

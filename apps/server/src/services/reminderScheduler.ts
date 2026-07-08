@@ -15,12 +15,8 @@ interface PopulatedReminderAppointment {
 }
 
 export const runReminderCheck = async (): Promise<void> => {
-    const tenants = await Tenant.find({
-        isActive: true,
-        'notificationSettings.smtpHost': { $exists: true, $ne: '' },
-        'notificationSettings.smtpUser': { $exists: true, $ne: '' },
-        'notificationSettings.smtpPasswordEncrypted': { $exists: true, $ne: '' },
-    });
+    // EP-17-b: el SMTP ya es global de la app — todo tenant activo es elegible para recordatorios.
+    const tenants = await Tenant.find({ isActive: true });
 
     for (const tenant of tenants as ITenant[]) {
         const reminderHoursBefore = tenant.notificationSettings?.reminderHoursBefore ?? DEFAULT_REMINDER_HOURS_BEFORE;
@@ -39,7 +35,7 @@ export const runReminderCheck = async (): Promise<void> => {
 
         for (const appointment of appointments) {
             if (!appointment.client?.email) {
-                // Omisión silenciosa (GOV-NOTIFY mandato 5): sin email no hay reintento posible, no se marca reminderSent
+                // Omisión silenciosa (GOV-NOTIFY mandato 4): sin email no hay reintento posible, no se marca reminderSent
                 continue;
             }
 

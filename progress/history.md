@@ -768,3 +768,83 @@
 * Implementer: agregó `onClick={onClose}` al overlay y `onClick={(e) => e.stopPropagation()}` al contenedor interno de `Modal.tsx`. Auditó los 12 consumidores del componente — ninguno usa `menuPortalTarget` en sus `react-select`, sin conflicto de portal.
 * Reviewer: **APROBADO** en primera pasada, verificó independientemente el grep de los 12 consumidores. Build client `exit 0`; lint con el único error preexistente ya conocido. Sin prop de opt-out agregada, consistente con la decisión de producto.
 * **`feature_list.json`:** UX-22 → `"done"`.
+
+---
+
+## 2026-07-08 — UX-20: Eliminación rápida de turno desde el calendario (Fase 4)
+
+* **Agente:** Claude (Leader) + explorer + implementer-frontend + reviewer (1 ronda).
+* **Objetivo:** agregar una acción rápida de cancelación sobre el bloque de turno en el calendario, sin pasar por el modal de detalle completo.
+* **Diagnóstico (explorer):** el backend/API de cancelación con motivo (EP-14) y el propio modal de confirmación (no `window.confirm`) ya existían completos en `Turnos.tsx` (`openCancelModal`, `isCancelModalOpen`). El único gap era el punto de entrada: no había ícono directo sobre el bloque del evento.
+* **Decisiones de producto confirmadas con el usuario antes de implementar:** (1) "eliminar" = cancelar, sin borrado físico; (2) ícono visible solo en vistas semana/día, no en mes; (3) oculto también en turnos `overdue` (no solo `cancelled`/`completed`).
+* **Cambios Frontend (único archivo tocado):**
+  - `apps/client/src/views/Turnos.tsx` — nuevo botón `.event-quick-cancel` (ícono `FiTrash2`) hover-reveal dentro de `eventContent`, con `stopPropagation`/`preventDefault` en `onClick`/`onMouseDown`/`onPointerDown` para no disparar `eventClick` ni el drag&drop nativo. Variable `canQuickCancel` (`!isMonth && renderStatus !== 'cancelled'/'completed'/'overdue'`) controla la visibilidad, divergiendo intencionalmente del criterio más laxo de `AppointmentDetailFooter` (que sí permite cancelar `overdue` desde el modal de detalle).
+* **Reviewer:** **APROBADO** en primera pasada. Verificó diff real (+35/-3 líneas, único archivo), corrió build/lint propios (Exit Code 0, sin regresiones), confirmó los 3 criterios de aceptación y las 3 decisiones de producto línea por línea.
+* **`feature_list.json`:** UX-20 → `"done"`.
+* **Sin patrón nuevo promovido a `docs/patterns-frontend.md`** — el hover-reveal + stopPropagation ya está cubierto conceptualmente por el precedente de UX-16 (Dashboard) y P11 (elementos flotantes).
+
+**REVERTIDA el mismo día (2026-07-08):** el usuario aclaró después del cierre que la cancelación rápida no había sido solicitada realmente y no es requerida. Se revirtió el diff de `Turnos.tsx` con `git checkout` (no había commit de por medio, solo working tree) y se eliminó la entrada UX-20 de `feature_list.json`. Build verificado en verde tras el revert. Las evidencias (`explore_UX-20.md`, `impl_UX-20-frontend.md`, `review_UX-20.md`) quedan archivadas en `_archive/` como registro histórico de un ciclo completo que terminó descartado, no como trabajo vigente.
+
+---
+
+## 2026-07-08 — UX-24: Bug visual del selector de hora (react-select) recortado por el modal (Fase 4)
+
+* **Agente:** Claude (Leader) + explorer + implementer-frontend + reviewer (1 ronda).
+* **Objetivo:** el menú desplegable del `<Select>` de hora (react-select, agregado en UX-17) quedaba recortado contra el borde inferior del modal de turno/retoque en vez de flotar por encima.
+* **Diagnóstico (explorer):** causa raíz confirmada — el menú se posiciona `absolute` dentro del árbol del modal y queda recortado por `overflow-hidden`/`overflow-y-auto` del contenedor (`components/ui/Modal.tsx`). Patrón ya documentado en `docs/patterns-frontend.md` § P11 (portal). Confirmado que ningún Select del repo usaba `menuPortalTarget` todavía (primer precedente real en react-select).
+* **Decisión de producto confirmada con el usuario:** alcance acotado SOLO al Select de Hora en ambos archivos — los demás 7 Select (Cliente/Servicio/Profesional/Producto) no se tocan, queda como deuda técnica anotada para generalizar si se repite el síntoma.
+* **Cambios Frontend (2 archivos):**
+  - `apps/client/src/views/Turnos.tsx` (Select de `time`, ~línea 682) — agregado `menuPortalTarget={document.body}` + `styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}` (spread inline, sin mutar `selectStyles` compartido).
+  - `apps/client/src/components/RegistroModal.tsx` (Select de `touchupTime`, ~línea 356) — mismo cambio.
+* **Riesgo aceptado (no bloqueante):** sin entorno E2E disponible, no se pudo verificar en runtime que el portal no rompa el cierre por click-afuera (UX-22). Análisis del explorer y reviewer coinciden en que el bubbling de React Portals sigue el árbol de React (no el DOM), por lo que el `stopPropagation` del contenedor del modal sigue interceptando el click antes de llegar al overlay — riesgo teórico bajo, pendiente de confirmación visual humana.
+* **Reviewer:** **APROBADO** en primera pasada. Confirmó línea por línea que solo el Select de Hora fue tocado en ambos archivos, que `selectStyles` no fue mutado, build/lint sin regresiones.
+* **`feature_list.json`:** UX-24 → `"done"`.
+* **Deuda técnica anotada:** generalizar `menuPortalTarget`/`styles.menuPortal` a los 7 Select restantes (Cliente/Servicio/Profesional/Producto en `Turnos.tsx` y `RegistroModal.tsx`) si se reporta el mismo bug de recorte en algún otro selector.
+
+---
+
+## 2026-07-08 — UX-26: Bug del tooltip de hover del calendario detrás de otros elementos (regresión de UX-18, Fase 4)
+
+* **Agente:** Claude (Leader) + explorer + implementer-frontend + reviewer (1 ronda).
+* **Objetivo:** el usuario reportó que el tooltip de hover sobre turnos (UX-18) seguía apareciendo detrás de otros elementos del calendario, pese al fix previo.
+* **Diagnóstico (explorer):** el portal del `<Tooltip>` (`portalRoot={document.body}` + `positionStrategy="fixed"`, ya aplicado en UX-18) funcionaba correctamente — el problema real era la ausencia de un `z-index` explícito. CSS interno de FullCalendar (`.fc-scrollgrid-section-sticky>* { z-index:3 }`, `.fc-event-resizer { z-index:4 }`) sí declara z-index positivo y gana la batalla de stacking contra el tooltip, que quedaba en `z-index:auto`. UX-24 sí había aplicado ese complemento de z-index al `<Select>` de hora (mismo patrón P11), pero nunca se replicó al `<Tooltip>` de UX-18.
+* **Cambio Frontend (1 línea, 1 archivo):** `apps/client/src/views/Turnos.tsx:582` — agregada prop `style={{ zIndex: 9999 }}` al `<Tooltip>`, mismo valor precedente que el `menuPortal` de react-select (UX-24). Sin tocar `portalRoot`/`positionStrategy`.
+* **Reviewer:** **APROBADO** en primera pasada. Verificó el diagnóstico leyendo el CSS compilado real de `react-tooltip` y `@fullcalendar/core` en `node_modules` (no solo por razonamiento teórico), confirmó que `Modal.tsx` usa `z-50` (sin conflicto con 9999), build/lint sin regresiones.
+* **`feature_list.json`:** UX-26 → `"done"`.
+* **Nota de proceso:** sin entorno E2E, no se verificó visualmente en navegador real — verificación por lectura de código + razonamiento de CSS stacking, aceptado como no bloqueante (misma limitación de siempre en este repo).
+
+---
+
+## 2026-07-08 — UX-25: Agrandar dimensiones del calendario — CANCELADA antes de implementar
+
+* **Agente:** Claude (Leader) + explorer.
+* **Objetivo original:** ampliar alto y ancho del calendario de turnos, hoy acotado por `contentHeight={560}` fijo y el contenedor `max-w-6xl mx-auto` compartido con el resto de la app.
+* **Diagnóstico (explorer):** causa raíz identificada con precisión — `contentHeight={560}` fijo (`Turnos.tsx:529`) fuerza el scroll interno de FullCalendar, y el ancho angosto viene de `max-w-6xl mx-auto` (`Turnos.tsx:412`), el mismo patrón usado en todas las demás vistas de la app (ningún precedente "full width" existente). Confirmado sin residuos de UX-20 (revertida) en el archivo.
+* **Decisión del usuario tras ver las preguntas de alcance (ancho/altura mobile/scroll):** **cancelar la feature** — "solo en algunas pantallas se ve pequeño y no hace falta cambiar los tamaños del calendario". No se llegó a tocar código (la exploración es de solo lectura), por lo que no hubo nada que revertir.
+* **`feature_list.json`:** entrada UX-25 **eliminada del backlog** (no llegó a marcarse `in_progress`).
+* **Nota:** el diagnóstico queda archivado en `progress/explores/_archive/explore_UX-25.md` por si en el futuro se retoma el pedido con otro alcance (ej. solo ajustar `contentHeight` sin tocar el ancho).
+
+---
+
+## 2026-07-08 — EP-17-b: Migrar envío de mails de SMTP por-tenant a SMTP global de la app (Fase 4)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (2 rondas).
+* **Objetivo:** decisión de producto del usuario — en el sistema multi-tenant no hace falta que cada negocio configure su propio SMTP; se envían todos los mails (recordatorios de turno, EP-17) desde una única cuenta/config de la aplicación.
+* **Diagnóstico (explorer):** el envío de mails era 100% por-tenant y de un solo propósito (recordatorios EP-17). `mailService.ts` armaba el transporter desde `Tenant.notificationSettings` (7 subcampos SMTP cifrados); `reminderScheduler.ts` usaba la existencia de esas credenciales como filtro de elegibilidad; `Notificaciones.tsx` era la única UI. Confirmado que no había otro punto de uso de mail en el sistema (la verificación de registro EP-09 la maneja Clerk internamente).
+* **Decisiones de producto confirmadas con el usuario:** (1) config global vía variables de entorno (`.env`), no documento Mongo; (2) todos los tenants activos (`isActive`) reciben recordatorios, sin toggle nuevo; (3) `fromName` sigue siendo el nombre del negocio (`tenant.name`) sobre el SMTP único de la app; (4) vista `Notificaciones.tsx` se fusiona con `Negocio.tsx`, conservando solo `reminderHoursBefore`.
+* **Cambios Backend:**
+  - `apps/server/.env.example` — nuevas variables `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL`.
+  - `apps/server/src/config/mailConfig.ts` (nuevo) — centraliza lectura de esas variables.
+  - `apps/server/src/services/mailService.ts` — transporter armado desde `mailConfig` (una sola vez a nivel de módulo, no por-llamada); `fromName` sigue siendo `tenant.name`.
+  - `apps/server/src/models/Tenant.ts` — eliminados los 7 subcampos SMTP de `INotificationSettings`/`TenantSchema`; se conserva `reminderHoursBefore`.
+  - `apps/server/src/services/reminderScheduler.ts` — filtro de elegibilidad pasa de "tiene SMTP" a `isActive: true`.
+  - `apps/server/src/controllers/notificationSettingsController.ts` + `routes/notificationSettingsRoutes.ts` — recortados a exponer solo `reminderHoursBefore`; endpoint `/api/notificaciones` se mantiene (decisión: no fusionar a Tenant, para minimizar riesgo de colisión de contrato con el implementer de frontend trabajando en paralelo).
+  - `docs/governance-rules.md` (GOV-NOTIFY) y `docs/db-schema.md` — reescritos para reflejar el nuevo modelo.
+  - `apps/server/src/utils/crypto.ts` — **no se elimina** pese a quedar sin consumidores; se conserva como utilitario genérico reutilizable (decisión documentada en GOV-NOTIFY).
+* **Cambios Frontend:**
+  - `apps/client/src/api/notificationSettingsApi.ts` — recortado a `{ reminderHoursBefore }`.
+  - `apps/client/src/views/Negocio.tsx` — nueva sección "Recordatorio de turno" con su propio query/mutation, guardado inmediato.
+  - `apps/client/src/views/Notificaciones.tsx` — **eliminado**. `router.tsx` y `AppLayout.tsx` — ruta y entrada de menú eliminadas.
+* **Reviewer:** primera pasada **CHANGES_REQUESTED** — único hallazgo bloqueante: faltaba entrada en `CHANGELOG.md` documentando el breaking change de contrato de `/api/notificaciones` (C8). El leader agregó la entrada (`Changed`/`Removed` bajo `## [Unreleased]`). Segunda pasada: **APROBADO**.
+* **`feature_list.json`:** `EP-17-b` → `"done"`.
+* **Nota de proceso:** ambos implementers trabajaron en paralelo sobre sandboxes distintos (backend/frontend) sin comunicación directa entre sí; el reviewer verificó explícitamente que el contrato de API quedara sincronizado entre ambos (mismo endpoint, mismo shape) — no hubo desincronización.

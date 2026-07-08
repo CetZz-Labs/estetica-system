@@ -1,38 +1,17 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-07
-- **Sesión:** Triage de feedback QA/funcional post-revisión
+- **Última actualización:** 2026-07-08
+- **Sesión:** ninguna en curso
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
-Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triagueado y volcado a `feature_list.json` como 10 items nuevos (UX-12 a UX-21), insertados antes de EP-18 por prioridad. Secuenciación acordada con el usuario: **bugs de correctitud primero**, mejoras UX en segunda tanda.
-
-**Tanda 1 — Bugs de correctitud (COMPLETA):**
-1. ~~UX-12 — Validación de fecha/hora al crear turnos~~ → **done**
-2. ~~UX-13 — Retoques futuros ocultos cuando existe un retoque pendiente~~ → **done**
-3. ~~UX-14 — Desfasaje horario en hora de visita/retoque~~ → **done**
-4. ~~UX-15 — Crash de página en blanco al clickear turno pasado/tachado en calendario~~ → **done**
-
-**Tanda 2 — Mejoras UX (en curso):**
-5. ~~UX-16 — Modal de detalle clickeable en cards de turno/retoque (Dashboard)~~ → **done**
-6. ~~UX-17 — Selector de horario con intervalos fijos (15 min) + slots según disponibilidad real (EP-16), alcance ampliado a `Turnos.tsx` + `RegistroModal.tsx`~~ → **done**
-7. UX-18 — Rediseño visual del calendario (columnas por profesional + color, hover con info, colores sólidos — estilo Fresha, ver referencia del equipo). Confirmado con el usuario (2026-07-07): NINGÚN criterio de aceptación está cubierto todavía — hoy solo hay tintado pastel + dot + filtro de un solo profesional a la vez, sin columnas por profesional (`@fullcalendar/resource-timegrid` no está instalado), sin sidebar de profesionales, sin hover tooltip. Es la feature más grande de la tanda que queda.
-8. ~~UX-19 — Eliminación rápida (ícono) de producto en Inventario~~ → **done**
-9. **UX-20 — Eliminación rápida (ícono) de turno en calendario → PENDIENTE, queda para la próxima sesión.**
-10. ~~UX-21 — Validar unicidad de nombre de servicio en catálogo (EP-03)~~ → **done**
-11. ~~**UX-22** (nuevo, pedido directo del usuario durante la sesión) — Cerrar modal al clickear afuera (backdrop)~~ → **done**
-12. ~~UX-18 — Rediseño visual del calendario. Alcance ajustado en vivo (2026-07-07): sin columnas fijas por profesional (`@fullcalendar/resource-timegrid` es licencia paga, descartado) — se implementó franja/leyenda de profesionales + colores sólidos con contraste dinámico + tooltip al hover~~ → **done**
-
-**Bugs fuera de tanda encontrados esta sesión:**
-- UX-23 — mismo bug de UX-21 pero en Inventario (`createProduct` no excluía productos desactivados del chequeo de duplicado) → **done**.
-- **UX-24 — el `<Select>` de hora (react-select, agregado en UX-17) se recorta contra el borde inferior del modal en vez de flotar por encima → PENDIENTE, queda para la próxima sesión.** Reportado por el usuario. Afecta `Turnos.tsx` y probablemente `RegistroModal.tsx`. **Pista para la próxima sesión:** UX-18 tuvo el mismo tipo de bug (tooltip atrapado por el stacking context del calendario) y se resolvió con portal — ver `docs/patterns-frontend.md` § P11. El fix de UX-24 es casi con certeza `menuPortalTarget={document.body}` + `styles.menuPortal` con `zIndex` alto en el `<Select>` de react-select, mismo patrón.
-
-**Limitación de proceso anotada (2026-07-07):** este repo no tiene forma de hacer testing E2E en navegador real — el login vía Clerk requiere credenciales de una cuenta de prueba que no están disponibles en el entorno del agente. Todas las features se verifican por lectura de código + build/lint. Si se quiere cambiar esto, hace falta que el usuario provea una cuenta de prueba de Clerk.
-
-**Próximo paso (sesión siguiente):** UX-20 y UX-24 son los dos ítems pendientes. Después de eso, la tanda 2 de UX queda 100% cerrada y se podría pasar a EP-18+ (Reportes, Fase 5).
+(vacío — sin feature activa. Última sesión cerró la tanda 2 de UX completa y EP-17-b. Próximo bloque disponible del backlog: EP-18+ Reportes, Fase 5.)
 
 ## Estado del Backlog
+- EP-17-b Migrar envío de mails de SMTP por-tenant a SMTP global de la app → **done**
+- UX-26 Bug: tooltip de hover del calendario detrás de otros elementos → **done**
+- UX-24 Bug visual: Select de hora recortado por el modal → **done**
 - UX-18 Rediseño visual del calendario (leyenda + colores sólidos + tooltip) → **done**
 - UX-17 Selector de horario con slots de disponibilidad → **done**
 - UX-23 Bug: duplicado de producto no excluía eliminados → **done**
@@ -53,21 +32,24 @@ Feedback del equipo funcional/test tras revisión de la app (2026-07-06) triague
 - EP-11 Gestión de Profesionales agendables → done
 
 ### Pendientes
-- UX-17, UX-18, UX-20 Mejoras UX (tanda 2, feedback QA 2026-07-06)
 - EP-18 a EP-22 Reportes (Fase 5)
 - EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
+- Deuda técnica UX-24 (2026-07-08): el fix de portal (`menuPortalTarget`+`styles.menuPortal`) se aplicó solo al Select de Hora en `Turnos.tsx`/`RegistroModal.tsx`, por decisión de producto. Los otros 7 Select (Cliente/Servicio/Profesional/Producto) comparten la misma causa raíz (mismo contenedor con overflow) y podrían recortarse igual — generalizar si se reporta el mismo síntoma.
+- Riesgo aceptado UX-24 (2026-07-08): sin entorno E2E, no se verificó en navegador real que el portal no rompa el cierre por click-afuera (UX-22). Análisis de código (bubbling de React Portals por árbol de React, no DOM) indica riesgo bajo — pendiente de confirmación visual humana.
+- Riesgo aceptado UX-26 (2026-07-08): mismo tipo de limitación — el fix de `z-index` en el tooltip de hover no se verificó visualmente en navegador real.
 - Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).
 - Deuda de lint preexistente: `apps/client/src/components/ProductoModal.tsx:37` (`'stock' unused`).
 - Observación UX-05: `GET /api/profesionales` expone `inviteToken` e `inviteTokenExpiry`. Candidato a `select('-inviteToken -inviteTokenExpiry')`.
 - Deuda UX-09: `window.confirm` pre-existente en `handleCancelTouchup` (Dashboard.tsx) y `handleDelete` (ProfileClient.tsx) — violación GOV-CLIENT mandate 3, pendiente.
 - Deuda UX-09: estado `isError` ausente en queries del Dashboard — 4 estados incompletos (patrón pre-existente).
 - Deuda EP-11-fix (2026-07-01): `PUT /api/profesionales/:id` no valida `confirm` con `express-validator` como sí hace el `DELETE` — asimetría de higiene, sin riesgo de seguridad (el campo nunca se persiste).
-- Deuda EP-17 (2026-07-01): sin tests automatizados para `mailService.ts`/`reminderScheduler.ts`. `Tenant.notificationSettings.smtpPort` sin `default` (podría defaultear a 587).
+- Deuda EP-17 (2026-07-01): sin tests automatizados para `mailService.ts`/`reminderScheduler.ts`.
 - Riesgo EP-17 (2026-07-01): `pnpm --filter @estetica/server test` falla en este sandbox por un problema de entorno (descarga del binario de `mongodb-memory-server`), no por regresión de código — a confirmar en un entorno con acceso de red completo antes de asumir que la suite de tests está sana.
 - Limitación conocida UX-12 (2026-07-06, decisión de producto): la validación de superposición de turnos NO corre cuando el turno no tiene `professional` asignado (campo opcional en el form). Riesgo aceptado explícitamente por el usuario — no reabrir sin nueva decisión de producto.
 - Deuda técnica UX-13 (2026-07-06): tras el fix del auto-completado de retoques (`nextTouchupDate: { $lte: ... }`), un `ServiceRecord` `pending` con `nextTouchupDate` null/ausente queda excluido del `updateMany` y **nunca** se auto-completa automáticamente (antes sí se cerraba, sin importar la fecha). No es regresión respecto al criterio de aceptación, pero podría generar retoques "pending" huérfanos. Candidato a feature separada: exigir `nextTouchupDate` cuando `touchupStatus` nace `pending`.
 - Deuda de higiene UX-13 (2026-07-06): la lógica de auto-completado de retoques queda duplicada en `serviceRecordController.ts` y `appointmentController.ts` (mismo filtro `updateMany`, no extraído a `services/`). Candidato a refactor futuro si se vuelve a tocar esa regla.
 - Deuda de higiene UX-14 (2026-07-06, hallazgo del explorer, no corregido — fuera de alcance): `Turnos.tsx:527,733` formatea hora con `toLocaleTimeString` ad-hoc en vez de delegar en `formatDateTime`, violando `.claude/rules/frontend.md` §4. No es la causa del bug corregido, pero es candidato a limpieza futura.
 - Riesgo aceptado UX-14 (2026-07-06): los `nextTouchupDate`/`startTime` ya persistidos antes del fix quedan con el offset horario incorrecto (dato histórico contaminado). No se migró — decisión explícita de acotar el alcance a "iguales visitas hacia adelante". Evaluar backfill si se reporta como problema real.
+- Deuda EP-17-b (2026-07-08): `apps/server/src/utils/crypto.ts` (`encryptSecret`/`decryptSecret`) queda sin consumidores tras la migración a SMTP global por variables de entorno. Se conservó como utilitario genérico reutilizable (no se eliminó) — candidato a remover si nunca se reutiliza.
