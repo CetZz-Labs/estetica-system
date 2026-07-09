@@ -115,14 +115,14 @@ export default function CargaMasivaModal({ isOpen, onClose }: Props) {
         <>
             <button
                 onClick={handleClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
             <button
                 onClick={() => mutate(previewData)}
                 disabled={isPending || previewData.length === 0}
-                className="bg-primary hover:bg-black disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
                 {isPending ? 'Procesando...' : <><FiCheckCircle /> Confirmar Carga</>}
             </button>

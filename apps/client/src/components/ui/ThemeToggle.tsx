@@ -24,11 +24,10 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={() => setIsDark(!isDark)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 w-full cursor-pointer"
+            className="fixed top-7 right-11 z-30 p-2.5 rounded-full bg-card border border-border shadow-md transition-colors hover:bg-accent cursor-pointer"
             aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
-            {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-            <span>{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+            {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
         </button>
     );
 }

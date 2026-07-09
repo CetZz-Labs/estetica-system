@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { FiCheckCircle, FiAlertCircle, FiLogIn } from 'react-icons/fi';
 import { validateInvitation, acceptInvitation, type InvitationInfo } from '../api/invitacionApi';
 import { handleApiError } from '../api/errorHandler';
+import useIsDark from '../hooks/useIsDark';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function AceptarInvitacion() {
     const [searchParams] = useSearchParams();
@@ -59,11 +61,13 @@ export default function AceptarInvitacion() {
         );
     }
 
+    const isDark = useIsDark();
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
             <div className="bg-card border border-border rounded-lg p-8 max-w-sm w-full shadow-sm space-y-6">
                 <div className="text-center space-y-1">
-                    <img src="/shear-logo.png" alt="Shear" className="h-16 w-auto mx-auto" />
+                    <img src={isDark ? "/shear-logo-dark.png" : "/shear-logo.png"} alt="Shear" className="h-16 w-auto mx-auto" />
                     <p className="text-xs text-gray-400 uppercase tracking-widest">Invitación al equipo</p>
                 </div>
 
@@ -97,6 +101,8 @@ export default function AceptarInvitacion() {
                     </div>
                 )}
             </div>
+
+            <ThemeToggle />
         </div>
     );
 }

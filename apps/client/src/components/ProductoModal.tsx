@@ -56,7 +56,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -64,7 +64,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                 form="productoForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : (productToEdit ? 'Guardar Cambios' : 'Crear Producto')}
             </button>
@@ -87,7 +87,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                     <input
                         type="text"
                         placeholder="Ej: Oxidante 20 Vol..."
-                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.name ? 'border-destructive' : 'border-border'}`}
+                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.name ? 'border-destructive' : 'border-border'}`}
                         {...register('name', {
                             required: 'El nombre es requerido',
                             validate: (value) => value.trim() !== '' || 'No puede estar vacío'
@@ -106,7 +106,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                         <input
                             type="text"
                             placeholder="Ej: Wella, Olaplex..."
-                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.brand ? 'border-destructive' : 'border-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.brand ? 'border-destructive' : 'border-border'}`}
                             {...register('brand', {
                                 required: 'La marca es requerida',
                                 validate: (value) => value.trim() !== '' || 'No puede estar vacío'
@@ -125,7 +125,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                             <input
                                 type="number"
                                 min="0"
-                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.stock ? 'border-destructive' : 'border-border'}`}
+                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.stock ? 'border-destructive' : 'border-border'}`}
                                 {...register('stock', {
                                     required: 'Requerido',
                                     min: { value: 0, message: 'No puede ser negativo' }
@@ -154,7 +154,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                     <textarea
                         rows={2}
                         placeholder="Detalles extra del producto..."
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring resize-none"
                         {...register('description')}
                     />
                 </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiPlus, FiCheck, FiX, FiAlertTriangle, FiZap } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
@@ -151,31 +151,97 @@ export default function Dashboard() {
             </header>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-10">
-                {isDashboardLoading ? (
-                    [1, 2, 3].map(i => (
-                        <div key={i} className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 animate-pulse">
-                            <div className="w-10 h-10 bg-muted rounded-lg shrink-0"></div>
-                            <div className="space-y-2 flex-1"><div className="h-2.5 bg-muted rounded w-1/2"></div><div className="h-6 bg-muted rounded w-1/4 mt-1"></div></div>
-                        </div>
-                    ))
-                ) : (
+            {(() => {
+                const breakdown = retoques?.reduce(
+                    (acc, r) => {
+                        if (!r.nextTouchupDate) return acc;
+                        const status = getTimelineStatus(r.nextTouchupDate);
+                        if (status.dotColor === 'bg-destructive') acc.overdue++;
+                        else if (status.dotColor === 'bg-warning') acc.upcoming++;
+                        else acc.scheduled++;
+                        return acc;
+                    },
+                    { overdue: 0, upcoming: 0, scheduled: 0 }
+                ) ?? { overdue: 0, upcoming: 0, scheduled: 0 };
+
+                const hasOverdue = breakdown.overdue > 0;
+
+                return (
                     <>
-                        <div className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 hover:shadow-md hover:border-t-primary/60 transition-all duration-200 cursor-default group">
-                            <div className="bg-primary/10 p-2.5 rounded-lg shrink-0 group-hover:bg-primary/20 transition-colors"><FiUsers className="text-lg text-primary" /></div>
-                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Total de Clientes</h4><span className="text-2xl font-serif text-foreground leading-tight">{stats?.totalClients || 0}</span></div>
+                        {/* Hero KPI */}
+                        <div className={`bg-card border border-border rounded-lg p-6 mb-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-default ${hasOverdue ? 'border-t-2 border-t-destructive' : 'border-t-2 border-t-primary/30'}`}>
+                            {isDashboardLoading ? (
+                                <div className="animate-pulse space-y-4">
+                                    <div className="flex items-center gap-2"><div className="w-5 h-5 bg-muted rounded"></div><div className="h-3 bg-muted rounded w-32"></div></div>
+                                    <div className="h-12 bg-muted rounded w-20"></div>
+                                    <div className="flex gap-6"><div className="h-4 bg-muted rounded w-24"></div><div className="h-4 bg-muted rounded w-28"></div><div className="h-4 bg-muted rounded w-28"></div></div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className={`p-1.5 rounded-lg ${hasOverdue ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                                            <FiZap className={`text-base ${hasOverdue ? 'text-destructive' : 'text-primary'}`} />
+                                        </div>
+                                        <h4 className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Retoques pendientes</h4>
+                                    </div>
+                                    <p className="text-5xl font-serif text-foreground mb-5 leading-none">{retoques?.length || 0}</p>
+                                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                                        {breakdown.overdue > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-destructive shrink-0"></span>
+                                                <span className="text-destructive font-semibold">{breakdown.overdue}</span>
+                                                <span className="text-muted-foreground">Vencido{breakdown.overdue !== 1 ? 's' : ''}</span>
+                                            </div>
+                                        )}
+                                        {breakdown.upcoming > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-warning shrink-0"></span>
+                                                <span className="text-warning font-semibold">{breakdown.upcoming}</span>
+                                                <span className="text-muted-foreground">Esta semana</span>
+                                            </div>
+                                        )}
+                                        {breakdown.scheduled > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-ring shrink-0"></span>
+                                                <span className="text-ring font-semibold">{breakdown.scheduled}</span>
+                                                <span className="text-muted-foreground">Programados</span>
+                                            </div>
+                                        )}
+                                        {retoques?.length === 0 && (
+                                            <span className="text-muted-foreground text-sm">Sin retoques pendientes</span>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                        <div className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 hover:shadow-md hover:border-t-primary/60 transition-all duration-200 cursor-default group">
-                            <div className="bg-primary/10 p-2.5 rounded-lg shrink-0 group-hover:bg-primary/20 transition-colors"><FiScissors className="text-lg text-primary" /></div>
-                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Servicios Realizados</h4><span className="text-2xl font-serif text-foreground leading-tight">{stats?.servicesDone || 0}</span></div>
-                        </div>
-                        <div className="bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 hover:shadow-md hover:border-t-primary/60 transition-all duration-200 cursor-default group">
-                            <div className="bg-primary/10 p-2.5 rounded-lg shrink-0 group-hover:bg-primary/20 transition-colors"><FiCalendar className="text-lg text-primary" /></div>
-                            <div className="min-w-0"><h4 className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Próximos Retoques</h4><span className="text-2xl font-serif text-foreground leading-tight">{stats?.upcomingTouchups || 0}</span></div>
+
+                        {/* Secondary Strip */}
+                        <div className="bg-card border border-border rounded-lg px-6 py-4 mb-10 flex items-center gap-6 shadow-sm">
+                            {isLoadingStats ? (
+                                <div className="flex items-center gap-6 w-full animate-pulse">
+                                    <div className="flex items-center gap-2.5"><div className="w-4 h-4 bg-muted rounded"></div><div className="h-3 bg-muted rounded w-24"></div><div className="h-5 bg-muted rounded w-10"></div></div>
+                                    <div className="w-px h-5 bg-border"></div>
+                                    <div className="flex items-center gap-2.5"><div className="w-4 h-4 bg-muted rounded"></div><div className="h-3 bg-muted rounded w-32"></div><div className="h-5 bg-muted rounded w-10"></div></div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2.5 text-sm">
+                                        <FiUsers className="text-muted-foreground" />
+                                        <span className="text-muted-foreground">Clientes totales</span>
+                                        <span className="font-serif text-foreground text-lg font-medium">{stats?.totalClients || 0}</span>
+                                    </div>
+                                    <div className="w-px h-5 bg-border"></div>
+                                    <div className="flex items-center gap-2.5 text-sm">
+                                        <FiScissors className="text-muted-foreground" />
+                                        <span className="text-muted-foreground">Servicios realizados</span>
+                                        <span className="font-serif text-foreground text-lg font-medium">{stats?.servicesDone || 0}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </>
-                )}
-            </div>
+                );
+            })()}
 
             {/* Pending Registration Alert */}
             {!isDashboardLoading && pendingRegistration && pendingRegistration.length > 0 && (

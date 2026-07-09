@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getMe } from '../api/adminApi';
 import type { AdminInfo, AdminRole } from '../types';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import useIsDark from '../hooks/useIsDark';
 
 const ROLE_LABELS: Record<AdminRole, string> = {
     ADMIN: 'Administrador',
@@ -19,6 +20,7 @@ export default function AppLayout() {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const footerRef = useRef<HTMLDivElement>(null);
+    const isDark = useIsDark();
 
     const { data: adminInfo } = useQuery<AdminInfo>({
         queryKey: ['admin-me'],
@@ -63,7 +65,7 @@ export default function AppLayout() {
             {/* Header Móvil */}
             <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-30">
                 <div>
-                    <img src="/shear-logo.png" alt="Shear" className="h-11 w-auto" />
+                    <img src={isDark ? "/shear-logo-dark.png" : "/shear-logo.png"} alt="Shear" className="h-11 w-auto" />
                 </div>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
@@ -86,7 +88,7 @@ export default function AppLayout() {
                 {/* Brand */}
                 <div className="p-5 border-b border-sidebar-border flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                        <img src="/shear-logo.png" alt="Shear" className="w-24 h-auto" />
+                        <img src={isDark ? "/shear-logo-dark.png" : "/shear-logo.png"} alt="Shear" className="w-24 h-auto" />
                     </div>
                     <button onClick={closeMenu} className="md:hidden p-2 text-gray-400 hover:text-gray-700">
                         <FiX size={20} />
@@ -155,10 +157,9 @@ export default function AppLayout() {
                     )}
                 </nav>
 
-                {/* Footer */}
-                <div className="p-3 border-t border-sidebar-border space-y-0.5">
-                    <ThemeToggle />
-                    <div
+            {/* Footer */}
+            <div className="p-3 border-t border-sidebar-border space-y-0.5">
+                <div
                         ref={footerRef}
                         onClick={handleUserFooterClick}
                         className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
@@ -182,6 +183,7 @@ export default function AppLayout() {
                     </div>
                 </div>
             </main>
+            <ThemeToggle />
         </div>
     );
 }

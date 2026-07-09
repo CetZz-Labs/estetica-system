@@ -74,7 +74,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -82,7 +82,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                 form="ajusteStockForm"
                 type="submit"
                 disabled={isPending || isInvalidStock}
-                className="bg-foreground hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-foreground hover:bg-accent hover:text-accent-foreground disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Procesando...' : 'Confirmar Ajuste'}
             </button>
@@ -125,7 +125,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                         <input
                             type="number"
                             min="1"
-                            className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 text-lg font-medium text-center ${errors.amount ? 'border-destructive' : 'border-gray-200'}`}
+                            className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring text-lg font-medium text-center ${errors.amount ? 'border-destructive' : 'border-gray-200'}`}
                             {...register('amount', {
                                 valueAsNumber: true,
                                 required: 'Requerido',
@@ -141,7 +141,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                         <input
                             type="text"
                             placeholder="Ej: Compra a proveedor, Producto dañado..."
-                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring"
                             {...register('reason')}
                         />
                     </div>

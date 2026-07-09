@@ -87,7 +87,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -95,7 +95,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                 form="profesionalForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : 'Guardar'}
             </button>
@@ -116,7 +116,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                     <input
                         type="text"
                         placeholder="Ej. Camila Rossi"
-                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.name ? 'border-destructive' : 'border-border'}`}
+                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.name ? 'border-destructive' : 'border-border'}`}
                         {...register('name', { required: 'Requerido' })}
                     />
                     {errors.name && (
@@ -161,7 +161,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                         Vincular a usuario <span className="text-gray-400 font-normal normal-case">Opcional</span>
                     </label>
                     <select
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 cursor-pointer"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring cursor-pointer"
                         {...register('linkedAdmin')}
                     >
                         <option value="">Sin vincular</option>
@@ -183,7 +183,7 @@ export default function ProfesionalModal({ isOpen, onClose, professionalToEdit }
                         <input
                             type="email"
                             placeholder="profesional@ejemplo.com"
-                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 ${errors.inviteEmail ? 'border-destructive' : 'border-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.inviteEmail ? 'border-destructive' : 'border-border'}`}
                             {...register('inviteEmail', {
                                 validate: (val) => {
                                     if (!val) return true;

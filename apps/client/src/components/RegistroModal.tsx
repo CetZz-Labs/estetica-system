@@ -183,10 +183,10 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
 
     const footer = (
         <>
-            <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+            <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
                 Cancelar
             </button>
-            <button type="submit" form="registroForm" disabled={isPending} className="bg-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
+            <button type="submit" form="registroForm" disabled={isPending} className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
                 {isPending ? 'Guardando...' : 'Guardar y Descontar Stock'}
             </button>
         </>

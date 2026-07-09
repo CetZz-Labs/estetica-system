@@ -196,11 +196,11 @@ Cada ítem de navegación incluye un ícono de `react-icons/fi` (Feather Icons) 
 
 | Tipo | Clases | Uso |
 |------|--------|-----|
-| **Primario** | `bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer` | Acciones principales (Nueva Visita, Agregar Cliente, Guardar) |
+| **Primario** | `bg-primary hover:bg-accent hover:text-accent-foreground text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer` | Acciones principales (Nueva Visita, Agregar Cliente, Guardar) |
 | **Secundario** | `bg-card border border-border hover:border-primary/40 text-muted-foreground px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer` | Acciones secundarias (Directorio, Carga Masiva) |
 | **En línea** (icon button) | `p-2 text-muted-foreground hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer` | Editar, Eliminar (dentro de cards) |
 | **En línea con hover reveal** | `sm:opacity-0 sm:group-hover:opacity-100 transition-opacity` | Acciones que aparecen al hover de la card/fila |
-| **Modal footer** | `px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm` | Cancelar (texto gris, hover bg-gray-100), Guardar (primario) |
+| **Modal footer** | `px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm` | Cancelar (texto gris, hover bg-accent), Guardar (primario con hover bg-accent) |
 | **Disabled** | `disabled:bg-gray-400 disabled:cursor-not-allowed` | Botón primario deshabilitado |
 
 #### Animación de Hover (Botones)
@@ -274,6 +274,8 @@ Basado en el componente `Modal` (`apps/client/src/components/ui/Modal.tsx`).
 | Subtítulo | `text-gray-500 text-sm mt-0.5` |
 | Body | `p-5 sm:p-6 overflow-y-auto custom-scrollbar` |
 | Footer | `p-5 sm:p-6 border-t border-border bg-gray-50/50 flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0` |
+| Footer botón Cancelar | `px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer` |
+| Footer botón Primario | `bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer` |
 
 ### 4.6 Tablas
 
