@@ -32,7 +32,7 @@ import AppointmentDetail, { AppointmentDetailFooter } from '../components/Appoin
 import { getStatusPalette, getStatusIcon, getRenderStatus } from '../utils/appointmentStatus';
 import { getAvailableSlots, getLocalDayRangeISO } from '../utils/timeSlots';
 import { getContrastTextColor } from '../utils/contrastColor';
-import { formatTime } from '../utils/dates';
+import { formatTime, getTodayDateString } from '../utils/dates';
 
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
@@ -51,12 +51,6 @@ const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
         cursor: 'pointer'
     })
 };
-
-function getTodayDateString(): string {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
 
 function getProfessionalInitials(name: string): string {
     const parts = name.trim().split(/\s+/).filter(Boolean);

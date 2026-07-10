@@ -482,4 +482,43 @@ getAvailableSlots({ dateStr, professionalId?, durationMin, businessHours?, dayAp
 
 ---
 
+## P12 — Edición inline de un campo dentro de un bloque de detalle (toggle lectura/edición en el mismo lugar)
+
+> **Origen:** UX-28 (2026-07-10) — editar `nextTouchupDate` desde el modal "Detalle del Retoque" del Dashboard sin abrir un sub-modal ni navegar a otra pantalla. Aplica a cualquier campo puntual (fecha, texto corto) dentro de un modal/card de **solo lectura** que necesite volverse editable sin rediseñar todo el contenedor como un formulario.
+
+**Problema:** para un solo campo, extraer un sub-modal completo (con su propio `<Modal>`, footer, `useForm`) es sobre-ingeniería; pero mutar el bloque de lectura in-place requiere manejar 3 estados (lectura / edición / guardando) sin que queden "pegados" entre sí al cerrar el modal padre o cambiar de entidad seleccionada.
+
+**Mandato:**
+1. Un solo booleano de modo (`isEditingX`) condiciona el JSX: texto de solo lectura + botón `FiEdit2` (`aria-label`/`title`, visible solo en modo lectura) **vs.** inputs nativos + botones Guardar/Cancelar (visibles solo en modo edición).
+2. **Reset obligatorio del modo edición** al abrir/cerrar el modal padre o al cambiar de entidad seleccionada — envolver el setter de selección (`setSelected(x)`) en wrappers (`openDetail`/`closeDetail`) que también fuerzan `isEditingX(false)`, para que el modo edición nunca sobreviva a un cambio de entidad ni quede abierto al reabrir el modal.
+3. Al entrar en modo edición, prellenar los inputs **y** guardar el valor original en un `useRef` (combina con P8: guard anti-reenvío si el usuario guarda sin cambios).
+4. `onSuccess` de la mutation actualiza el estado local de la entidad seleccionada con **merge parcial** (no reemplazo total) si la respuesta del `PUT` no viene poblada con relaciones (`.populate()`) que sí tiene el estado ya cargado en memoria — reemplazar todo el objeto rompería esos campos poblados.
+
+```tsx
+const [isEditingX, setIsEditingX] = useState(false);
+const originalRef = useRef('');
+
+const openDetail = (entity) => { setSelected(entity); setIsEditingX(false); };
+const closeDetail = () => { setSelected(null); setIsEditingX(false); };
+
+{isEditingX ? (
+    <>
+        <input type="date" min={getTodayDateString()} value={dateInput} onChange={...} aria-label="..." />
+        <button type="button" onClick={handleSave}>Guardar</button>
+        <button type="button" onClick={() => setIsEditingX(false)}>Cancelar</button>
+    </>
+) : (
+    <p>{formatDate(selected.field)}</p>
+)}
+{!isEditingX && (
+    <button type="button" onClick={handleStartEdit} aria-label="Editar ..." title="Editar ...">
+        <FiEdit2 />
+    </button>
+)}
+```
+
+**Gotcha:** no reemplazar el objeto completo de estado local (`setSelected(response)`) en el `onSuccess` si el endpoint no popula todas las relaciones — mergear solo el campo editado (`setSelected(prev => prev ? { ...prev, field: newValue } : prev)`).
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

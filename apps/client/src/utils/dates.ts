@@ -115,3 +115,14 @@ export const formatFullDateTime = (dateString: string): string => {
 export const formatTime = (dateString: string): string => {
     return new Date(dateString).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
 };
+
+/**
+ * Devuelve la fecha local de hoy como string "YYYY-MM-DD", lista para usar como `min`
+ * de un `<input type="date">`. Extraído a helper compartido tras la 3ra duplicación local
+ * (RegistroModal.tsx, Turnos.tsx) — evitar reimplementarlo por 4ta vez (UX-28).
+ */
+export const getTodayDateString = (): string => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};

@@ -1,0 +1,20 @@
+# Reporte de Exploración — UX-28
+
+**Pregunta:** ¿Dónde vive el modal de detalle de retoque del Dashboard, alcanza el endpoint backend actual para editar `nextTouchupDate` inline, y qué patrón de UI/API de frontend usar?
+**Contexto:** UX-28 (Editar fecha de retoque desde el modal de detalle del Dashboard), depende de UX-16 y UX-27.
+**Timestamp:** 2026-07-10
+
+## Hallazgos
+
+1. `apps/client/src/views/Dashboard.tsx:398-499`: A diferencia del modal de turno (que sí usa el componente compartido `AppointmentDetail.tsx`, extraído en UX-16), **el modal de "Detalle del Retoque" NO fue extraído a un componente separado** — su JSX vive inline dentro de `Dashboard.tsx`. El campo de fecha del retoque está en las líneas `455-465` (bloque `FiClock` con `Retoque: {formatDate(selectedRetoqueDetail.nextTouchupDate)}`). El footer del modal (botones Cancelar/Registrar Visita) está en líneas `403-420`.
+2. `apps/client/src/components/AppointmentDetail.tsx:1-157`: es el componente compartido de UX-16, pero solo cubre turnos (`Appointment`), no retoques. Ya usa `FiEdit2` para el botón "Editar turno" (línea 141-148) como precedente visual/semántico de ícono de edición (`<button onClick={onEdit}>`, `aria-label`, `title`, sin `type="button"` explícito pero funciona por estar fuera de un `<form>`).
+3. `apps/server/src/controllers/serviceRecordController.ts:179-204` (`updateServiceRecord`): el whitelist de `PUT /api/registros/:id` ya acepta `nextTouchupDate` de forma aislada (`if (nextTouchupDate !== undefined) updateData.nextTouchupDate = nextTouchupDate;`, línea 203) sin tocar `serviceDate`/`notes`/`touchupStatus`. La validación de UX-27 (`isBeforeCalendarDay` contra `tenant.timezone`) corre en líneas 192-201 dentro de este mismo endpoint. **No hace falta tocar backend.**
+4. `apps/client/src/api/serviceRecordApi.ts:46-53`: ya existe `updateServiceRecord(id, data: Partial<ServiceRecord>)` → `PUT /api/registros/:id`, y ya se usa en `Dashboard.tsx:87-95` (mutation `cancelTouchup` con `{ touchupStatus: 'cancelled' }`). Basta invocarla con `{ nextTouchupDate: ... }`.
+5. `apps/client/src/components/RegistroModal.tsx:63,361`: `getTodayDateString()` (helper de fecha mínima para `<input type="date" min={...}>`) está definido **localmente** en `RegistroModal.tsx`, no exportado ni compartido en `utils/dates.ts`. Si UX-28 necesita el mismo `min`, hay que decidir: duplicar o extraer a `utils/dates.ts`.
+6. `docs/patterns-frontend.md` no tiene un patrón de "edición inline puntual" documentado; sí tiene el patrón de "valor original en `useRef`" (línea 371-380, origen UX-12) para omitir del payload un campo de fecha que no cambió — aplicable aquí si se reabre el mismo registro varias veces.
+
+## Diagnóstico
+El modal de retoque es JSX inline en `Dashboard.tsx`, no un componente compartido — cualquier implementación deberá tocar directamente ese bloque (líneas ~422-498) o extraerlo primero a un componente propio (ej. `TouchupDetail.tsx`) siguiendo el precedente de `AppointmentDetail.tsx`. El backend ya soporta el PATCH parcial de `nextTouchupDate` con la validación UX-27 incluida, así que la feature es 100% frontend. Falta decidir el patrón de interacción (inline toggle a `<input type="date">` vs. sub-modal) y resolver el helper de fecha mínima duplicado.
+
+## Recomendación
+Antes de asignar el implementer, resolver con el usuario (AskUserQuestion): (a) ¿edición inline en el mismo bloque (icono FiEdit2 que transforma el texto en `<input type="date" min={hoy}>` con botones guardar/cancelar) o abre un mini-modal aparte?; (b) ¿solo fecha o también hora del retoque (el modelo actual solo persiste `nextTouchupDate` como fecha, sin hora explícita en este modal)?; (c) ¿al editar la fecha de un retoque hay que reevaluar `touchupStatus` (UX-13 auto-completa retoques vencidos) — si la nueva fecha es futura y el registro tenía `touchupStatus` distinto de `pending`, no debería tocarse, pero conviene confirmarlo explícitamente. Recomiendo edición inline (consistente con el ícono `FiEdit2` ya usado en `AppointmentDetail.tsx`) reusando `updateServiceRecord(id, { nextTouchupDate })` sin extraer un componente nuevo, dado que es un solo bloque acotado.

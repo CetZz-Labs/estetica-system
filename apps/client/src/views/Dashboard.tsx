@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle, FiTrash2, FiUser, FiClock, FiExternalLink } from 'react-icons/fi';
+import { FiUsers, FiScissors, FiCalendar, FiPlus, FiCheck, FiX, FiAlertTriangle, FiTrash2, FiUser, FiClock, FiExternalLink, FiEdit2 } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
 import { getPendingRegistration, cancelAppointment, getUpcomingAppointments } from '../api/appointmentApi';
 import type { ServiceRecord, Appointment } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
-import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
+import { formatDate, getTimelineStatus, formatDateTime, getTodayDateString } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
 import RegistroModal from '../components/RegistroModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -36,6 +36,10 @@ export default function Dashboard() {
     const [prefillServiceDate, setPrefillServiceDate] = useState<string | undefined>(undefined);
     const [selectedAppointmentDetail, setSelectedAppointmentDetail] = useState<Appointment | null>(null);
     const [selectedRetoqueDetail, setSelectedRetoqueDetail] = useState<ServiceRecord | null>(null);
+    const [isEditingTouchupDate, setIsEditingTouchupDate] = useState(false);
+    const [touchupDateInput, setTouchupDateInput] = useState('');
+    const [touchupTimeInput, setTouchupTimeInput] = useState('');
+    const originalTouchupIsoRef = useRef('');
 
     const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
         queryKey: ['dashboard-stats'],
@@ -97,6 +101,55 @@ export default function Dashboard() {
     const handleCancelTouchup = (e: React.MouseEvent, recordId: string) => {
         e.stopPropagation();
         setConfirmCancelId(recordId);
+    };
+
+    const openRetoqueDetail = (registro: ServiceRecord) => {
+        setSelectedRetoqueDetail(registro);
+        setIsEditingTouchupDate(false);
+    };
+
+    const closeRetoqueDetail = () => {
+        setSelectedRetoqueDetail(null);
+        setIsEditingTouchupDate(false);
+    };
+
+    const { mutate: saveTouchupDate, isPending: isSavingTouchupDate } = useMutation({
+        mutationFn: (vars: { id: string; nextTouchupDate: string }) =>
+            updateServiceRecord(vars.id, { nextTouchupDate: vars.nextTouchupDate }),
+        onSuccess: (_updatedRecord, variables) => {
+            toast.success('Fecha de retoque actualizada');
+            setSelectedRetoqueDetail((prev) => (prev ? { ...prev, nextTouchupDate: variables.nextTouchupDate } : prev));
+            setIsEditingTouchupDate(false);
+            queryClient.invalidateQueries({ queryKey: ['upcoming-touchups'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        },
+        onError: (error) => handleApiError(error, 'Error al actualizar la fecha de retoque')
+    });
+
+    const handleStartEditTouchupDate = () => {
+        if (!selectedRetoqueDetail?.nextTouchupDate) return;
+        const current = new Date(selectedRetoqueDetail.nextTouchupDate);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setTouchupDateInput(`${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}`);
+        setTouchupTimeInput(`${pad(current.getHours())}:${pad(current.getMinutes())}`);
+        originalTouchupIsoRef.current = selectedRetoqueDetail.nextTouchupDate;
+        setIsEditingTouchupDate(true);
+    };
+
+    const handleCancelEditTouchupDate = () => {
+        setIsEditingTouchupDate(false);
+    };
+
+    const handleSaveTouchupDate = () => {
+        if (!selectedRetoqueDetail || !touchupDateInput || !touchupTimeInput) return;
+        const newIso = new Date(`${touchupDateInput}T${touchupTimeInput}`).toISOString();
+        // Evita reenviar un valor sin cambios: si el retoque ya está atrasado, el backend
+        // rechazaría el mismo valor con 400 (UX-27) aunque el usuario no haya modificado nada.
+        if (newIso === originalTouchupIsoRef.current) {
+            setIsEditingTouchupDate(false);
+            return;
+        }
+        saveTouchupDate({ id: selectedRetoqueDetail._id, nextTouchupDate: newIso });
     };
 
     const { mutate: cancelAppointmentMutate } = useMutation({
@@ -234,7 +287,7 @@ export default function Dashboard() {
                                         <div className={`absolute -left-11.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full ${status.dotColor} ring-4 ring-white`}></div>
                                         <button
                                             type="button"
-                                            onClick={() => setSelectedRetoqueDetail(registro)}
+                                            onClick={() => openRetoqueDetail(registro)}
                                             className="w-full flex justify-between items-center bg-white border border-maison-border rounded-xl p-4 shadow-sm hover:border-gray-300 transition-colors text-left cursor-pointer"
                                         >
                                             <div className="flex items-center gap-3 min-w-0">
@@ -397,13 +450,13 @@ export default function Dashboard() {
 
             <Modal
                 isOpen={selectedRetoqueDetail !== null}
-                onClose={() => setSelectedRetoqueDetail(null)}
+                onClose={closeRetoqueDetail}
                 title="Detalle del Retoque"
                 maxWidth="max-w-lg"
                 footer={selectedRetoqueDetail && selectedRetoqueDetail.touchupStatus === 'pending' && (
                     <>
                         <button
-                            onClick={() => { setConfirmCancelId(selectedRetoqueDetail._id); setSelectedRetoqueDetail(null); }}
+                            onClick={() => { setConfirmCancelId(selectedRetoqueDetail._id); closeRetoqueDetail(); }}
                             aria-label="Cancelar retoque"
                             title="Cancelar retoque"
                             className="p-2 text-gray-400 hover:text-maison-red transition-colors cursor-pointer"
@@ -453,14 +506,65 @@ export default function Dashboard() {
                         )}
 
                         {selectedRetoqueDetail.nextTouchupDate && (
-                            <div className="flex items-center gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
-                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500">
+                            <div className="flex items-start gap-3 p-3 bg-maison-bg rounded-xl border border-maison-border">
+                                <div className="p-2 bg-white rounded-full border border-maison-border text-gray-500 shrink-0">
                                     <FiClock className="text-lg" />
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium text-maison-text">Retoque: {formatDate(selectedRetoqueDetail.nextTouchupDate)}</p>
-                                    <p className="text-xs text-gray-500">Visita original: {formatDate(selectedRetoqueDetail.serviceDate)}</p>
+                                <div className="flex-1 min-w-0">
+                                    {isEditingTouchupDate ? (
+                                        <div className="space-y-2">
+                                            <div className="flex flex-wrap gap-2">
+                                                <input
+                                                    type="date"
+                                                    min={getTodayDateString()}
+                                                    value={touchupDateInput}
+                                                    onChange={(e) => setTouchupDateInput(e.target.value)}
+                                                    aria-label="Fecha del próximo retoque"
+                                                    className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
+                                                />
+                                                <input
+                                                    type="time"
+                                                    value={touchupTimeInput}
+                                                    onChange={(e) => setTouchupTimeInput(e.target.value)}
+                                                    aria-label="Hora del próximo retoque"
+                                                    className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveTouchupDate}
+                                                    disabled={!touchupDateInput || !touchupTimeInput || isSavingTouchupDate}
+                                                    className="px-3 py-1.5 bg-maison-primary hover:bg-black text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <FiCheck size={14} /> Guardar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCancelEditTouchupDate}
+                                                    disabled={isSavingTouchupDate}
+                                                    className="px-3 py-1.5 text-gray-500 hover:text-maison-text rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm font-medium text-maison-text">Retoque: {formatDate(selectedRetoqueDetail.nextTouchupDate)}</p>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-1">Visita original: {formatDate(selectedRetoqueDetail.serviceDate)}</p>
                                 </div>
+                                {!isEditingTouchupDate && (
+                                    <button
+                                        type="button"
+                                        onClick={handleStartEditTouchupDate}
+                                        aria-label="Editar fecha de retoque"
+                                        title="Editar fecha de retoque"
+                                        className="p-1.5 text-gray-400 hover:text-maison-primary transition-colors cursor-pointer shrink-0"
+                                    >
+                                        <FiEdit2 className="text-lg" />
+                                    </button>
+                                )}
                             </div>
                         )}
 

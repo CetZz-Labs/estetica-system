@@ -5,6 +5,8 @@ import { Product } from '../models/Product';
 import { Client } from '../models/Client';
 import { Appointment } from '../models/Appointment';
 import { Professional } from '../models/Professional';
+import { Tenant } from '../models/Tenant';
+import { isBeforeCalendarDay } from '../utils/dateUtils';
 
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
@@ -36,6 +38,18 @@ export const createServiceRecord = async (req: Request, res: Response) => {
 
         // 1. Lógica de fecha de retoque — el usuario tiene control total: no hay auto-cálculo.
         const finalNextTouchupDate = nextTouchupDate;
+
+        // UX-27: nextTouchupDate no puede ser una fecha ya pasada. Se compara contra el día
+        // calendario actual (no el instante exacto): si cae hoy, es válido aunque la hora ya
+        // haya pasado. El "hoy" se calcula en la zona horaria del tenant (no la del proceso
+        // servidor), mismo patrón que `checkBusinessHours` en appointmentController.ts.
+        if (finalNextTouchupDate) {
+            const tenant = await Tenant.findById(tenantId);
+            const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
+            if (isBeforeCalendarDay(new Date(finalNextTouchupDate), new Date(), tz)) {
+                return res.status(400).json({ error: 'La fecha de próximo retoque no puede ser anterior al día de hoy' });
+            }
+        }
 
         // 2. LÓGICA DE DESCUENTO DE STOCK (solo productos del tenant)
         if (productsUsed && Array.isArray(productsUsed) && productsUsed.length > 0) {
@@ -170,6 +184,19 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
         // tenantId, client, service y productsUsed NO son editables vía PUT:
         // cambiarlos requeriría re-validar pertenencia al tenant y re-calcular stock.
         const { serviceDate, notes, nextTouchupDate, touchupStatus } = req.body;
+
+        // UX-27: nextTouchupDate no puede ser una fecha ya pasada. Se compara contra el día
+        // calendario actual (no el instante exacto): si cae hoy, es válido aunque la hora ya
+        // haya pasado. El "hoy" se calcula en la zona horaria del tenant (no la del proceso
+        // servidor), mismo patrón que `checkBusinessHours` en appointmentController.ts.
+        if (nextTouchupDate !== undefined && nextTouchupDate !== null) {
+            const tenant = await Tenant.findById(req.tenantId);
+            const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
+            if (isBeforeCalendarDay(new Date(nextTouchupDate), new Date(), tz)) {
+                return res.status(400).json({ error: 'La fecha de próximo retoque no puede ser anterior al día de hoy' });
+            }
+        }
+
         const updateData: Record<string, unknown> = {};
         if (serviceDate !== undefined) updateData.serviceDate = serviceDate;
         if (notes !== undefined) updateData.notes = notes;

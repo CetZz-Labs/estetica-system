@@ -848,3 +848,40 @@
 * **Reviewer:** primera pasada **CHANGES_REQUESTED** — único hallazgo bloqueante: faltaba entrada en `CHANGELOG.md` documentando el breaking change de contrato de `/api/notificaciones` (C8). El leader agregó la entrada (`Changed`/`Removed` bajo `## [Unreleased]`). Segunda pasada: **APROBADO**.
 * **`feature_list.json`:** `EP-17-b` → `"done"`.
 * **Nota de proceso:** ambos implementers trabajaron en paralelo sobre sandboxes distintos (backend/frontend) sin comunicación directa entre sí; el reviewer verificó explícitamente que el contrato de API quedara sincronizado entre ambos (mismo endpoint, mismo shape) — no hubo desincronización.
+
+---
+
+## 2026-07-10 — UX-27: Bug — "próximo retoque" aceptaba fechas pasadas (Fase 1, 2 rondas de review)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (2 rondas).
+* **Objetivo:** el campo opcional `nextTouchupDate` (registro de visita) no validaba que la fecha fuera posterior al momento de la visita — permitía guardar un retoque con fecha ya pasada.
+* **Regla de negocio confirmada con el usuario:** comparar contra "ahora" (no contra `serviceDate`); "mismo día calendario" es válido aunque la hora exacta ya haya pasado.
+* **Cambios Backend:**
+  - `serviceRecordController.ts` (`createServiceRecord`, `updateServiceRecord`) y `appointmentController.ts` (`completeAppointment`) — validación 400 + `{ error: '...' }` antes de cualquier mutación de stock/DB (fail-fast), en los 3 entry points.
+  - `apps/server/src/utils/dateUtils.ts` (nuevo, tras la segunda ronda) — `toLocalDateString`/`isBeforeCalendarDay`, util puro (sin Express/Mongoose) para comparar día calendario en una TZ dada.
+* **Cambios Frontend:** `RegistroModal.tsx` — `min={getTodayDateString()}` en el input `touchupDate` (hint de UI, la fuente de verdad es el backend).
+* **Primera pasada del reviewer: `CHANGES_REQUESTED`.** Hallazgo bloqueante: la validación calculaba "hoy" con `new Date(); setHours(0,0,0,0)`, anclando el día calendario a la **TZ del proceso Node del servidor** (típicamente UTC en producción) en vez de `tenant.timezone`. Reproducido empíricamente: con hora real 22:50 Argentina (=01:50 UTC del día siguiente), un `nextTouchupDate` = hoy (Argentina) con hora ya pasada se rechazaba incorrectamente — mismo tipo de bug ya diagnosticado en UX-14, ahora reintroducido del lado servidor. El propio `appointmentController.ts` ya tenía el patrón correcto (`checkBusinessHours`, `tenant.timezone` + `toLocaleDateString('en-CA', { timeZone })`) sin que la nueva validación lo reutilizara.
+* **Fix del implementer:** extraído a `dateUtils.ts` (`isBeforeCalendarDay`, compara strings `YYYY-MM-DD` derivados en `tenant.timezone`, nunca instantes `Date`). Los 3 controllers resuelven `tenant.timezone` (fallback `'America/Argentina/Buenos_Aires'`) dentro del branch condicional de la validación, sin duplicar queries preexistentes.
+* **Segunda pasada del reviewer: `APROBADO`.** Confirmó que `dateUtils.ts` es función pura, que los 3 call sites resuelven `tenant.timezone` real sin duplicar queries, y reprodujo **de forma independiente** (script propio, no solo confiando en la bitácora del implementer) tanto el caso límite crítico (aceptado correctamente tras el fix) como el caso de control de fecha genuinamente pasada (sigue rechazado). Builds server/client re-ejecutados por el reviewer, Exit Code 0 en ambos.
+* **`feature_list.json`:** `UX-27` → `"done"`.
+
+---
+
+## 2026-07-10 — UX-28: Editar fecha/hora del próximo retoque desde el modal de detalle del Dashboard (Fase 1)
+
+* **Agente:** Claude (Leader) + explorer + implementer-frontend + reviewer (2 pasadas, error de línea base corregido en la segunda).
+* **Objetivo:** en el modal "Detalle del Retoque" del Dashboard (JSX inline, no componente compartido), permitir editar `nextTouchupDate` (fecha y hora) sin abrir otra pantalla ni sub-modal.
+* **Diagnóstico (explorer):** `Dashboard.tsx` no reutiliza `AppointmentDetail.tsx` (patrón de UX-16) para el modal de retoque — es JSX propio. El backend (`PUT /api/registros/:id`) ya aceptaba `nextTouchupDate` de forma aislada, con la validación de UX-27 incluida — feature 100% frontend.
+* **Decisiones de producto confirmadas con el usuario/leader:** (1) edición inline en el mismo bloque, no sub-modal; (2) se edita fecha **y** hora; (3) el `PUT` solo envía `nextTouchupDate`, `touchupStatus` no se toca; (4) controles nativos `<input type="date">`+`<input type="time">`, no el selector de slots de disponibilidad (UX-17/UX-24) — esto es reprogramar un registro existente, no reservar un turno nuevo; (5) backend no se toca; (6) `getTodayDateString()` se extrae a `utils/dates.ts` por cruzar el umbral de 3 ocurrencias (`Turnos.tsx` la tenía desde antes de UX-27; `RegistroModal.tsx` obtuvo su copia local durante UX-27).
+* **Cambios Frontend:**
+  - `apps/client/src/views/Dashboard.tsx` — estado `isEditingTouchupDate`/`touchupDateInput`/`touchupTimeInput`/`originalTouchupIsoRef`; mutation `saveTouchupDate` (`updateServiceRecord(id, { nextTouchupDate })`) con merge parcial en `onSuccess` (no reemplaza `client`/`service`/`professional` poblados); wrappers `openRetoqueDetail`/`closeRetoqueDetail` que resetean el modo edición al cambiar de retoque o cerrar el modal; ícono `FiEdit2` (`<button type="button">` con `aria-label`/`title`) alterna entre texto de solo lectura y los dos inputs nativos + botones Guardar/Cancelar.
+  - `apps/client/src/utils/dates.ts` — nuevo helper exportado `getTodayDateString()`.
+  - `apps/client/src/components/RegistroModal.tsx` y `apps/client/src/views/Turnos.tsx` — reemplazan su copia local por el import compartido.
+* **Guard anti-reenvío (patrón P8):** el ISO original se guarda en `useRef` al entrar en modo edición; si el usuario guarda sin cambios, se corta antes de llamar a la mutation (evita un 400 de UX-27 en retoques ya vencidos).
+* **Primera pasada del reviewer: `CHANGES_REQUESTED`** por un hallazgo que resultó ser un falso positivo — diagnosticó `git show HEAD:...` como línea base "antes de UX-28", sin notar que ni UX-27 ni UX-28 estaban commiteadas todavía (`HEAD` es anterior a ambas). El `min={getTodayDateString()}` en `RegistroModal.tsx` que parecía "scope creep" ya había sido agregado y aprobado durante UX-27, no durante UX-28.
+* **Corrección del leader:** señaló el error de línea base (responsabilidad del leader por no commitear UX-27 antes de arrancar UX-28) y aportó la cita textual de `impl_UX-27-frontend.md` que confirma el origen real del cambio.
+* **Segunda pasada del reviewer: `APROBADO`.** Con la línea base corregida, las 6 decisiones de producto se cumplen exactamente; build/lint re-ejecutados por el reviewer sin regresiones.
+* **`feature_list.json`:** `UX-28` → `"done"`.
+* **Patrón promovido:** `docs/patterns-frontend.md § P12` — "Edición inline de un campo dentro de un bloque de detalle" (toggle lectura/edición in-place con reset obligatorio al cambiar de entidad/cerrar el modal padre y merge parcial en `onSuccess`).
+* **Nota de proceso:** queda pendiente que el leader commitee UX-27 y UX-28 (ninguna de las dos tiene commit propio todavía) para evitar que una futura auditoría vuelva a mezclar diffs de features consecutivas sin línea base limpia.
+* **Patrón promovido:** `docs/patterns-backend.md` § P10 — "Validación de fecha no pasada, día calendario del tenant" (nuevo, con el gotcha de no determinismo entre TZ de entornos y el mandato de reproducir con `TZ=UTC` explícito al auditar este tipo de validación).

@@ -6,6 +6,7 @@ import { ServiceRecord } from '../models/ServiceRecord';
 import { Product } from '../models/Product';
 import { Professional } from '../models/Professional';
 import { Tenant } from '../models/Tenant';
+import { isBeforeCalendarDay } from '../utils/dateUtils';
 
 async function checkBusinessHours(tenantId: string, startDate: Date, endDate: Date): Promise<string | null> {
     const tenant = await Tenant.findById(tenantId);
@@ -303,6 +304,18 @@ export const completeAppointment = async (req: Request, res: Response) => {
             : null;
 
         let finalNextTouchupDate = nextTouchupDate;
+
+        // UX-27: nextTouchupDate no puede ser una fecha ya pasada. Se compara contra el día
+        // calendario actual (no el instante exacto): si cae hoy, es válido aunque la hora ya
+        // haya pasado. El "hoy" se calcula en la zona horaria del tenant (no la del proceso
+        // servidor), mismo patrón que `checkBusinessHours`.
+        if (finalNextTouchupDate) {
+            const tenant = await Tenant.findById(req.tenantId);
+            const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
+            if (isBeforeCalendarDay(new Date(finalNextTouchupDate), new Date(), tz)) {
+                return res.status(400).json({ error: 'La fecha de próximo retoque no puede ser anterior al día de hoy' });
+            }
+        }
 
         // Stock deduction
         if (productsUsed && Array.isArray(productsUsed) && productsUsed.length > 0) {

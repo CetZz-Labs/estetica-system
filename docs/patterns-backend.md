@@ -14,6 +14,7 @@
 - [P5 — Carga masiva con upsert](#p5--carga-masiva-con-upsert)
 - [P6 — Registro de visita con auto-retoque](#p6--registro-de-visita-con-auto-retoque)
 - [P7 — Controller con manejo de errores](#p7--controller-con-manejo-de-errores)
+- [P10 — Validación de fecha no pasada, día calendario del tenant](#p10--validación-de-fecha-no-pasada-día-calendario-del-tenant)
 
 ---
 
@@ -501,6 +502,44 @@ app.use('/api/invitacion', invitationRoutes);
 **Gotcha — email comparación:** almacenar `pendingInviteEmail` siempre en lowercase (`emailLower`). En `acceptInvitation`, normalizar el email de Clerk con `.toLowerCase().trim()` antes de comparar — Clerk puede devolver el email con capitalización original.
 
 **Gotcha — proyección en listados:** el campo `inviteToken` queda en el documento MongoDB. En endpoints de listado (admin-accesibles), considerar `select('-inviteToken -inviteTokenExpiry')` para no exponer el token de invitación activo, aunque solo sea accesible a admins autenticados del mismo tenant.
+
+---
+
+## P10 — Validación de fecha no pasada, día calendario del tenant
+
+> **Regla canónica:** [`governance-rules.md#gov-tenant`](governance-rules.md#gov-tenant--aislamiento-multi-tenant) (consistencia de reglas de negocio por tenant). Implementado en UX-27 (segunda ronda, tras `CHANGES_REQUESTED` por bug de timezone en la primera).
+
+**Mandato:** cuando una validación de negocio compara una fecha contra "hoy" con tolerancia de **día calendario** (ej. "no puede ser anterior a hoy, pero si cae hoy es válido aunque la hora ya haya pasado"), el "hoy" **nunca** se calcula con `new Date(); setHours(0,0,0,0)`. Ese patrón ancla el día calendario a la **zona horaria del proceso Node** (típicamente UTC en producción — Vercel, contenedores, etc.), no a la del negocio. Durante la ventana horaria en la que el reloj del proceso ya cruzó la medianoche pero el del tenant no (aprox. 21:00–23:59 en `America/Argentina/Buenos_Aires`, UTC-3), esa comparación rechaza incorrectamente fechas que son "hoy" para el tenant.
+
+**Gotcha diagnosticado:** este es el mismo bug de raíz que corrigió `checkBusinessHours` en `appointmentController.ts` para el chequeo de horario de atención — usar `toLocaleDateString('en-CA', { timeZone })` para derivar el día calendario en la TZ correcta, en vez de manipular instantes `Date`/`setHours`. La primera implementación de UX-27 no reutilizó ese patrón ya establecido en el mismo archivo y reintrodujo el bug en un chequeo nuevo.
+
+**Util puro reutilizable — `utils/dateUtils.ts`:**
+```typescript
+// Sin dependencias de Express/Mongoose — cumple la convención de src/utils/ (backend.md §2).
+export const toLocalDateString = (date: Date, timezone: string): string => {
+    return date.toLocaleDateString('en-CA', { timeZone: timezone }); // 'YYYY-MM-DD'
+};
+
+// Compara días calendario como strings, nunca instantes Date.
+export const isBeforeCalendarDay = (date: Date, referenceDate: Date, timezone: string): boolean => {
+    const dateStr = toLocalDateString(date, timezone);
+    const referenceStr = toLocalDateString(referenceDate, timezone);
+    return dateStr < referenceStr;
+};
+```
+
+**Uso en el controller (resolver `tenant.timezone` solo dentro del branch condicional, para no pagar el costo de la query cuando el campo opcional está ausente):**
+```typescript
+if (finalNextTouchupDate) {
+    const tenant = await Tenant.findById(tenantId); // no duplicar si ya hay un `tenant` en scope
+    const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires'; // mismo fallback que checkBusinessHours
+    if (isBeforeCalendarDay(new Date(finalNextTouchupDate), new Date(), tz)) {
+        return res.status(400).json({ error: 'La fecha de próximo retoque no puede ser anterior al día de hoy' });
+    }
+}
+```
+
+**Gotcha de verificación:** este bug es **no determinístico entre entornos** — no se reproduce corriendo el proceso Node con la TZ del desarrollador (ej. Argentina), solo se manifiesta cuando el proceso corre en una TZ distinta a la del tenant (el caso típico de un deploy serverless en UTC). Para auditar este tipo de validación, reproducir explícitamente con `TZ=UTC node script.js` simulando la hora local límite del tenant (21:00–23:59 ART), no confiar en que "funciona en dev local".
 
 ---
 

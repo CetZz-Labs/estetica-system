@@ -1,14 +1,16 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-08
+- **Última actualización:** 2026-07-10
 - **Sesión:** ninguna en curso
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
-(vacío — sin feature activa. Última sesión cerró la tanda 2 de UX completa y EP-17-b. Próximo bloque disponible del backlog: EP-18+ Reportes, Fase 5.)
+(vacío — sin feature activa. Última sesión cerró UX-28 (edición inline de fecha/hora del retoque en el modal de detalle del Dashboard). Próxima en cola: UX-29 (alinear leyenda de profesionales en Turnos.tsx), `pending`. Bloque más grande disponible del backlog: EP-18+ Reportes, Fase 5.)
 
 ## Estado del Backlog
+- UX-28 Editar fecha/hora de retoque desde el modal de detalle del Dashboard → **done** (2 pasadas de review: 1ra CHANGES_REQUESTED por un falso positivo de línea base — HEAD anterior a UX-27 y UX-28, ninguna commiteada todavía —, 2da APROBADO tras corrección del leader)
+- UX-27 Bug: "próximo retoque" aceptaba fechas pasadas → **done** (2 rondas: 1ra CHANGES_REQUESTED por bug de timezone en el cálculo de "hoy" del servidor, 2da APROBADO tras fix con `tenant.timezone` real vía `dateUtils.ts`)
 - EP-17-b Migrar envío de mails de SMTP por-tenant a SMTP global de la app → **done**
 - UX-26 Bug: tooltip de hover del calendario detrás de otros elementos → **done**
 - UX-24 Bug visual: Select de hora recortado por el modal → **done**
@@ -36,6 +38,7 @@
 - EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
+- Pendiente de commit (2026-07-10): ni UX-27 ni UX-28 tienen commit propio todavía (último commit real `fc2e585`). Esto causó un falso positivo en la primera pasada de review de UX-28 (línea base mezclaba ambas features). Commitear ambas features cuanto antes para no repetir el problema en UX-29.
 - Deuda técnica UX-24 (2026-07-08): el fix de portal (`menuPortalTarget`+`styles.menuPortal`) se aplicó solo al Select de Hora en `Turnos.tsx`/`RegistroModal.tsx`, por decisión de producto. Los otros 7 Select (Cliente/Servicio/Profesional/Producto) comparten la misma causa raíz (mismo contenedor con overflow) y podrían recortarse igual — generalizar si se reporta el mismo síntoma.
 - Riesgo aceptado UX-24 (2026-07-08): sin entorno E2E, no se verificó en navegador real que el portal no rompa el cierre por click-afuera (UX-22). Análisis de código (bubbling de React Portals por árbol de React, no DOM) indica riesgo bajo — pendiente de confirmación visual humana.
 - Riesgo aceptado UX-26 (2026-07-08): mismo tipo de limitación — el fix de `z-index` en el tooltip de hover no se verificó visualmente en navegador real.

@@ -17,6 +17,7 @@ import { handleApiError } from "../api/errorHandler";
 import type { Product, Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
+import { getTodayDateString } from "../utils/dates";
 
 interface SelectOption {
     value: string;
@@ -352,7 +353,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                             )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="date" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('touchupDate')} />
+                            <input type="date" min={getTodayDateString()} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('touchupDate')} />
                             <Controller
                                 name="touchupTime"
                                 control={control}

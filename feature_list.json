@@ -455,6 +455,48 @@
             ]
         },
         {
+            "id": "UX-27",
+            "name": "Bug: el campo 'próximo retoque' al registrar una visita acepta fechas pasadas",
+            "module": "ServiceRecords",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Reporte del usuario (2026-07-10): al registrar una visita (RegistroModal.tsx / serviceRecordController.ts), el campo opcional 'próximo retoque' (nextTouchupDate) no valida que la fecha sea posterior al momento de la visita — permite guardar una visita con una fecha de retoque ya pasada. Precedente similar: UX-12 (validación de fecha/hora pasada) mismo tipo de bug pero aplicado a turnos (appointments), no a service records.",
+            "acceptance_criteria": [
+                "No debe permitirse guardar una visita con 'próximo retoque' (nextTouchupDate) anterior a la fecha/hora de la visita registrada",
+                "Backend: serviceRecordController rechaza con 400 y mensaje descriptivo (create y update, si aplica) cuando nextTouchupDate es pasado",
+                "Frontend: RegistroModal.tsx valida inline antes de enviar y muestra el error sin duplicarlo en toast",
+                "No se modifica el auto-cálculo de nextTouchupDate a partir de defaultTouchupDays (EP-05) ni el auto-completado de retoques (UX-13)"
+            ]
+        },
+        {
+            "id": "UX-28",
+            "name": "Editar fecha de retoque desde el modal de detalle del Dashboard",
+            "module": "Dashboard",
+            "phase": "Fase 1",
+            "status": "done",
+            "description": "Pedido del usuario (2026-07-10): en el modal de detalle de retoque del Dashboard (ver UX-16, componente compartido de detalle), agregar un ícono de editar al lado del campo de fecha para permitir modificar la fecha del retoque (nextTouchupDate) directamente desde ese popup, sin tener que ir a otra pantalla. Debe respetar la validación de fecha introducida en UX-27 (no permitir fechas pasadas al editar).",
+            "acceptance_criteria": [
+                "En el modal de detalle de retoque (Dashboard, UX-16) aparece un ícono de editar junto al campo de fecha del retoque",
+                "Al clickear el ícono, se habilita edición inline (o un input) para modificar la fecha del retoque",
+                "Al guardar, se persiste el cambio contra el backend (endpoint de update de ServiceRecord) y se refleja sin recargar la página",
+                "La nueva fecha respeta la validación de UX-27 (no acepta fechas pasadas)",
+                "Trifecta de accesibilidad y HTML semántico (botón real, no div con onClick)"
+            ]
+        },
+        {
+            "id": "UX-29",
+            "name": "Alinear la leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx)",
+            "module": "Appointments",
+            "phase": "Fase 4",
+            "status": "pending",
+            "description": "Pedido del usuario (2026-07-10): en la vista de Turnos, arriba del calendario aparecen el filtro de profesional y la leyenda de profesionales (agregada en UX-18) apilados/desalineados. Se pide reubicar la leyenda de profesionales a la derecha del filtro, a la misma altura (misma fila), en vez de su posición actual. Cambio puramente visual/layout, sin tocar lógica de filtrado ni de colores (UX-18).",
+            "acceptance_criteria": [
+                "La leyenda de profesionales queda alineada a la derecha del filtro de profesional, en la misma fila/altura",
+                "No se modifica la lógica de filtrado por profesional ni los colores/avatares de UX-18",
+                "El layout se mantiene responsive (mobile no debe romperse; puede apilarse en pantallas angostas si hace falta)"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",
