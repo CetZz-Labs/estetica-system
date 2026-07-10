@@ -431,33 +431,37 @@ export default function Turnos() {
                 </button>
             </header>
 
-            {professionals.length > 1 && (
-                <div className="mb-4 flex items-center gap-3">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
-                    <select value={professionalFilter} onChange={e => setProfessionalFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
-                        <option value="">Todas</option>
-                        {professionals.map(p => (
-                            <option key={p._id} value={p._id}>{p.name}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
             {professionals.length > 0 && (
-                <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 overflow-x-auto pb-1" aria-label="Referencia de profesionales">
-                    {professionals.map((p) => (
-                        <div key={p._id} className="flex shrink-0 items-center gap-2">
-                            <span
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-maison-border font-serif text-[0.65rem] shadow-sm"
-                                style={{ backgroundColor: p.color, color: getContrastTextColor(p.color) }}
-                                aria-hidden="true"
-                            >
-                                {getProfessionalInitials(p.name)}
-                            </span>
-                            <span className="whitespace-nowrap text-xs font-medium text-maison-text">{p.name}</span>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {professionals.length > 1 && (
+                        <div className="flex items-center gap-3">
+                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
+                            <select value={professionalFilter} onChange={e => setProfessionalFilter(e.target.value)}
+                                className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
+                                <option value="">Todas</option>
+                                {professionals.map(p => (
+                                    <option key={p._id} value={p._id}>{p.name}</option>
+                                ))}
+                            </select>
                         </div>
-                    ))}
+                    )}
+
+                    {professionals.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 overflow-x-auto pb-1 sm:ml-auto" aria-label="Referencia de profesionales">
+                            {professionals.map((p) => (
+                                <div key={p._id} className="flex shrink-0 items-center gap-2">
+                                    <span
+                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-maison-border font-serif text-[0.65rem] shadow-sm"
+                                        style={{ backgroundColor: p.color, color: getContrastTextColor(p.color) }}
+                                        aria-hidden="true"
+                                    >
+                                        {getProfessionalInitials(p.name)}
+                                    </span>
+                                    <span className="whitespace-nowrap text-xs font-medium text-maison-text">{p.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -885,3 +885,17 @@
 * **Patrón promovido:** `docs/patterns-frontend.md § P12` — "Edición inline de un campo dentro de un bloque de detalle" (toggle lectura/edición in-place con reset obligatorio al cambiar de entidad/cerrar el modal padre y merge parcial en `onSuccess`).
 * **Nota de proceso:** queda pendiente que el leader commitee UX-27 y UX-28 (ninguna de las dos tiene commit propio todavía) para evitar que una futura auditoría vuelva a mezclar diffs de features consecutivas sin línea base limpia.
 * **Patrón promovido:** `docs/patterns-backend.md` § P10 — "Validación de fecha no pasada, día calendario del tenant" (nuevo, con el gotcha de no determinismo entre TZ de entornos y el mandato de reproducir con `TZ=UTC` explícito al auditar este tipo de validación).
+
+---
+
+## 2026-07-10 — UX-29: Alinear leyenda de profesionales a la derecha del filtro (Fase 4)
+
+* **Agente:** Claude (Leader) + implementer-frontend + reviewer (1 ronda, APROBADO).
+* **Objetivo:** Pedido del usuario — en `Turnos.tsx`, el filtro de profesional y la leyenda de profesionales (UX-18) aparecían apilados/desalineados arriba del calendario. Se pidió reubicar la leyenda a la derecha del filtro, misma fila/altura, sin tocar lógica de filtrado ni colores.
+* **Cambios Frontend:**
+  - `apps/client/src/views/Turnos.tsx` (único archivo tocado) — los dos bloques condicionales (filtro `professionals.length > 1`, leyenda `professionals.length > 0`), antes hermanos independientes cada uno con su propio `mb-4`, se envolvieron en un contenedor único `<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">`. La leyenda interna suma `sm:ml-auto` para quedar alineada a la derecha incluso cuando aparece sola (caso "1 profesional", sin filtro). `mb-4` movido una sola vez al contenedor padre. Sin cambios en lógica de filtrado (`professionalFilter`/`setProfessionalFilter`), colores/avatares de UX-18, `aria-label`, ni en FullCalendar.
+* **Casos borde verificados:** 0 profesionales (nada se renderiza), 1 profesional (solo leyenda, alineada a la derecha por `sm:ml-auto`), N>1 profesionales (ambos bloques, misma fila, `justify-between`). Mobile (`flex-col`) sigue apilando igual que antes.
+* **Build y Lint:** `pnpm --filter @estetica/client build` Exit Code 0 (verificado por el reviewer). `pnpm --filter @estetica/client lint` sin errores nuevos — único error preexistente (`ProductoModal.tsx:37:25`) y 4 warnings preexistentes de React Compiler no relacionados.
+* **Veredicto:** APPROVED, 1 ronda. Ver `progress/reviews/review_UX-29.md`.
+* **`feature_list.json`:** `UX-29` → `"done"`.
+* **Estado del backlog:** no quedan features UX pendientes. Próximo bloque disponible: EP-18+ Reportes (Fase 5).

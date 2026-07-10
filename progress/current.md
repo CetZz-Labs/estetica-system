@@ -6,9 +6,10 @@
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
-(vacío — sin feature activa. Última sesión cerró UX-28 (edición inline de fecha/hora del retoque en el modal de detalle del Dashboard). Próxima en cola: UX-29 (alinear leyenda de profesionales en Turnos.tsx), `pending`. Bloque más grande disponible del backlog: EP-18+ Reportes, Fase 5.)
+(vacío — sin feature activa. Última sesión cerró UX-29 (alinear leyenda de profesionales a la derecha del filtro en Turnos.tsx). No quedan features UX pendientes. Próximo bloque más grande disponible del backlog: EP-18+ Reportes, Fase 5.)
 
 ## Estado del Backlog
+- UX-29 Alinear leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx) → **done** (1 ronda de review, APROBADO)
 - UX-28 Editar fecha/hora de retoque desde el modal de detalle del Dashboard → **done** (2 pasadas de review: 1ra CHANGES_REQUESTED por un falso positivo de línea base — HEAD anterior a UX-27 y UX-28, ninguna commiteada todavía —, 2da APROBADO tras corrección del leader)
 - UX-27 Bug: "próximo retoque" aceptaba fechas pasadas → **done** (2 rondas: 1ra CHANGES_REQUESTED por bug de timezone en el cálculo de "hoy" del servidor, 2da APROBADO tras fix con `tenant.timezone` real vía `dateUtils.ts`)
 - EP-17-b Migrar envío de mails de SMTP por-tenant a SMTP global de la app → **done**

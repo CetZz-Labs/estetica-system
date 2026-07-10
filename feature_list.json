@@ -488,12 +488,27 @@
             "name": "Alinear la leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx)",
             "module": "Appointments",
             "phase": "Fase 4",
-            "status": "pending",
+            "status": "done",
             "description": "Pedido del usuario (2026-07-10): en la vista de Turnos, arriba del calendario aparecen el filtro de profesional y la leyenda de profesionales (agregada en UX-18) apilados/desalineados. Se pide reubicar la leyenda de profesionales a la derecha del filtro, a la misma altura (misma fila), en vez de su posición actual. Cambio puramente visual/layout, sin tocar lógica de filtrado ni de colores (UX-18).",
             "acceptance_criteria": [
                 "La leyenda de profesionales queda alineada a la derecha del filtro de profesional, en la misma fila/altura",
                 "No se modifica la lógica de filtrado por profesional ni los colores/avatares de UX-18",
                 "El layout se mantiene responsive (mobile no debe romperse; puede apilarse en pantallas angostas si hace falta)"
+            ]
+        },
+        {
+            "id": "UX-30",
+            "name": "Historial general de visitas (nueva sección del Dashboard)",
+            "module": "Dashboard",
+            "phase": "Fase 1",
+            "status": "pending",
+            "description": "Pedido del usuario (2026-07-10): hoy no existe forma de ver el historial de visitas del negocio en conjunto — solo se puede ver cliente por cliente desde su perfil (EP-07). Se pide agregar una nueva sección en el Dashboard con el historial general de TODAS las visitas (ServiceRecord) del tenant, no solo las últimas 10 que ya muestra EP-06. Requiere endpoint de backend paginado (7/página, server-side, filtrable — reusar patrón P1 de `docs/patterns-backend.md`) ya que es un listado de negocio potencialmente ilimitado, y consumo paginado en frontend (patrón P3 de `docs/patterns-frontend.md`). A definir con el usuario antes de implementar: filtros disponibles (cliente, servicio, profesional, rango de fechas), si vive como sub-vista/ruta propia o como sección colapsable dentro de Dashboard.tsx, y qué columnas muestra cada fila.",
+            "acceptance_criteria": [
+                "Existe una sección/vista de 'Historial de Visitas' accesible desde el Dashboard que lista TODAS las visitas del tenant (no limitado a 10)",
+                "El listado pagina server-side (7 ítems/página, contrato { data, meta }), respetando aislamiento multi-tenant (EP-08)",
+                "Permite al menos buscar/filtrar (a definir alcance exacto de filtros con el usuario antes de implementar)",
+                "Cada fila muestra cliente, servicio, fecha de la visita y profesional (si corresponde)",
+                "No se modifica el timeline de 'últimos 10 registros' existente de EP-06"
             ]
         },
         {
