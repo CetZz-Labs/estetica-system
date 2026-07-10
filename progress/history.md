@@ -899,3 +899,27 @@
 * **Veredicto:** APPROVED, 1 ronda. Ver `progress/reviews/review_UX-29.md`.
 * **`feature_list.json`:** `UX-29` → `"done"`.
 * **Estado del backlog:** no quedan features UX pendientes. Próximo bloque disponible: EP-18+ Reportes (Fase 5).
+
+---
+
+## 2026-07-10 — UX-30: Historial general de visitas, vista propia (Fase 1)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda, APROBADO).
+* **Objetivo:** Pedido del usuario — no existía forma de ver el historial de visitas del negocio en conjunto (solo cliente por cliente desde su perfil, EP-07). Se agrega una vista propia `/historial` con filtros combinados y paginación real server-side. **Primera aplicación fiel de los patrones P1 (backend) y P3 (frontend)** documentados desde hace tiempo en `docs/patterns-backend.md`/`docs/patterns-frontend.md` pero nunca implementados de verdad hasta ahora (el explorer confirmó que ni `clientController.getClients` ni `productController.getProducts` los aplican — deuda técnica preexistente, fuera de alcance de esta feature).
+* **Decisiones de producto confirmadas con el usuario:** (1) vista/ruta propia `/historial` con entrada en sidebar, NO sección de `Dashboard.tsx`; (2) filtros cliente/servicio/profesional/rango de fechas; (3) columnas Cliente/Servicio/Fecha/Profesional/Productos usados/Notas; (4) accesible para todos los roles, sin `requireRole` adicional; (5) sin exportación Excel/CSV; (6) paginación server-side real, 7/página, contrato `{ data, meta }`.
+* **Cambios Backend:**
+  - `apps/server/src/controllers/serviceRecordController.ts` — nuevo export `getServiceRecords` (`GET /api/registros`): `filter` base `{ tenantId: req.tenantId }` con `clientId`/`serviceId`/`professionalId`/`dateFrom`/`dateTo` agregados solo si están presentes; `Promise.all([find(...), countDocuments(filter)])` con el mismo `filter` para `data` y `meta.total` (evita que el total mienta con filtros activos); populate reusado de `getClientRecords`/`getUpcomingTouchups`; `PAGE_SIZE = 7`.
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — nueva ruta `GET /` con validators `express-validator` (`page`/`limit` `isInt`, `clientId`/`serviceId`/`professionalId` `isMongoId`, `dateFrom`/`dateTo` `isISO8601`) + `validateRequest`; verificado que no colisiona con `/retoques`, `/recientes`, `/cliente/:clientId` ni con el `POST /` existente (Express distingue por método HTTP).
+  - `apps/server/src/models/ServiceRecord.ts` — nuevo índice `{ tenantId: 1, serviceDate: -1 }` para el listado general sin filtro de cliente, sin tocar los 3 índices compuestos existentes.
+* **Cambios Frontend:**
+  - `apps/client/src/types/index.ts` — nuevo tipo genérico `Paginated<T>`.
+  - `apps/client/src/api/serviceRecordApi.ts` — nueva interfaz `ServiceRecordListParams` + función `getServiceRecords(params)` (mismos nombres de query params y misma forma de respuesta que el backend).
+  - `apps/client/src/components/ui/Pagination.tsx` (nuevo) — primer componente real de P6 en el repo: rango "Mostrando X–Y de N" con `aria-live="polite"`, botones nativos con `cursor-pointer`/`disabled:cursor-not-allowed`.
+  - `apps/client/src/views/Historial.tsx` (nuevo) — filtros (3 `react-select` + 2 `<input type="date">` nativos), `queryKey` con `page`+`limit`+todos los filtros activos, `placeholderData: keepPreviousData`, reset de `page` a 1 en cada handler de filtro, contador de `meta.total` (nunca `data.length`), 4 estados (skeleton `animate-pulse`, trifecta de error, empty diferenciado con/sin filtros activos, data), fechas con `formatCalendarDate` (`timeZone: 'UTC'`).
+  - `apps/client/src/router.tsx` — ruta `/historial` sin `ProtectedRoute` (todos los roles).
+  - `apps/client/src/layouts/AppLayout.tsx` — nueva entrada de sidebar `Historial de Visitas`, sin ícono — verificado por el reviewer que el resto de las entradas del `<nav>` (Inicio, Clientes, Servicios, Inventario, Turnos, Profesionales, Mi Negocio, Disponibilidad) tampoco usan íconos; no hay inconsistencia visual.
+* **Verificación del reviewer:** re-ejecutó los 3 builds/lint él mismo: `pnpm --filter @estetica/server build` Exit 0, `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` Exit 1 con único error preexistente y aceptado (`ProductoModal.tsx:37:25`), sin errores/warnings nuevos. Auditó línea por línea multi-tenancy (SEC-B), validación (SEC-E), consistencia `filter`/`countDocuments`, y confirmó ausencia total de `xlsx`/`csv`/exportación en los archivos tocados.
+* **Veredicto:** APPROVED, 1 ronda. Ver `progress/reviews/review_UX-30.md`.
+* **`feature_list.json`:** `UX-30` → `"done"`.
+* **Deuda técnica ya documentada (no bloqueante, fuera de alcance):** `getClients`/`getServices`/`getProfessionals` (catálogos usados como select de filtro en `Historial.tsx`) siguen sin paginar — exención de P1 para catálogos cortos usados en selects, no una regresión de esta feature. `selectStyles` queda duplicado localmente en `Historial.tsx` (mismo objeto que `RegistroModal.tsx`/`Turnos.tsx`), sin precedente de extracción en el repo.
+* **Estado del backlog:** no quedan features UX pendientes. Próximo bloque disponible: EP-18+ Reportes (Fase 5).

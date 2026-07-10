@@ -54,5 +54,7 @@ ServiceRecordSchema.index({ tenantId: 1, touchupStatus: 1, nextTouchupDate: 1 })
 ServiceRecordSchema.index({ tenantId: 1, client: 1, serviceDate: -1 });
 // Últimos movimientos del tenant
 ServiceRecordSchema.index({ tenantId: 1, createdAt: -1 });
+// Listado general paginado (UX-30): visitas del tenant sin filtro de cliente, ordenadas por fecha
+ServiceRecordSchema.index({ tenantId: 1, serviceDate: -1 });
 
 export const ServiceRecord = mongoose.model<IServiceRecord>('ServiceRecord', ServiceRecordSchema);

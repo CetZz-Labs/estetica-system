@@ -2,13 +2,14 @@
 
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-07-10
-- **Sesión:** ninguna en curso
+- **Sesión:** cerrada
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
-(vacío — sin feature activa. Última sesión cerró UX-29 (alinear leyenda de profesionales a la derecha del filtro en Turnos.tsx). No quedan features UX pendientes. Próximo bloque más grande disponible del backlog: EP-18+ Reportes, Fase 5.)
+- (vacío — sin feature en curso)
 
 ## Estado del Backlog
+- UX-30 Historial general de visitas (nueva vista propia) → **done** (1 ronda de review, APROBADO; primera aplicación real de P1/P3)
 - UX-29 Alinear leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx) → **done** (1 ronda de review, APROBADO)
 - UX-28 Editar fecha/hora de retoque desde el modal de detalle del Dashboard → **done** (2 pasadas de review: 1ra CHANGES_REQUESTED por un falso positivo de línea base — HEAD anterior a UX-27 y UX-28, ninguna commiteada todavía —, 2da APROBADO tras corrección del leader)
 - UX-27 Bug: "próximo retoque" aceptaba fechas pasadas → **done** (2 rondas: 1ra CHANGES_REQUESTED por bug de timezone en el cálculo de "hoy" del servidor, 2da APROBADO tras fix con `tenant.timezone` real vía `dateUtils.ts`)
@@ -39,9 +40,9 @@
 - EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
-- Pendiente de commit (2026-07-10): ni UX-27 ni UX-28 tienen commit propio todavía (último commit real `fc2e585`). Esto causó un falso positivo en la primera pasada de review de UX-28 (línea base mezclaba ambas features). Commitear ambas features cuanto antes para no repetir el problema en UX-29.
-- Deuda técnica UX-24 (2026-07-08): el fix de portal (`menuPortalTarget`+`styles.menuPortal`) se aplicó solo al Select de Hora en `Turnos.tsx`/`RegistroModal.tsx`, por decisión de producto. Los otros 7 Select (Cliente/Servicio/Profesional/Producto) comparten la misma causa raíz (mismo contenedor con overflow) y podrían recortarse igual — generalizar si se reporta el mismo síntoma.
-- Riesgo aceptado UX-24 (2026-07-08): sin entorno E2E, no se verificó en navegador real que el portal no rompa el cierre por click-afuera (UX-22). Análisis de código (bubbling de React Portals por árbol de React, no DOM) indica riesgo bajo — pendiente de confirmación visual humana.
+- Pendiente de commit (2026-07-10): UX-27, UX-28, UX-29 y UX-30 no tienen commit propio todavía (último commit real `fc2e585`). Esto causó un falso positivo en la primera pasada de review de UX-28 (línea base mezclaba features). Commitear cuanto antes para no repetir el problema en la próxima feature.
+- Deuda técnica UX-24 (2026-07-08): el fix de portal (`menuPortalTarget`+`styles.menuPortal`) se aplicó solo al Select de Hora en `Turnos.tsx`/`RegistroModal.tsx`, por decisión de producto. Los otros Select (Cliente/Servicio/Profesional/Producto) comparten la misma causa raíz (mismo contenedor con overflow) y podrían recortarse igual — generalizar si se reporta el mismo síntoma.
+- Riesgo aceptado UX-24 (2026-07-08): sin entorno E2E, no se verificó en navegador real que el portal no rompa el cierre por click-afuera (UX-22). Análisis de código indica riesgo bajo — pendiente de confirmación visual humana.
 - Riesgo aceptado UX-26 (2026-07-08): mismo tipo de limitación — el fix de `z-index` en el tooltip de hover no se verificó visualmente en navegador real.
 - Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).
 - Deuda de lint preexistente: `apps/client/src/components/ProductoModal.tsx:37` (`'stock' unused`).
@@ -57,3 +58,4 @@
 - Deuda de higiene UX-14 (2026-07-06, hallazgo del explorer, no corregido — fuera de alcance): `Turnos.tsx:527,733` formatea hora con `toLocaleTimeString` ad-hoc en vez de delegar en `formatDateTime`, violando `.claude/rules/frontend.md` §4. No es la causa del bug corregido, pero es candidato a limpieza futura.
 - Riesgo aceptado UX-14 (2026-07-06): los `nextTouchupDate`/`startTime` ya persistidos antes del fix quedan con el offset horario incorrecto (dato histórico contaminado). No se migró — decisión explícita de acotar el alcance a "iguales visitas hacia adelante". Evaluar backfill si se reporta como problema real.
 - Deuda EP-17-b (2026-07-08): `apps/server/src/utils/crypto.ts` (`encryptSecret`/`decryptSecret`) queda sin consumidores tras la migración a SMTP global por variables de entorno. Se conservó como utilitario genérico reutilizable (no se eliminó) — candidato a remover si nunca se reutiliza.
+- Deuda técnica UX-30 (2026-07-10): `getClients`/`getServices`/`getProfessionals` (usados como catálogos para selects, incluido el nuevo `Historial.tsx`) siguen sin paginar pese a estar documentado P1 — es la primera aplicación real fiel del patrón (backend `getServiceRecords` + frontend `Historial.tsx`), pero el resto de listados de negocio (Clientes, Inventario) sigue sin migrar. Candidato a tanda futura de migración a P1/P3.

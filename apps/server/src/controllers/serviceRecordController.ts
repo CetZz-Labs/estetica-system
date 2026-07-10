@@ -134,6 +134,51 @@ export const createServiceRecord = async (req: Request, res: Response) => {
     }
 };
 
+// 1.b Read - Listado general paginado con filtros combinados (GET /api/registros)
+const DEFAULT_PAGE = 1;
+const PAGE_SIZE = 7; // page-size estándar de negocio (P1)
+
+export const getServiceRecords = async (req: Request, res: Response) => {
+    try {
+        const page = Math.max(DEFAULT_PAGE, Number(req.query.page) || DEFAULT_PAGE);
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit) || PAGE_SIZE));
+
+        const { clientId, serviceId, professionalId, dateFrom, dateTo } = req.query;
+
+        // Filtro SIEMPRE scopeado por tenant. Filtros combinados server-side.
+        const filter: Record<string, unknown> = { tenantId: req.tenantId };
+        if (clientId) filter.client = clientId;
+        if (serviceId) filter.service = serviceId;
+        if (professionalId) filter.professional = professionalId;
+        if (dateFrom || dateTo) {
+            const serviceDateFilter: Record<string, Date> = {};
+            if (dateFrom) serviceDateFilter.$gte = new Date(dateFrom as string);
+            if (dateTo) serviceDateFilter.$lte = new Date(dateTo as string);
+            filter.serviceDate = serviceDateFilter;
+        }
+
+        const [data, total] = await Promise.all([
+            ServiceRecord.find(filter)
+                .populate('client', 'firstName lastName phone')
+                .populate('service', 'name')
+                .populate('professional', 'name color')
+                .populate('productsUsed.product', 'name')
+                .sort({ serviceDate: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            ServiceRecord.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            data,
+            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        });
+    } catch (error) {
+        console.error('Error al listar los registros de servicio:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+};
+
 // 2. Read - Historial por Cliente (GET /api/registros/cliente/:clientId)
 export const getClientRecords = async (req: Request, res: Response) => {
     try {

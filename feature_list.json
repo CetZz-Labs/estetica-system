@@ -498,17 +498,17 @@
         },
         {
             "id": "UX-30",
-            "name": "Historial general de visitas (nueva sección del Dashboard)",
-            "module": "Dashboard",
+            "name": "Historial general de visitas (nueva vista propia)",
+            "module": "ServiceRecords",
             "phase": "Fase 1",
-            "status": "pending",
-            "description": "Pedido del usuario (2026-07-10): hoy no existe forma de ver el historial de visitas del negocio en conjunto — solo se puede ver cliente por cliente desde su perfil (EP-07). Se pide agregar una nueva sección en el Dashboard con el historial general de TODAS las visitas (ServiceRecord) del tenant, no solo las últimas 10 que ya muestra EP-06. Requiere endpoint de backend paginado (7/página, server-side, filtrable — reusar patrón P1 de `docs/patterns-backend.md`) ya que es un listado de negocio potencialmente ilimitado, y consumo paginado en frontend (patrón P3 de `docs/patterns-frontend.md`). A definir con el usuario antes de implementar: filtros disponibles (cliente, servicio, profesional, rango de fechas), si vive como sub-vista/ruta propia o como sección colapsable dentro de Dashboard.tsx, y qué columnas muestra cada fila.",
+            "status": "done",
+            "description": "Pedido del usuario (2026-07-10): hoy no existe forma de ver el historial de visitas del negocio en conjunto — solo se puede ver cliente por cliente desde su perfil (EP-07). Decisiones de producto confirmadas con el usuario: (1) vive como vista/ruta propia (ej. /historial) con entrada en el sidebar, NO como sección dentro de Dashboard.tsx, consistente con cómo ya funcionan Clientes/Servicios/Inventario; (2) filtros: cliente, servicio, profesional y rango de fechas; (3) columnas: Cliente, Servicio, Fecha, Profesional, Productos usados y Notas. Requiere endpoint de backend paginado (7/página, server-side, filtrable — reusar patrón P1 de `docs/patterns-backend.md`) ya que es un listado de negocio potencialmente ilimitado, y consumo paginado en frontend (patrón P3 de `docs/patterns-frontend.md`).",
             "acceptance_criteria": [
-                "Existe una sección/vista de 'Historial de Visitas' accesible desde el Dashboard que lista TODAS las visitas del tenant (no limitado a 10)",
+                "Existe una vista propia 'Historial de Visitas' con ruta y entrada en el sidebar que lista TODAS las visitas (ServiceRecord) del tenant, no limitado a 10",
                 "El listado pagina server-side (7 ítems/página, contrato { data, meta }), respetando aislamiento multi-tenant (EP-08)",
-                "Permite al menos buscar/filtrar (a definir alcance exacto de filtros con el usuario antes de implementar)",
-                "Cada fila muestra cliente, servicio, fecha de la visita y profesional (si corresponde)",
-                "No se modifica el timeline de 'últimos 10 registros' existente de EP-06"
+                "Permite filtrar por cliente, servicio, profesional y rango de fechas (server-side, no en el navegador)",
+                "Cada fila muestra cliente, servicio, fecha de la visita, profesional, productos usados y notas",
+                "No se modifica el timeline de 'últimos 10 registros' existente de EP-06 en el Dashboard"
             ]
         },
         {

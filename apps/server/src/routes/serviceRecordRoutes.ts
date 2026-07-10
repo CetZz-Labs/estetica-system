@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createServiceRecord,
@@ -7,7 +7,8 @@ import {
     getUpcomingTouchups,
     updateServiceRecord,
     deleteServiceRecord,
-    getRecentRecords
+    getRecentRecords,
+    getServiceRecords
 } from '../controllers/serviceRecordController';
 import { validateRequest } from '../middlewares/validateRequest';
 
@@ -24,6 +25,22 @@ router.use(checkTenantAccess);
 // 3. Read - Próximos Retoques / Dashboard (GET /api/registros/retoques)
 router.get('/retoques', getUpcomingTouchups);
 router.get('/recientes', getRecentRecords);
+
+// 1.b Read - Listado general paginado con filtros combinados (GET /api/registros)
+router.get(
+    '/',
+    [
+        query('page').optional().isInt({ min: 1 }).withMessage('page debe ser un entero positivo'),
+        query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit debe ser un entero entre 1 y 100'),
+        query('clientId').optional().isMongoId().withMessage('clientId no es válido'),
+        query('serviceId').optional().isMongoId().withMessage('serviceId no es válido'),
+        query('professionalId').optional().isMongoId().withMessage('professionalId no es válido'),
+        query('dateFrom').optional().isISO8601().withMessage('dateFrom debe tener formato ISO 8601'),
+        query('dateTo').optional().isISO8601().withMessage('dateTo debe tener formato ISO 8601'),
+        validateRequest
+    ],
+    getServiceRecords
+);
 
 // 2. Read - Historial por Cliente (GET /api/registros/cliente/:clientId)
 router.get(

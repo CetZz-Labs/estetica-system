@@ -1,5 +1,5 @@
 import api from '../libs/axios';
-import type { ServiceRecord } from '../types';
+import type { Paginated, ServiceRecord } from '../types';
 
 export interface ServiceRecordPayload {
     client: string;
@@ -22,6 +22,24 @@ export const createServiceRecord = async (
     data: Partial<ServiceRecordPayload>
 ): Promise<ServiceRecord> => {
     const response = await api.post('/registros', data);
+    return response.data;
+};
+
+export interface ServiceRecordListParams {
+    page: number;
+    limit: number;
+    clientId?: string;
+    serviceId?: string;
+    professionalId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+}
+
+/** GET /api/registros — Historial completo del tenant, paginado y filtrable */
+export const getServiceRecords = async (
+    params: ServiceRecordListParams
+): Promise<Paginated<ServiceRecord>> => {
+    const response = await api.get('/registros', { params });
     return response.data;
 };
 

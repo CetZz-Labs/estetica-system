@@ -100,6 +100,10 @@ export default function AppLayout() {
                         Turnos
                     </NavLink>
 
+                    <NavLink to="/historial" onClick={closeMenu} className={navLinkClass}>
+                        Historial de Visitas
+                    </NavLink>
+
                     {role === 'ADMIN' && (
                         <div className="pt-4 mt-2 border-t border-maison-border">
                             <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">Equipo</p>

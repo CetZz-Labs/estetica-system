@@ -12,6 +12,7 @@ import ProfileClient from "./views/ProfileClient";
 import Servicios from "./views/Servicios";
 import Profesionales from "./views/Profesionales";
 import Turnos from "./views/Turnos";
+import Historial from "./views/Historial";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
 import Disponibilidad from "./views/Disponibilidad";
@@ -70,6 +71,7 @@ export default function Router() {
                         }
                     />
                     <Route path="/turnos" element={<Turnos />} />
+                    <Route path="/historial" element={<Historial />} />
                     <Route
                         path="/inventario"
                         element={

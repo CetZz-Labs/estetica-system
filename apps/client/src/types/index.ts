@@ -1,3 +1,13 @@
+export interface Paginated<T> {
+    data: T[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
 export type AdminRole = 'ADMIN' | 'PROFESSIONAL' | 'RECEPTIONIST';
 
 export interface AdminInfo {
