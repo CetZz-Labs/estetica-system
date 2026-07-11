@@ -21,7 +21,7 @@ interface SelectOption {
 const selectStyles: StylesConfig<SelectOption, false> = {
     control: (base, state) => ({
         ...base,
-        backgroundColor: '#FDFBF7', // bg-maison-bg
+        backgroundColor: '#FDFBF7', // bg-background
         borderColor: state.isFocused ? '#E5E7EB' : '#E5E7EB',
         borderRadius: '0.75rem', // rounded-xl
         padding: '2px',
@@ -102,16 +102,16 @@ export default function Historial() {
         <div className="max-w-6xl mx-auto">
             <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
                 <div>
-                    <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Registros</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Historial de Visitas</h3>
+                    <h2 className="text-xs font-semibold tracking-widest text-muted-foreground mb-2 uppercase">Registros</h2>
+                    <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Historial de Visitas</h3>
                 </div>
             </header>
 
             {/* Filtros */}
-            <div className="bg-maison-card border border-maison-border rounded-2xl p-6 shadow-sm mb-6">
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm mb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Cliente</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Cliente</label>
                         <Select
                             options={clientOptions}
                             placeholder="Todos los clientes"
@@ -124,7 +124,7 @@ export default function Historial() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Servicio</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Servicio</label>
                         <Select
                             options={serviceOptions}
                             placeholder="Todos los servicios"
@@ -137,7 +137,7 @@ export default function Historial() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Profesional</label>
                         <Select
                             options={professionalOptions}
                             placeholder="Todas las profesionales"
@@ -150,22 +150,22 @@ export default function Historial() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Desde</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Desde</label>
                         <input
                             type="date"
                             value={dateFrom}
                             onChange={(e) => handleDateFromChange(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Hasta</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Hasta</label>
                         <input
                             type="date"
                             value={dateTo}
                             onChange={(e) => handleDateToChange(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         />
                     </div>
 
@@ -174,7 +174,7 @@ export default function Historial() {
                             <button
                                 type="button"
                                 onClick={clearFilters}
-                                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer border border-gray-200"
+                                className="w-full sm:w-auto px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer border border-border"
                             >
                                 Limpiar filtros
                             </button>
@@ -184,35 +184,35 @@ export default function Historial() {
             </div>
 
             {/* TABLE */}
-            <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[720px]">
                         <thead>
-                            <tr className="border-b border-maison-border bg-maison-bg/50">
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Cliente</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Servicio</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Productos usados</th>
-                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase">Notas</th>
+                            <tr className="border-b border-border bg-background/50">
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Cliente</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Servicio</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Fecha</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Profesional</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Productos usados</th>
+                                <th className="px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">Notas</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-maison-border">
+                        <tbody className="divide-y divide-border">
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-3/4" /></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/2" /></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-2/3" /></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/2" /></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-full" /></td>
-                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-gray-200 rounded w-full" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-3/4" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-1/2" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-2/3" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-1/2" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-full" /></td>
+                                        <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-muted rounded w-full" /></td>
                                     </tr>
                                 ))
                             ) : isError ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-8">
-                                        <div className="flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
+                                        <div className="flex items-center justify-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
                                             <FiAlertCircle aria-hidden className="shrink-0" />
                                             <span>No se pudo cargar el historial de visitas. Reintentá en unos segundos.</span>
                                         </div>
@@ -221,7 +221,7 @@ export default function Historial() {
                             ) : items.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12">
-                                        <div className="flex flex-col items-center gap-2 text-maison-text/60">
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
                                             <FiClock aria-hidden size={32} />
                                             <p>
                                                 {hasActiveFilters
@@ -233,41 +233,41 @@ export default function Historial() {
                                 </tr>
                             ) : (
                                 items.map((registro) => (
-                                    <tr key={registro._id} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={registro._id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-4 sm:px-6 py-4">
-                                            <span className="font-medium text-maison-text">
+                                            <span className="font-medium text-foreground">
                                                 {registro.client.firstName} {registro.client.lastName}
                                             </span>
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
-                                            <span className="text-sm text-gray-600">{registro.service.name}</span>
+                                            <span className="text-sm text-muted-foreground">{registro.service.name}</span>
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
-                                            <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                                                <FiCalendar className="text-gray-400 shrink-0" />
+                                            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                                <FiCalendar className="text-muted-foreground shrink-0" />
                                                 {formatCalendarDate(registro.serviceDate)}
                                             </span>
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
                                             {registro.professional ? (
-                                                <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                                                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                                     <span
-                                                        className="h-2.5 w-2.5 rounded-full border border-maison-border shrink-0"
+                                                        className="h-2.5 w-2.5 rounded-full border border-border shrink-0"
                                                         style={{ backgroundColor: registro.professional.color }}
                                                         aria-hidden
                                                     />
                                                     {registro.professional.name}
                                                 </span>
                                             ) : (
-                                                <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                <span className="flex items-center gap-1.5 text-sm text-muted-foreground/70">
                                                     <FiUser className="shrink-0" /> Sin asignar
                                                 </span>
                                             )}
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
                                             {registro.productsUsed && registro.productsUsed.length > 0 ? (
-                                                <span className="flex items-start gap-1.5 text-sm text-gray-600 max-w-[220px]">
-                                                    <FiBox className="text-gray-400 mt-0.5 shrink-0" />
+                                                <span className="flex items-start gap-1.5 text-sm text-muted-foreground max-w-[220px]">
+                                                    <FiBox className="text-muted-foreground mt-0.5 shrink-0" />
                                                     <span className="truncate">
                                                         {registro.productsUsed.map(item => {
                                                             const productName = typeof item.product === 'object' && item.product !== null ? item.product.name : 'Insumo';
@@ -276,17 +276,17 @@ export default function Historial() {
                                                     </span>
                                                 </span>
                                             ) : (
-                                                <span className="text-sm text-gray-400">—</span>
+                                                <span className="text-sm text-muted-foreground/70">—</span>
                                             )}
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
                                             {registro.notes ? (
-                                                <span className="flex items-start gap-1.5 text-sm text-gray-600 max-w-[220px]">
-                                                    <FiFileText className="text-gray-400 mt-0.5 shrink-0" />
+                                                <span className="flex items-start gap-1.5 text-sm text-muted-foreground max-w-[220px]">
+                                                    <FiFileText className="text-muted-foreground mt-0.5 shrink-0" />
                                                     <span className="truncate">{registro.notes}</span>
                                                 </span>
                                             ) : (
-                                                <span className="text-sm text-gray-400">—</span>
+                                                <span className="text-sm text-muted-foreground/70">—</span>
                                             )}
                                         </td>
                                     </tr>

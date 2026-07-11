@@ -4,11 +4,11 @@ import { FiCheck, FiX, FiCheckCircle, FiAlertTriangle, FiClock } from 'react-ico
 import type { Appointment } from '../types';
 
 const STATUS_PALETTE: Record<string, { bg: string; border: string; text: string }> = {
-    confirmed: { bg: '#ECFDF5', border: '#BBF7D0', text: '#54A885' },
-    cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
-    completed: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
-    pending: { bg: '#F9FAFB', border: '#E5E7EB', text: '#6B7280' },
-    overdue: { bg: '#FEF2F2', border: '#FECACA', text: '#E06B5E' },
+    confirmed: { bg: 'var(--color-ring-subtle)', border: 'var(--color-ring)', text: 'var(--color-ring)' },
+    cancelled: { bg: 'var(--color-destructive-subtle)', border: 'var(--color-destructive)', text: 'var(--color-destructive)' },
+    completed: { bg: 'var(--color-muted)', border: 'var(--color-border)', text: 'var(--color-muted-foreground)' },
+    pending: { bg: 'var(--color-muted)', border: 'var(--color-border)', text: 'var(--color-muted-foreground)' },
+    overdue: { bg: 'var(--color-destructive-subtle)', border: 'var(--color-destructive)', text: 'var(--color-destructive)' },
 };
 
 /** Paleta de color asociada al estado (render) de un turno. Reutilizada por el calendario y el detalle. */

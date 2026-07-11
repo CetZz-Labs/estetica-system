@@ -54,7 +54,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         mutationFn: (data: BulkClientData[]) => createBulkClients(data),
         onSuccess: (data) => {
             toast.success(data.message, {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['clients'] });
             handleClose();
@@ -119,14 +119,14 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         <>
             <button
                 onClick={handleClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
             <button
                 onClick={() => mutate(previewData)}
                 disabled={isPending || previewData.length === 0}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-300 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
                 {isPending ? 'Procesando...' : <><FiCheckCircle /> Confirmar Carga</>}
             </button>
@@ -144,26 +144,26 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
             footer={footer}
         >
             {/* Guía de formato — siempre visible */}
-            <div className="bg-maison-bg border border-maison-border rounded-2xl p-4 mb-4">
+            <div className="bg-background border border-border rounded-lg p-4 mb-4">
                 <p className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-3">Formato del archivo</p>
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                         <thead>
                             <tr>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Nombre</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Apellido</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Telefono</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">Email</th>
-                                <th className="text-left p-2 border border-maison-border bg-white font-mono font-semibold text-gray-700">NotasMedicas</th>
+                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Nombre</th>
+                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Apellido</th>
+                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Telefono</th>
+                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Email</th>
+                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">NotasMedicas</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
-                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
-                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
-                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
-                                <td className="p-2 border border-maison-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -173,11 +173,11 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                     <table className="w-full text-xs border-collapse">
                         <tbody>
                             <tr>
-                                <td className="p-2 border border-maison-border bg-white text-gray-600">María</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-600">González</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">+54 9 11 1234-5678</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">juana@ejemplo.com</td>
-                                <td className="p-2 border border-maison-border bg-white text-gray-400 italic">Alérgica al tinte</td>
+                                <td className="p-2 border border-border bg-white text-gray-600">María</td>
+                                <td className="p-2 border border-border bg-white text-gray-600">González</td>
+                                <td className="p-2 border border-border bg-white text-gray-400 italic">+54 9 11 1234-5678</td>
+                                <td className="p-2 border border-border bg-white text-gray-400 italic">juana@ejemplo.com</td>
+                                <td className="p-2 border border-border bg-white text-gray-400 italic">Alérgica al tinte</td>
                             </tr>
                         </tbody>
                     </table>
@@ -187,7 +187,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                     <button
                         type="button"
                         onClick={downloadClienteEjemplo}
-                        className="flex items-center gap-1.5 text-xs text-maison-primary hover:underline cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer"
                     >
                         <FiDownload className="text-sm" />
                         Descargar archivo de ejemplo
@@ -199,8 +199,8 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                 <label
                     className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer group ${
                         isDragOver
-                            ? 'border-maison-primary bg-maison-primary/10'
-                            : 'border-gray-200 hover:border-maison-primary hover:bg-maison-primary/5'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-gray-200 hover:border-primary hover:bg-primary/5'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
@@ -211,31 +211,31 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                         if (file) processFile(file);
                     }}
                 >
-                    <FiUploadCloud className="text-5xl text-gray-300 group-hover:text-maison-primary mb-4 transition-colors" />
+                    <FiUploadCloud className="text-5xl text-gray-300 group-hover:text-primary mb-4 transition-colors" />
                     <span className="text-gray-600 font-medium">Hacé clic o arrastrá el archivo aquí</span>
                     <span className="text-xs text-gray-400 mt-2">Compatib. Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
                     <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} />
                 </label>
             ) : (
                 <div className="space-y-6">
-                    <div className="flex items-center gap-4 p-4 bg-maison-bg border border-maison-border rounded-2xl">
-                        <div className="p-3 bg-white rounded-xl shadow-sm text-maison-primary">
+                    <div className="flex items-center gap-4 p-4 bg-background border border-border rounded-lg">
+                        <div className="p-3 bg-white rounded-lg shadow-sm text-primary">
                             <FiFileText size={24} />
                         </div>
                         <div className="flex-1">
-                            <p className="font-medium text-maison-text">{fileName}</p>
+                            <p className="font-medium text-foreground">{fileName}</p>
                             <p className="text-xs text-gray-500">{previewData.length} clientes detectados</p>
                         </div>
                         <button
                             type="button"
                             onClick={() => { setFileName(''); setPreviewData([]); }}
-                            className="text-xs text-maison-red font-semibold hover:underline cursor-pointer"
+                            className="text-xs text-destructive font-semibold hover:underline cursor-pointer"
                         >
                             Cambiar
                         </button>
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto border border-maison-border rounded-xl">
+                    <div className="max-h-60 overflow-y-auto border border-border rounded-lg">
                         <table className="w-full text-xs text-left">
                             <thead className="bg-gray-50 sticky top-0">
                                 <tr>
@@ -243,7 +243,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                                     <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Teléfono</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-maison-border bg-white">
+                            <tbody className="divide-y divide-border bg-white">
                                 {previewData.slice(0, 10).map((c, i) => (
                                     <tr key={i}>
                                         <td className="p-3 font-medium text-gray-700">{c.firstName} {c.lastName}</td>

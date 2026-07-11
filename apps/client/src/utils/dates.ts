@@ -31,36 +31,36 @@ export const getTimelineStatus = (dateString: string) => {
     if (diffDays < 0) {
         return {
             label: `Atrasado ${Math.abs(diffDays)}d`,
-            dotColor: 'bg-maison-red',
-            pillClass: 'bg-red-50 text-maison-red border border-red-100',
+            dotColor: 'bg-destructive',
+            pillClass: 'bg-red-50 text-destructive border border-red-100',
         };
     }
     if (diffDays === 0) {
         return {
             label: 'Hoy',
-            dotColor: 'bg-maison-red',
-            pillClass: 'bg-red-50 text-maison-red border border-red-100',
+            dotColor: 'bg-destructive',
+            pillClass: 'bg-red-50 text-destructive border border-red-100',
         };
     }
     if (diffDays === 1) {
         return {
             label: 'Mañana',
-            dotColor: 'bg-maison-orange',
-            pillClass: 'bg-orange-50 text-maison-orange border border-orange-100',
+            dotColor: 'bg-warning',
+            pillClass: 'bg-orange-50 text-warning border border-orange-100',
         };
     }
     if (diffDays <= 7) {
         return {
             label: `En ${diffDays} días`,
-            dotColor: 'bg-maison-orange',
-            pillClass: 'bg-orange-50 text-maison-orange border border-orange-100',
+            dotColor: 'bg-warning',
+            pillClass: 'bg-orange-50 text-warning border border-orange-100',
         };
     }
     if (diffDays <= 21) {
         return {
             label: `En ${diffDays} días`,
-            dotColor: 'bg-maison-green',
-            pillClass: 'bg-green-50 text-maison-green border border-green-100',
+            dotColor: 'bg-ring',
+            pillClass: 'bg-green-50 text-ring border border-green-100',
         };
     }
 

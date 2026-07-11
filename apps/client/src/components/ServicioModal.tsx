@@ -59,7 +59,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -67,7 +67,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                 form="servicioForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : 'Guardar'}
             </button>
@@ -88,11 +88,11 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                     <input
                         type="text"
                         placeholder="Ej. Coloración completa"
-                        className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.name ? 'border-maison-red' : 'border-maison-border'}`}
+                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.name ? 'border-destructive' : 'border-border'}`}
                         {...register('name', { required: 'Requerido' })}
                     />
                     {errors.name && (
-                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                             <FiAlertCircle /> {errors.name.message}
                         </span>
                     )}
@@ -104,7 +104,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                         type="number"
                         min="0"
                         placeholder="Ej. 45"
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring"
                         {...register('defaultTouchupDays', {
                             required: 'Requerido',
                             valueAsNumber: true
@@ -121,7 +121,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                         type="number"
                         min="1"
                         placeholder="Ej. 60"
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring"
                         {...register('duration', {
                             required: 'Requerido',
                             valueAsNumber: true,
@@ -129,7 +129,7 @@ export default function ServicioModal({ isOpen, onClose, serviceToEdit }: Props)
                         })}
                     />
                     {errors.duration && (
-                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                             <FiAlertCircle /> {errors.duration.message}
                         </span>
                     )}

@@ -41,7 +41,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
         },
         onSuccess: () => {
             toast.success(productToEdit ? 'Producto actualizado exitosamente' : 'Producto registrado exitosamente', {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             onClose();
@@ -56,7 +56,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -64,7 +64,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                 form="productoForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : (productToEdit ? 'Guardar Cambios' : 'Crear Producto')}
             </button>
@@ -87,14 +87,14 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                     <input
                         type="text"
                         placeholder="Ej: Oxidante 20 Vol..."
-                        className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.name ? 'border-maison-red' : 'border-maison-border'}`}
+                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.name ? 'border-destructive' : 'border-border'}`}
                         {...register('name', {
                             required: 'El nombre es requerido',
                             validate: (value) => value.trim() !== '' || 'No puede estar vacío'
                         })}
                     />
                     {errors.name && (
-                        <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                             <FiAlertCircle /> {errors.name.message}
                         </span>
                     )}
@@ -106,14 +106,14 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                         <input
                             type="text"
                             placeholder="Ej: Wella, Olaplex..."
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.brand ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.brand ? 'border-destructive' : 'border-border'}`}
                             {...register('brand', {
                                 required: 'La marca es requerida',
                                 validate: (value) => value.trim() !== '' || 'No puede estar vacío'
                             })}
                         />
                         {errors.brand && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.brand.message}
                             </span>
                         )}
@@ -125,14 +125,14 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                             <input
                                 type="number"
                                 min="0"
-                                className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.stock ? 'border-maison-red' : 'border-maison-border'}`}
+                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.stock ? 'border-destructive' : 'border-border'}`}
                                 {...register('stock', {
                                     required: 'Requerido',
                                     min: { value: 0, message: 'No puede ser negativo' }
                                 })}
                             />
                             {errors.stock && (
-                                <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                                <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                     <FiAlertCircle /> {errors.stock.message}
                                 </span>
                             )}
@@ -141,7 +141,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                 </div>
 
                 {productToEdit && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2 text-blue-700 text-xs">
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 text-blue-700 text-xs">
                         <FiInfo className="text-blue-500 mt-0.5 shrink-0" size={14} />
                         <p>Para modificar la cantidad en stock, utilizá el botón <strong>"Ajustar Stock"</strong> desde la tabla principal del inventario.</p>
                     </div>
@@ -154,7 +154,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                     <textarea
                         rows={2}
                         placeholder="Detalles extra del producto..."
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring resize-none"
                         {...register('description')}
                     />
                 </div>

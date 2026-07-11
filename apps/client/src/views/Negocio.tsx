@@ -124,22 +124,22 @@ export default function Negocio() {
                     <div className="h-3 bg-gray-200 rounded w-24"></div>
                     <div className="h-8 bg-gray-200 rounded w-48"></div>
                 </div>
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-24"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="space-y-2">
                         <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-10 bg-gray-200 rounded-xl"></div>
+                        <div className="h-10 bg-gray-200 rounded-lg"></div>
                     </div>
                     <div className="h-10 bg-gray-200 rounded-full w-32"></div>
                 </div>
@@ -150,11 +150,11 @@ export default function Negocio() {
     if (isError || isNotificationError) {
         return (
             <div className="p-4 md:p-8 max-w-2xl mx-auto">
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
-                    <div className="w-16 h-16 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiSettings className="text-2xl text-maison-red" />
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiSettings className="text-2xl text-destructive" />
                     </div>
-                    <p className="text-sm text-maison-red">
+                    <p className="text-sm text-destructive">
                         No pudimos cargar la configuración en este momento. Por favor, intenta de nuevo.
                     </p>
                 </div>
@@ -166,21 +166,21 @@ export default function Negocio() {
         <div className="p-4 md:p-8 max-w-2xl mx-auto">
             <div className="mb-8">
                 <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Configuración</p>
-                <h1 className="font-serif text-2xl text-maison-text">Mi Negocio</h1>
+                <h1 className="font-serif text-2xl text-foreground">Mi Negocio</h1>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Nombre del negocio *</label>
                         <input
                             type="text"
                             placeholder="Ej. Maison Estudio"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.name ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.name ? 'border-destructive' : 'border-border'}`}
                             {...register('name', { required: 'El nombre del negocio es obligatorio' })}
                         />
                         {errors.name && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.name.message}
                             </span>
                         )}
@@ -191,11 +191,11 @@ export default function Negocio() {
                         <input
                             type="url"
                             placeholder="https://ejemplo.com/logo.png"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.logo ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${errors.logo ? 'border-destructive' : 'border-border'}`}
                             {...register('logo')}
                         />
                         {errors.logo && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.logo.message}
                             </span>
                         )}
@@ -204,7 +204,7 @@ export default function Negocio() {
                                 <img
                                     src={logoValue}
                                     alt="Vista previa del logo"
-                                    className="h-16 w-16 object-contain rounded-xl border border-maison-border"
+                                    className="h-16 w-16 object-contain rounded-lg border border-border"
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                     }}
@@ -216,7 +216,7 @@ export default function Negocio() {
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Zona horaria</label>
                         <select
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
                             {...register('timezone', { required: 'Seleccioná una zona horaria' })}
                         >
                             {TIMEZONES.map((tz) => (
@@ -226,7 +226,7 @@ export default function Negocio() {
                             ))}
                         </select>
                         {errors.timezone && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.timezone.message}
                             </span>
                         )}
@@ -235,7 +235,7 @@ export default function Negocio() {
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Moneda</label>
                         <select
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
                             {...register('currency', { required: 'Seleccioná una moneda' })}
                         >
                             {CURRENCIES.map((cur) => (
@@ -245,7 +245,7 @@ export default function Negocio() {
                             ))}
                         </select>
                         {errors.currency && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.currency.message}
                             </span>
                         )}
@@ -255,7 +255,7 @@ export default function Negocio() {
                         <button
                             type="submit"
                             disabled={isPending}
-                            className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                            className="bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer"
                         >
                             {isPending ? 'Guardando...' : 'Guardar cambios'}
                         </button>
@@ -264,14 +264,14 @@ export default function Negocio() {
             </form>
 
             <form onSubmit={handleSubmitRecordatorio(onSubmitRecordatorio)} className="mt-6">
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
                     <div className="flex items-center gap-2">
-                        <FiBell className="text-gray-400 text-lg" />
-                        <h2 className="font-serif text-xl text-maison-text">Recordatorio de turno</h2>
+                        <FiBell className="text-muted-foreground text-lg" />
+                        <h2 className="font-serif text-xl text-foreground">Recordatorio de turno</h2>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                             Horas de anticipación del recordatorio
                         </label>
                         <input
@@ -279,7 +279,7 @@ export default function Negocio() {
                             min={1}
                             max={168}
                             placeholder="Ej: 24"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${recordatorioErrors.reminderHoursBefore ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400 ${recordatorioErrors.reminderHoursBefore ? 'border-destructive' : 'border-border'}`}
                             {...registerRecordatorio('reminderHoursBefore', {
                                 valueAsNumber: true,
                                 required: 'Indicá con cuántas horas de anticipación se envía el recordatorio',
@@ -288,7 +288,7 @@ export default function Negocio() {
                             })}
                         />
                         {recordatorioErrors.reminderHoursBefore && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {recordatorioErrors.reminderHoursBefore.message}
                             </span>
                         )}
@@ -298,7 +298,7 @@ export default function Negocio() {
                         <button
                             type="submit"
                             disabled={isRecordatorioPending}
-                            className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                            className="bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer"
                         >
                             {isRecordatorioPending ? 'Guardando...' : 'Guardar cambios'}
                         </button>

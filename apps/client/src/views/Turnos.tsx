@@ -37,9 +37,9 @@ import { formatTime, getTodayDateString } from '../utils/dates';
 const selectStyles: StylesConfig<{ value: string; label: string; }, false> = {
     control: (base, state) => ({
         ...base,
-        backgroundColor: '#FDFBF7',
+        backgroundColor: '#fff9f6',
         borderColor: state.isFocused ? '#E5E7EB' : '#E5E7EB',
-        borderRadius: '0.75rem',
+        borderRadius: '0.5rem',
         padding: '2px',
         boxShadow: state.isFocused ? '0 0 0 2px #E5E7EB' : 'none',
         '&:hover': { borderColor: '#D1D5DB' }
@@ -121,7 +121,7 @@ export default function Turnos() {
         mutationFn: (data: AppointmentApiPayload) => createAppointment(data),
         onSuccess: () => {
             toast.success('Turno creado exitosamente', {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
             setIsFormModalOpen(false);
@@ -345,11 +345,11 @@ export default function Turnos() {
     const formFooter = (
         <>
             <button type="button" onClick={() => { setIsFormModalOpen(false); setEditingAppointment(null); }}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer">
                 Cancelar
             </button>
             <button form="appointmentForm" type="submit" disabled={isCreating || isUpdating}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                className="bg-primary hover:bg-primary/90 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer">
                 {isCreating || isUpdating ? 'Guardando...' : (editingAppointment ? 'Actualizar Turno' : 'Crear Turno')}
             </button>
         </>
@@ -367,11 +367,11 @@ export default function Turnos() {
     const cancelFooter = (
         <>
             <button type="button" onClick={() => setIsCancelModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer">
                 Volver
             </button>
             <button onClick={handleConfirmCancel} disabled={isCancelling}
-                className="bg-maison-red hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                className="bg-destructive hover:bg-destructive/90 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer">
                 {isCancelling ? 'Cancelando...' : 'Confirmar Cancelación'}
             </button>
         </>
@@ -404,10 +404,10 @@ export default function Turnos() {
 
     return (
         <div className="max-w-6xl mx-auto">
-            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
+            <header className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-10">
                 <div>
-                    <h2 className="text-xs font-semibold tracking-widest text-gray-400 mb-2 uppercase">Agenda</h2>
-                    <h3 className="text-3xl sm:text-4xl font-serif text-maison-text">Turnos</h3>
+                    <h2 className="text-xs font-semibold tracking-widest text-muted-foreground mb-2 uppercase">Agenda</h2>
+                    <h3 className="text-3xl sm:text-4xl font-serif text-foreground">Turnos</h3>
                 </div>
                 <button onClick={() => {
                     setEditingAppointment(null);
@@ -426,7 +426,7 @@ export default function Turnos() {
                     });
                     setIsFormModalOpen(true);
                 }}
-                    className="bg-maison-primary hover:bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-sm self-start sm:self-auto">
+                    className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer shadow-sm self-start sm:self-auto">
                     <FiPlus className="text-lg" /> Nuevo Turno
                 </button>
             </header>
@@ -435,9 +435,9 @@ export default function Turnos() {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     {professionals.length > 1 && (
                         <div className="flex items-center gap-3">
-                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Profesional</label>
+                            <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Profesional</label>
                             <select value={professionalFilter} onChange={e => setProfessionalFilter(e.target.value)}
-                                className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all cursor-pointer">
+                                className="px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-all cursor-pointer">
                                 <option value="">Todas</option>
                                 {professionals.map(p => (
                                     <option key={p._id} value={p._id}>{p.name}</option>
@@ -451,13 +451,13 @@ export default function Turnos() {
                             {professionals.map((p) => (
                                 <div key={p._id} className="flex shrink-0 items-center gap-2">
                                     <span
-                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-maison-border font-serif text-[0.65rem] shadow-sm"
+                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border font-serif text-[0.65rem] shadow-sm"
                                         style={{ backgroundColor: p.color, color: getContrastTextColor(p.color) }}
                                         aria-hidden="true"
                                     >
                                         {getProfessionalInitials(p.name)}
                                     </span>
-                                    <span className="whitespace-nowrap text-xs font-medium text-maison-text">{p.name}</span>
+                                    <span className="whitespace-nowrap text-xs font-medium text-foreground">{p.name}</span>
                                 </div>
                             ))}
                         </div>
@@ -466,42 +466,42 @@ export default function Turnos() {
             )}
 
             {isLoading ? (
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden p-4 animate-pulse">
-                    <div className="h-10 bg-gray-200 rounded-lg w-full mb-4" />
+                <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden p-4 animate-pulse">
+                    <div className="h-10 bg-muted rounded-lg w-full mb-4" />
                     <div className="grid grid-cols-7 gap-1">
                         {Array.from({ length: 35 }).map((_, i) => (
-                            <div key={i} className="h-24 bg-gray-200 rounded" />
+                            <div key={i} className="h-24 bg-muted rounded" />
                         ))}
                     </div>
                 </div>
             ) : isError ? (
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
-                    <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiAlertCircle className="text-2xl text-maison-red" />
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-destructive/10 border border-destructive/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiAlertCircle className="text-2xl text-destructive" />
                     </div>
-                    <h4 className="text-lg font-serif text-maison-text mb-2">Error al cargar turnos</h4>
-                    <p className="text-sm text-gray-500">No pudimos cargar los turnos en este momento. Por favor, intenta de nuevo.</p>
+                    <h4 className="text-lg font-serif text-foreground mb-2">Error al cargar turnos</h4>
+                    <p className="text-sm text-muted-foreground">No pudimos cargar los turnos en este momento. Por favor, intenta de nuevo.</p>
                 </div>
             ) : (
-                <div className="relative bg-maison-card border border-maison-border rounded-2xl shadow-sm overflow-hidden p-4">
+                <div className="relative bg-card border border-border rounded-lg shadow-sm overflow-hidden p-4">
                     <style>{`
-                        .fc { font-family: 'Inter', sans-serif; background-color: #FFFFFF; border-radius: 16px; border: none; }
-                        .fc .fc-toolbar-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: #2C2A29; }
-                        .fc .fc-button-primary { background-color: #FFFFFF; border: 1px solid #EAE6DF; color: #4B5563; border-radius: 9999px; padding: 6px 16px; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
-                        .fc .fc-button-primary:hover { background-color: #F9FAF8; border-color: #D1D5DB; color: #2C2A29; }
+                        .fc { font-family: 'Manrope', sans-serif; background-color: var(--color-card); border-radius: 16px; border: none; }
+                        .fc .fc-toolbar-title { font-family: 'Fraunces', serif; font-size: 1.25rem; color: var(--color-foreground); }
+                        .fc .fc-button-primary { background-color: var(--color-card); border: 1px solid var(--color-border); color: var(--color-muted-foreground); border-radius: 9999px; padding: 6px 16px; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
+                        .fc .fc-button-primary:hover { background-color: var(--color-muted); border-color: var(--color-border); color: var(--color-foreground); }
                         .fc .fc-button-primary:disabled { opacity: 0.5; }
-                        .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #1A1A1A; border-color: #1A1A1A; color: #FFFFFF; }
-                        .fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today { background-color: #FDFBF7; }
-                        .fc .fc-col-header-cell { background-color: #FDFBF7; }
-                        .fc .fc-col-header-cell-cushion { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: #6B7280; padding: 8px; }
-                        .fc .fc-timegrid-slot-label { font-size: 0.75rem; color: #9CA3AF; }
-                        .fc .fc-timegrid-now-indicator-line { border-color: #E06B5E; }
-                        .fc .fc-timegrid-now-indicator-arrow { border-color: #E06B5E; }
-                        .fc-theme-standard td, .fc-theme-standard th { border-color: #EAE6DF; }
-                        .fc-theme-standard .fc-scrollgrid { border-color: #EAE6DF; }
-                        .fc .fc-daygrid-day-number { font-size: 0.8rem; color: #4B5563; padding: 6px; }
-                        .fc .fc-day-today .fc-daygrid-day-number { color: #1A1A1A; font-weight: 600; }
-                        .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color: #EAE6DF; }
+                        .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-foreground); }
+                        .fc .fc-daygrid-day.fc-day-today, .fc .fc-timegrid-col.fc-day-today { background-color: var(--color-background); }
+                        .fc .fc-col-header-cell { background-color: var(--color-background); }
+                        .fc .fc-col-header-cell-cushion { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-muted-foreground); padding: 8px; }
+                        .fc .fc-timegrid-slot-label { font-size: 0.75rem; color: var(--color-muted-foreground); }
+                        .fc .fc-timegrid-now-indicator-line { border-color: var(--color-destructive); }
+                        .fc .fc-timegrid-now-indicator-arrow { border-color: var(--color-destructive); }
+                        .fc-theme-standard td, .fc-theme-standard th { border-color: var(--color-border); }
+                        .fc-theme-standard .fc-scrollgrid { border-color: var(--color-border); }
+                        .fc .fc-daygrid-day-number { font-size: 0.8rem; color: var(--color-foreground); padding: 6px; }
+                        .fc .fc-day-today .fc-daygrid-day-number { color: var(--color-primary); font-weight: 600; }
+                        .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color: var(--color-border); }
                         .appointment-event { border-radius: 8px; padding: 2px 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; }
                         .appointment-event.cancelled { text-decoration: line-through; opacity: 0.7; }
                         .fc .fc-daygrid-event { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -511,7 +511,7 @@ export default function Turnos() {
                         .fc-timegrid-event .fc-event-main { overflow: hidden; }
                     `}</style>
                     {isFetching && (
-                        <span className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-50 border border-maison-border rounded-full">
+                        <span className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-muted-foreground bg-card border border-border rounded-full">
                             Actualizando...
                         </span>
                     )}
@@ -574,7 +574,7 @@ export default function Turnos() {
 
             <Tooltip
                 id="appointment-tooltip"
-                className="!bg-maison-primary !text-white !text-xs !rounded-lg !py-1.5 !px-3"
+                className="!bg-primary !text-primary-foreground !text-xs !rounded-lg !py-1.5 !px-3"
                 portalRoot={document.body}
                 positionStrategy="fixed"
                 style={{ zIndex: 9999 }}
@@ -590,7 +590,7 @@ export default function Turnos() {
             >
                 <form id="appointmentForm" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Cliente *</label>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Cliente *</label>
                         <Controller
                             name="client"
                             control={control}
@@ -606,12 +606,12 @@ export default function Turnos() {
                                 />
                             )}
                         />
-                        {errors.client && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.client.message}</span>}
+                        {errors.client && <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium"><FiAlertCircle /> {errors.client.message}</span>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Servicio <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase flex justify-between">
+                            Servicio <span className="text-muted-foreground font-normal normal-case">Opcional</span>
                         </label>
                         <Controller
                             name="service"
@@ -628,13 +628,13 @@ export default function Turnos() {
                             )}
                         />
                         {selectedService && (
-                            <p className="text-xs text-gray-400 mt-1">Duración estimada: {selectedService.duration} minutos</p>
+                            <p className="text-xs text-muted-foreground mt-1">Duración estimada: {selectedService.duration} minutos</p>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Profesional <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase flex justify-between">
+                            Profesional <span className="text-muted-foreground font-normal normal-case">Opcional</span>
                         </label>
                         <Controller
                             name="professional"
@@ -654,17 +654,17 @@ export default function Turnos() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha *</label>
+                            <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Fecha *</label>
                             <input type="date"
                                 min={getTodayDateString()}
-                                className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.date ? 'border-maison-red' : 'border-maison-border'}`}
+                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.date ? 'border-destructive' : 'border-border'}`}
                                 {...register('date', { required: 'La fecha es obligatoria' })}
                             />
-                            {errors.date && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.date.message}</span>}
+                            {errors.date && <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium"><FiAlertCircle /> {errors.date.message}</span>}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Hora *</label>
+                            <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Hora *</label>
                             <Controller
                                 name="time"
                                 control={control}
@@ -690,16 +690,16 @@ export default function Turnos() {
                                     />
                                 )}
                             />
-                            {errors.time && <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium"><FiAlertCircle /> {errors.time.message}</span>}
+                            {errors.time && <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium"><FiAlertCircle /> {errors.time.message}</span>}
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Notas <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase flex justify-between">
+                            Notas <span className="text-muted-foreground font-normal normal-case">Opcional</span>
                         </label>
                         <textarea rows={3} placeholder="Ej: Cliente solicita coloración con mechas..."
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none"
                             {...register('notes')}
                         />
                     </div>
@@ -726,13 +726,13 @@ export default function Turnos() {
             >
                 <div className="space-y-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Motivo de cancelación <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        <label className="text-xs font-bold tracking-widest text-muted-foreground uppercase flex justify-between">
+                            Motivo de cancelación <span className="text-muted-foreground font-normal normal-case">Opcional</span>
                         </label>
                         <textarea rows={3} placeholder="Ej: Cliente llamó para cancelar..."
                             value={cancelReason}
                             onChange={(e) => setCancelReason(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none"
                         />
                     </div>
                 </div>

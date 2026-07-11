@@ -2,7 +2,7 @@ import { SignIn } from "@clerk/react";
 
 export default function Login() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-maison-bg">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <SignIn
                 routing="path"
                 path="/login"
@@ -10,8 +10,8 @@ export default function Login() {
                 // Clerk permite personalizar variables CSS para que coincida con tu marca
                 appearance={{
                     variables: {
-                        colorPrimary: '#1A1A1A', // maison-primary
-                        colorBackground: '#FFFFFF', // maison-card
+                        colorPrimary: '#c18695', // primary
+                        colorBackground: '#FFFFFF', // card
                     }
                 }}
             />

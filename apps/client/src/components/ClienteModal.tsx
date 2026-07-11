@@ -60,7 +60,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -68,7 +68,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                 form="clienteForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
                 {isPending ? 'Guardando...' : 'Guardar Cliente'}
             </button>
@@ -91,11 +91,11 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Nombre *</label>
                         <input
                             type="text"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.firstName ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.firstName ? 'border-destructive' : 'border-border'}`}
                             {...register('firstName', { required: 'Requerido' })}
                         />
                         {errors.firstName && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.firstName.message}
                             </span>
                         )}
@@ -105,11 +105,11 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Apellido *</label>
                         <input
                             type="text"
-                            className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.lastName ? 'border-maison-red' : 'border-maison-border'}`}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.lastName ? 'border-destructive' : 'border-border'}`}
                             {...register('lastName', { required: 'Requerido' })}
                         />
                         {errors.lastName && (
-                            <span className="flex items-center gap-1 text-xs text-maison-red mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
                                 <FiAlertCircle /> {errors.lastName.message}
                             </span>
                         )}
@@ -120,7 +120,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Teléfono</label>
                     <input
                         type="tel"
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         {...register('phone')}
                     />
                 </div>
@@ -131,7 +131,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                     </label>
                     <input
                         type="email"
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         {...register('email')}
                     />
                 </div>
@@ -142,7 +142,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                     </label>
                     <textarea
                         rows={3}
-                        className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none"
                         {...register('medicalNotes')}
                     />
                 </div>

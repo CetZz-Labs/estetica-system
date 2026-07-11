@@ -97,14 +97,14 @@ export default function Disponibilidad() {
                     <div className="h-3 bg-gray-200 rounded w-24"></div>
                     <div className="h-8 bg-gray-200 rounded w-56"></div>
                 </div>
-                <div className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-4">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 space-y-4">
                     {Array.from({ length: 7 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4">
                             <div className="h-4 bg-gray-200 rounded w-24"></div>
                             <div className="h-6 w-10 bg-gray-200 rounded-full"></div>
-                            <div className="h-9 bg-gray-200 rounded-xl w-24"></div>
+                            <div className="h-9 bg-gray-200 rounded-lg w-24"></div>
                             <div className="h-4 w-3 bg-gray-200 rounded"></div>
-                            <div className="h-9 bg-gray-200 rounded-xl w-24"></div>
+                            <div className="h-9 bg-gray-200 rounded-lg w-24"></div>
                         </div>
                     ))}
                 </div>
@@ -115,11 +115,11 @@ export default function Disponibilidad() {
     if (isError) {
         return (
             <div className="p-4 md:p-8 max-w-2xl mx-auto">
-                <div className="bg-maison-card border border-maison-border rounded-2xl p-12 text-center shadow-sm">
-                    <div className="w-16 h-16 bg-maison-bg border border-maison-border rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiAlertCircle className="text-2xl text-maison-red" />
+                <div className="bg-card border border-border rounded-lg p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiAlertCircle className="text-2xl text-destructive" />
                     </div>
-                    <p className="text-sm text-maison-red">
+                    <p className="text-sm text-destructive">
                         No pudimos cargar la disponibilidad en este momento. Por favor, intenta de nuevo.
                     </p>
                 </div>
@@ -131,14 +131,14 @@ export default function Disponibilidad() {
         <div className="p-4 md:p-8 max-w-2xl mx-auto">
             <div className="mb-8">
                 <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Configuración</p>
-                <h1 className="font-serif text-2xl text-maison-text">Disponibilidad</h1>
+                <h1 className="font-serif text-2xl text-foreground">Disponibilidad</h1>
             </div>
 
             {/* Sección 1 — Horario de atención */}
-            <section className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+            <section className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 mb-6">
                 <div className="flex items-center gap-2 mb-6">
                     <FiClock className="text-gray-400 text-lg" />
-                    <h2 className="font-serif text-xl text-maison-text">Horario de atención</h2>
+                    <h2 className="font-serif text-xl text-foreground">Horario de atención</h2>
                 </div>
 
                 <div className="space-y-4">
@@ -153,7 +153,7 @@ export default function Disponibilidad() {
                         return (
                             <div key={dayNum} className="flex flex-wrap items-center gap-3 sm:gap-4">
                                 {/* Nombre del día */}
-                                <span className="w-24 text-sm font-medium text-maison-text shrink-0">
+                                <span className="w-24 text-sm font-medium text-foreground shrink-0">
                                     {DAY_NAMES[dayNum]}
                                 </span>
 
@@ -164,7 +164,7 @@ export default function Disponibilidad() {
                                     aria-checked={dayData.isOpen}
                                     aria-label={`${dayData.isOpen ? 'Desactivar' : 'Activar'} ${DAY_NAMES[dayNum]}`}
                                     onClick={() => toggleDay(dayNum)}
-                                    className={`relative w-10 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${dayData.isOpen ? 'bg-maison-primary' : 'bg-gray-300'}`}
+                                    className={`relative w-10 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${dayData.isOpen ? 'bg-primary' : 'bg-gray-300'}`}
                                 >
                                     <span
                                         className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${dayData.isOpen ? 'translate-x-4' : ''}`}
@@ -178,7 +178,7 @@ export default function Disponibilidad() {
                                         value={dayData.openTime}
                                         disabled={!dayData.isOpen}
                                         onChange={(e) => updateTime(dayNum, 'openTime', e.target.value)}
-                                        className={`px-3 py-2 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-opacity ${!dayData.isOpen ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                        className={`px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-opacity ${!dayData.isOpen ? 'opacity-40 cursor-not-allowed' : ''}`}
                                     />
                                     <span className="text-gray-400 text-sm select-none">→</span>
                                     <input
@@ -186,7 +186,7 @@ export default function Disponibilidad() {
                                         value={dayData.closeTime}
                                         disabled={!dayData.isOpen}
                                         onChange={(e) => updateTime(dayNum, 'closeTime', e.target.value)}
-                                        className={`px-3 py-2 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-opacity ${!dayData.isOpen ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                        className={`px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-opacity ${!dayData.isOpen ? 'opacity-40 cursor-not-allowed' : ''}`}
                                     />
                                 </div>
                             </div>
@@ -196,8 +196,8 @@ export default function Disponibilidad() {
             </section>
 
             {/* Sección 2 — Días no laborables */}
-            <section className="bg-maison-card border border-maison-border rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
-                <h2 className="font-serif text-xl text-maison-text mb-6">Días no laborables</h2>
+            <section className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-8 mb-6">
+                <h2 className="font-serif text-xl text-foreground mb-6">Días no laborables</h2>
 
                 {/* Formulario inline para agregar */}
                 <div className="flex flex-wrap items-end gap-3 mb-6">
@@ -209,7 +209,7 @@ export default function Disponibilidad() {
                             type="date"
                             value={newBlockedDate}
                             onChange={(e) => setNewBlockedDate(e.target.value)}
-                            className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
+                            className="px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
                         />
                     </div>
                     <div className="flex flex-col gap-1.5 flex-1 min-w-[160px]">
@@ -221,14 +221,14 @@ export default function Disponibilidad() {
                             placeholder="Ej: Feriado nacional"
                             value={newBlockedReason}
                             onChange={(e) => setNewBlockedReason(e.target.value)}
-                            className="px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
+                            className="px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 placeholder:text-gray-400"
                         />
                     </div>
                     <button
                         type="button"
                         onClick={addBlockedDate}
                         disabled={!newBlockedDate}
-                        className="bg-maison-primary hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer shadow-sm"
+                        className="bg-primary hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer shadow-sm"
                     >
                         Agregar
                     </button>
@@ -246,10 +246,10 @@ export default function Disponibilidad() {
                             .map((blocked) => (
                                 <li
                                     key={blocked.date}
-                                    className="flex items-center justify-between gap-3 px-4 py-3 bg-maison-bg border border-maison-border rounded-xl"
+                                    className="flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border rounded-lg"
                                 >
                                     <div className="flex flex-col gap-0.5">
-                                        <span className="text-sm font-medium text-maison-text">
+                                        <span className="text-sm font-medium text-foreground">
                                             {formatCalendarDate(blocked.date)}
                                         </span>
                                         {blocked.reason && (
@@ -260,7 +260,7 @@ export default function Disponibilidad() {
                                         type="button"
                                         onClick={() => removeBlockedDate(blocked.date)}
                                         aria-label={`Eliminar día no laborable ${formatCalendarDate(blocked.date)}`}
-                                        className="p-1.5 text-gray-400 hover:text-maison-red transition-colors cursor-pointer rounded-lg hover:bg-red-50"
+                                        className="p-1.5 text-gray-400 hover:text-destructive transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer rounded-lg hover:bg-red-50"
                                     >
                                         <FiTrash2 className="text-sm" />
                                     </button>
@@ -276,7 +276,7 @@ export default function Disponibilidad() {
                     type="button"
                     onClick={handleSave}
                     disabled={isPending}
-                    className="bg-maison-primary hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                    className="bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm shadow-sm cursor-pointer"
                 >
                     {isPending ? 'Guardando...' : 'Guardar cambios'}
                 </button>

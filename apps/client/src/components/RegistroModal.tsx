@@ -39,11 +39,11 @@ interface Props {
 const selectStyles: StylesConfig<SelectOption, false> = {
     control: (base, state) => ({
         ...base,
-        backgroundColor: '#FDFBF7', // bg-maison-bg
-        borderColor: state.isFocused ? '#E5E7EB' : '#E5E7EB', // focus:ring-gray-200
-        borderRadius: '0.75rem', // rounded-xl
+        backgroundColor: '#fff9f6', // bg-background
+        borderColor: state.isFocused ? '#80a890' : '#E5E7EB', // focus:ring-ring (verde seco)
+        borderRadius: '0.5rem', // rounded-lg
         padding: '2px',
-        boxShadow: state.isFocused ? '0 0 0 2px #E5E7EB' : 'none',
+        boxShadow: state.isFocused ? '0 0 0 2px #80a890' : 'none',
         '&:hover': {
             borderColor: '#D1D5DB'
         }
@@ -211,7 +211,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         },
         onSuccess: () => {
             toast.success('Servicio registrado. Stock actualizado.', {
-                style: { background: '#FDFBF7', color: '#54A885', borderColor: '#54A885' }
+                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
             });
             queryClient.invalidateQueries({ queryKey: ['recent-movements'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
@@ -252,10 +252,10 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
 
     const footer = (
         <>
-            <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+            <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
                 Cancelar
             </button>
-            <button type="submit" form="registroForm" disabled={isPending} className="bg-maison-primary hover:bg-black disabled:bg-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer shadow-sm">
+            <button type="submit" form="registroForm" disabled={isPending} className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
                 {isPending ? 'Guardando...' : 'Guardar y Descontar Stock'}
             </button>
         </>
@@ -285,7 +285,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 />
                             )}
                         />
-                        {errors.client && <span className="text-[10px] text-maison-red">{errors.client.message}</span>}
+                        {errors.client && <span className="text-[10px] text-destructive">{errors.client.message}</span>}
                     </div>
 
                     {/* ⭐️ Selector Inteligente de Servicio */}
@@ -307,7 +307,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 />
                             )}
                         />
-                        {errors.service && <span className="text-[10px] text-maison-red">{errors.service.message}</span>}
+                        {errors.service && <span className="text-[10px] text-destructive">{errors.service.message}</span>}
                     </div>
                 </div>
 
@@ -329,15 +329,15 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                             />
                         )}
                     />
-                    {errors.professional && <span className="text-[10px] text-maison-red">{errors.professional.message}</span>}
+                    {errors.professional && <span className="text-[10px] text-destructive">{errors.professional.message}</span>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha del Servicio *</label>
-                        <input type="date" className={`w-full px-4 py-2.5 bg-maison-bg border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 ${errors.serviceDate ? 'border-maison-red' : 'border-maison-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
+                        <input type="date" className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.serviceDate ? 'border-destructive' : 'border-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
                     </div>
-                    <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-xl border border-gray-200 md:-mt-2">
+                    <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-lg border border-gray-200 md:-mt-2">
                         <div className="flex items-center justify-between">
                             <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
                                 Próximo Retoque <span className="text-gray-400 font-normal normal-case ml-1">Opcional</span>
@@ -346,14 +346,14 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 <button
                                     type="button"
                                     onClick={handleUseSuggestedDate}
-                                    className="text-[10px] font-semibold text-maison-primary hover:underline cursor-pointer"
+                                    className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
                                 >
                                     Usar sugerida (+{selectedService!.defaultTouchupDays}d)
                                 </button>
                             )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="date" min={getTodayDateString()} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm" {...register('touchupDate')} />
+                            <input type="date" min={getTodayDateString()} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" {...register('touchupDate')} />
                             <Controller
                                 name="touchupTime"
                                 control={control}
@@ -379,12 +379,12 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 )}
                             />
                         </div>
-                        {errors.touchupTime && <span className="text-[10px] text-maison-red">{errors.touchupTime.message}</span>}
+                        {errors.touchupTime && <span className="text-[10px] text-destructive">{errors.touchupTime.message}</span>}
                     </div>
                 </div>
 
-                <div className="border border-maison-border rounded-xl p-5 bg-white">
-                    <h3 className="text-sm font-semibold text-maison-text mb-4 flex items-center gap-2"><FiBox className="text-gray-400" /> Insumos Consumidos (Stock)</h3>
+                <div className="border border-border rounded-lg p-5 bg-white">
+                    <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2"><FiBox className="text-gray-400" /> Insumos Consumidos (Stock)</h3>
 
                     <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         {/* ⭐️ Selector Inteligente de Insumos (No usa Controller porque es independiente del form principal) */}
@@ -400,8 +400,8 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         </div>
 
                         <div className="flex gap-3">
-                            <input type="number" min="1" placeholder="Cant." className="flex-1 sm:w-24 px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value ? Number(e.target.value) : '')} />
-                            <button type="button" onClick={handleAddProduct} disabled={!selectedProductOption || !quantityToAdd} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shrink-0"><FiPlus /></button>
+                            <input type="number" min="1" placeholder="Cant." className="flex-1 sm:w-24 px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value ? Number(e.target.value) : '')} />
+                            <button type="button" onClick={handleAddProduct} disabled={!selectedProductOption || !quantityToAdd} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shrink-0"><FiPlus /></button>
                         </div>
                     </div>
 
@@ -429,7 +429,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
                         Notas del Servicio <span className="text-gray-400 font-normal normal-case">Opcional</span>
                     </label>
-                    <textarea rows={2} placeholder="Ej: Fórmula del color, observaciones del cabello..." className="w-full px-4 py-2.5 bg-maison-bg border border-maison-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" {...register('notes')} />
+                    <textarea rows={2} placeholder="Ej: Fórmula del color, observaciones del cabello..." className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none" {...register('notes')} />
                 </div>
             </form>
         </Modal>
