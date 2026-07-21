@@ -1,11 +1,39 @@
 import { useAuth } from '@clerk/react';
 import { Navigate, Link } from 'react-router';
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import type { Variants } from 'motion/react';
 import {
     FiUsers, FiScissors, FiBox, FiCalendar, FiActivity, FiCheckCircle,
     FiArrowRight, FiMenu, FiX, FiClock, FiLayers, FiTrendingUp,
     FiShield, FiSmartphone, FiBarChart2
 } from 'react-icons/fi';
+
+// Variants de reveal reutilizados en Stats/Cómo funciona/CTA (§13.1).
+// (Features usa su propio reveal tipo "mazo de cartas" por-card, ver sección FEATURES — UX-39.)
+const fadeSlideUpShort: Variants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
+
+const statsContainer: Variants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.05 } },
+};
+
+// Reveal "mazo de cartas" de Features (UX-39, §13.1 aclaración): cada card entra individualmente
+// con whileInView (no stagger de contenedor), partiendo rotada/escalada/con leve giro 3D como si
+// se repartiera desde un mazo, con delay creciente por columna (i % 3) para que el despliegue se
+// note al hacer scroll. Se reduce a un simple fade si el usuario prefiere menos movimiento.
+const featureCardMotion = (i: number, prefersReducedMotion: boolean) => ({
+    initial: prefersReducedMotion
+        ? { opacity: 0 }
+        : { opacity: 0, y: 90, scale: 0.78, rotate: i % 2 === 0 ? -10 : 10, rotateX: -30 },
+    whileInView: prefersReducedMotion
+        ? { opacity: 1 }
+        : { opacity: 1, y: 0, scale: 1, rotate: 0, rotateX: 0 },
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const, delay: (i % 3) * 0.16 },
+});
 
 // Rotación de tinte determinística (§7.10) para íconos de Features/Stats: rose → sage → gold → wine.
 const sectionTints = [
@@ -83,6 +111,7 @@ const steps = [
 export default function Landing() {
     const { isLoaded, userId } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const prefersReducedMotion = useReducedMotion();
 
     if (!isLoaded) {
         return (
@@ -188,14 +217,19 @@ export default function Landing() {
 
             {/* ── HERO ── */}
             <section className="relative pt-16 sm:pt-20 pb-16 sm:pb-24 overflow-hidden bg-bg">
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         <div className="text-center lg:text-left">
-                            <div className="mb-6">
+                            <motion.div
+                                className="mb-6"
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, ease: 'easeOut' }}
+                            >
                                 <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest">
                                     CRM para centros de estética
                                 </span>
-                            </div>
+                            </motion.div>
 
                             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif text-text leading-[1.1]">
                                 El sistema que{' '}
@@ -234,7 +268,7 @@ export default function Landing() {
                         </div>
 
                         <div className="relative">
-                            <HeroMockup />
+                            <HeroMockup prefersReducedMotion={!!prefersReducedMotion} />
                         </div>
                     </div>
                 </div>
@@ -256,16 +290,30 @@ export default function Landing() {
                     </div>
                 </div>
 
-                {/* Grilla estática de features (§6.3) — reemplaza el scroll horizontal atado a scroll vertical */}
+                {/* Grilla de features con reveal tipo "mazo de cartas" (UX-39): cada card se
+                    despliega individualmente al entrar en viewport (whileInView + viewport once),
+                    partiendo rotada/escalada con leve giro 3D (rotateX) como si se repartiera de
+                    un mazo, con delay creciente por columna — reemplaza el fade+slide plano de
+                    UX-38. `perspective` en el contenedor habilita el giro 3D de las cards. */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <div
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+                        style={{ perspective: 1400 }}
+                    >
                         {features.map((feat, i) => {
                             const tint = sectionTints[i % sectionTints.length];
                             const Icon = feat.icon;
+                            const cardMotion = featureCardMotion(i, !!prefersReducedMotion);
                             return (
-                                <div
+                                <motion.div
                                     key={feat.title}
                                     className="bg-surface border border-border rounded-card p-6 sm:p-8 flex flex-col"
+                                    style={{ transformPerspective: 1400 }}
+                                    initial={cardMotion.initial}
+                                    whileInView={cardMotion.whileInView}
+                                    viewport={{ once: true, amount: 0.35 }}
+                                    transition={cardMotion.transition}
+                                    whileHover={{ scale: 1.02, transition: { duration: 0.15, ease: 'easeOut' } }}
                                 >
                                     <div className={`w-14 h-14 rounded-card ${tint.bg} flex items-center justify-center mb-6`}>
                                         <Icon size={26} className={tint.text} />
@@ -280,7 +328,7 @@ export default function Landing() {
                                             <span>{feat.stat}</span>
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             );
                         })}
                     </div>
@@ -297,7 +345,13 @@ export default function Landing() {
                         <h3 className="text-3xl sm:text-4xl font-serif text-wine">Números que hablan</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <motion.div
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+                        variants={statsContainer}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.3 }}
+                    >
                         {[
                             { number: 5, suffix: ' min', label: 'Setup inicial', sublabel: 'y estás operando', icon: FiClock },
                             { number: 100, suffix: '%', label: 'Datos centralizados', sublabel: 'en un solo lugar', icon: FiLayers },
@@ -306,7 +360,11 @@ export default function Landing() {
                         ].map((stat, i) => {
                             const tint = sectionTints[i % sectionTints.length];
                             return (
-                                <div key={stat.label} className="bg-surface border border-border rounded-card p-6 text-center">
+                                <motion.div
+                                    key={stat.label}
+                                    className="bg-surface border border-border rounded-card p-6 text-center"
+                                    variants={fadeSlideUpShort}
+                                >
                                     <div className={`w-12 h-12 rounded-card ${tint.bg} flex items-center justify-center mx-auto mb-4`}>
                                         <stat.icon size={22} className={tint.text} />
                                     </div>
@@ -315,10 +373,10 @@ export default function Landing() {
                                     </p>
                                     <p className="text-sm font-semibold text-text mt-3">{stat.label}</p>
                                     <p className="text-xs text-muted mt-1">{stat.sublabel}</p>
-                                </div>
+                                </motion.div>
                             );
                         })}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -338,9 +396,13 @@ export default function Landing() {
                         {steps.map((step, i) => {
                             const tint = sectionTints[i % sectionTints.length];
                             return (
-                                <div
+                                <motion.div
                                     key={step.number}
                                     className={`flex flex-col sm:flex-row items-center gap-8 sm:gap-16 ${i % 2 !== 0 ? 'sm:flex-row-reverse' : ''}`}
+                                    initial={{ opacity: 0, x: i % 2 !== 0 ? 24 : -24 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true, amount: 0.4 }}
+                                    transition={{ duration: 0.5, ease: 'easeOut' }}
                                 >
                                     {/* Step number - static circle */}
                                     <div className="shrink-0">
@@ -357,7 +419,7 @@ export default function Landing() {
                                             <p className={`text-base sm:text-lg text-text-2 leading-relaxed ${i % 2 !== 0 ? 'sm:text-right' : ''}`}>{step.description}</p>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             );
                         })}
                     </div>
@@ -367,7 +429,13 @@ export default function Landing() {
             {/* ── CTA final — único bloque wine sólido de la página (§1.3/§7.5) ── */}
             <section className="py-20 sm:py-28 bg-bg">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <div className="bg-wine rounded-card p-8 sm:p-12 lg:p-16">
+                    <motion.div
+                        className="bg-wine rounded-card p-8 sm:p-12 lg:p-16"
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true, amount: 0.4 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                    >
                         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-white leading-tight">
                             ¿Listo para simplificar tu gestión?
                         </h2>
@@ -389,7 +457,7 @@ export default function Landing() {
                             </Link>
                         </div>
                         <p className="text-xs mt-4" style={{ color: 'var(--color-accent-tint)' }}>Sin compromiso. Sin tarjeta de crédito.</p>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -416,12 +484,30 @@ export default function Landing() {
     );
 }
 
+interface HeroMockupProps {
+    prefersReducedMotion: boolean;
+}
+
 /* ── Hero Mockup: modern CSS-based app preview ── */
-function HeroMockup() {
+function HeroMockup({ prefersReducedMotion }: HeroMockupProps) {
     const bg = 'bg-surface';
     const innerBg = 'bg-surface-2';
+
+    // Float sutil y permanente (§13.1); se desactiva si el usuario prefiere menos movimiento.
+    const floatA = prefersReducedMotion
+        ? {}
+        : { animate: { y: [0, -8, 0] }, transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' as const } };
+    const floatB = prefersReducedMotion
+        ? {}
+        : { animate: { y: [0, -6, 0] }, transition: { duration: 3.2, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.6 } };
+
     return (
-        <div className="relative mx-auto max-w-lg px-8 py-4">
+        <motion.div
+            className="relative mx-auto max-w-lg px-8 py-4"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
             {/* Mockup frame */}
             <div className={`relative ${bg} rounded-2xl border border-border overflow-hidden z-10`}>
                 {/* Window chrome */}
@@ -500,8 +586,11 @@ function HeroMockup() {
                 </div>
             </div>
 
-            {/* Floating badges */}
-            <div className="absolute -bottom-4 -left-4 bg-surface border border-border rounded-xl px-4 py-2.5 z-20">
+            {/* Floating badges — float loop sutil y permanente, desfasado entre sí (§13.1) */}
+            <motion.div
+                className="absolute -bottom-4 -left-4 bg-surface border border-border rounded-xl px-4 py-2.5 z-20"
+                {...floatA}
+            >
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-rose-bg flex items-center justify-center">
                         <FiTrendingUp size={14} className="text-accent-rose" />
@@ -511,9 +600,12 @@ function HeroMockup() {
                         <p className="text-[10px] text-muted">en gestión diaria</p>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
-            <div className="absolute -top-2 -right-4 bg-surface border border-border rounded-xl px-4 py-2.5 z-20">
+            <motion.div
+                className="absolute -top-2 -right-4 bg-surface border border-border rounded-xl px-4 py-2.5 z-20"
+                {...floatB}
+            >
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-gold-bg flex items-center justify-center">
                         <FiClock size={14} className="text-gold-text" />
@@ -523,7 +615,7 @@ function HeroMockup() {
                         <p className="text-[10px] text-muted">sin complicaciones</p>
                     </div>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }

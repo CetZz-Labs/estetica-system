@@ -626,6 +626,108 @@
             ]
         },
         {
+            "id": "UX-38",
+            "name": "Landing pública — capa de animación vistosa (hero + scroll reveal)",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Pedido directo del usuario (2026-07-21) tras cerrar UX-37: quiere que la Landing (views/Landing.tsx) se sienta 'más dinámica' con movimiento permanente vistoso en el hero y un efecto de scroll-reveal notorio en las cards de funcionalidades, más animaciones en general en toda la página. Esto choca con docs/design.md §13 ('prohibido librerías externas de animación', animaciones mínimas no-decorativas) que UX-37 dejó blindado al eliminar react-bits/motion/gsap/ogl. Se le preguntó explícitamente al usuario entre (a) sutil dentro de las reglas actuales de Shear sin librerías nuevas, o (b) vistoso reinstalando una librería de animación y documentando la excepción — eligió (b). docs/design.md §13.1 (nueva sección) documenta la excepción: se permite `motion` (sucesora de Framer Motion) SOLO en views/Landing.tsx, con reglas explícitas de qué sigue prohibido (gradientes, box-shadow de card, +1 bloque wine, modo oscuro) y mandato de respetar prefers-reduced-motion.",
+            "acceptance_criteria": [
+                "apps/client/package.json agrega la dependencia `motion` (única nueva dependencia, sin gsap/ogl/react-bits)",
+                "El hero de Landing.tsx tiene movimiento continuo/en loop vistoso (float sutil, parallax liviano o formas decorativas animadas) usando motion, sin romper la jerarquía tipográfica ni introducir gradientes/sombras de card",
+                "Las cards de la sección Funcionalidades usan scroll-reveal (whileInView) con stagger — aparecen progresivamente al hacer scroll en vez de estar estáticas",
+                "Se agregan animaciones adicionales coherentes al resto de la Landing (Stats, Cómo funciona, CTA final) sin duplicar el mismo efecto en todos lados de forma monótona",
+                "Ninguna otra vista de la app (autenticada) importa `motion` ni queda afectada",
+                "Se respeta `prefers-reduced-motion: reduce` (loops/parallax se desactivan o reducen)",
+                "No se reintroducen gradientes, box-shadow de card/lift, modo oscuro, ni más de un bloque wine sólido por vista (docs/design.md §1.1/§13.1)",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-39",
+            "name": "Landing pública — refinamiento: efecto de luz tipo 'caustics' en el hero + rediseño del reveal de cards de Funcionalidades",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Segunda ronda de feedback del usuario (2026-07-21) sobre UX-38, ya cerrada. Pide: (1) un efecto de fondo 'más producido' en el hero, tipo luz de debajo del agua (caustics), con movimiento constante — más elaborado que los 3 blobs simples de UX-38; (2) no le convencen las cards actuales de Funcionalidades (fade+slide con stagger de UX-38) y pide un efecto de scroll más dramático/creativo, sugiriendo aparición de a una o un efecto tipo 'mazo de cartas'. Objetivo explícito del usuario: que la Landing 'resalte mucho por sus animaciones, movimientos y creatividad'. docs/design.md §13.1 se amplió con una aclaración (UX-39): formas sólidas con blur/opacity + mix-blend-mode, o filtros SVG animados (feTurbulence/feDisplacementMap), NO cuentan como 'gradiente decorativo' prohibido — permiten simular luz/movimiento tipo caustics sin usar linear/radial/conic-gradient ni bg-gradient-*. Sigue sin permitirse ninguna librería de render 3D/WebGL (three.js, pixi, ogl) — se resuelve con SVG/CSS + la librería `motion` ya instalada en UX-38.",
+            "acceptance_criteria": [
+                "El fondo del hero de Landing.tsx tiene un efecto de luz animado tipo 'caustics'/ondulación acuática, con movimiento constante y perceptible, más elaborado que los blobs simples de UX-38, implementado con SVG (filtros animados) y/o capas de formas sólidas con blur + mix-blend-mode + motion — sin gradientes CSS y sin nuevas librerías de render 3D/WebGL",
+                "Las cards de la sección Funcionalidades se rediseñan con un efecto de scroll marcadamente más dramático que el fade+slide plano de UX-38 (aparición secuencial de a una, o efecto tipo 'mazo de cartas'/depth-stack, o equivalente creativo), manteniendo whileInView + viewport once",
+                "El resto de la Landing puede recibir ajustes de refinamiento adicionales si el usuario los pide en la misma ronda, pero el foco de esta feature es hero + cards de Funcionalidades",
+                "No se reintroducen gradientes CSS (linear/radial/conic-gradient, bg-gradient-*), box-shadow de card, modo oscuro, ni más de un bloque wine sólido por vista",
+                "Sigue sin agregarse ninguna dependencia nueva más allá de `motion` (ya instalada) — nada de three.js/pixi/ogl/gsap/react-bits",
+                "Se respeta prefers-reduced-motion en todo movimiento nuevo agregado",
+                "Ninguna otra vista de la app (autenticada) importa `motion` ni queda afectada",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-43",
+            "name": "Landing pública — hero: quitar por completo el fondo decorativo (caustics + god rays) para reiniciar de cero",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Sexta ronda sobre el hero (2026-07-21). Tras ver UX-42 en el navegador, el usuario decide explícitamente: 'no me gusta, mejor quita todo el fondo del hero para empezar de nuevo'. Se elimina por completo la capa decorativa de fondo del hero acumulada en UX-39→UX-42 (panel de caustics SVG con feTurbulence/feColorMatrix/feComponentTransfer/feComposite + los 5 god rays convergentes), dejando el hero en un estado limpio (solo `bg-bg`, sin overlay decorativo), como estaba antes de que UX-39 introdujera el primer intento de efecto de fondo. NO se toca nada más de UX-38 (float loop de los badges/HeroMockup) ni de UX-39/UX-41 (reveal 'mazo de cartas' de las cards de Funcionalidades) — esos siguen intactos y aprobados. Esta feature es exclusivamente de limpieza; no se implementa ningún efecto nuevo todavía, se espera indicación del usuario para la próxima dirección.",
+            "acceptance_criteria": [
+                "El bloque decorativo de fondo del hero (SVG de caustics + los 5 wrappers de god rays) se elimina por completo de apps/client/src/views/Landing.tsx",
+                "La sección hero vuelve a un fondo limpio (bg-bg, sin overlay decorativo), sin dejar código muerto/comentado ni imports huérfanos relacionados (ej. si `useReducedMotion` quedó sin otros usos en el archivo, evaluar si sigue siendo necesario para el resto de animaciones de la Landing)",
+                "El float loop de los badges/HeroMockup (UX-38) y el reveal de las cards de Funcionalidades (UX-39/UX-41) NO se modifican, siguen funcionando igual",
+                "No se elimina la dependencia `motion` del package.json (sigue usándose en el resto de la Landing)",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-42",
+            "name": "Landing pública — hero: reposicionar origen de los god rays a la derecha + reducir interferencia de la capa de caustics",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Quinta ronda sobre el hero (2026-07-21). El usuario confirmó por primera vez que YA VIO el resultado en el navegador tras UX-41 y que el efecto 'se ve bien' (la composición de god rays convergentes fue la correcta), pero pide dos ajustes puntuales: (1) el panel de caustics (`<rect>` full-bleed con opacity 0.55 sobre TODA la sección hero, heredado sin cambios desde UX-39/UX-40) 'se sigue viendo e interfiere' con la lectura del nuevo efecto de rayos — hay que atenuarlo/acotarlo para que deje de competir visualmente (no eliminarlo del todo, sigue siendo la capa de shimmer de agua de fondo, pero debe quedar claramente subordinado a los rayos, no compitiendo en el mismo plano de intensidad); (2) el punto de convergencia de los 5 rayos (hoy centrado, `left-1/2`) debe moverse un poco a la derecha, y el abanico de ángulos (hoy simétrico -26°/-13°/0°/13°/26° alrededor del eje vertical) debe reorientarse para que los rayos apunten hacia abajo-a-la-izquierda en vez de abrirse simétricamente a ambos lados.",
+            "acceptance_criteria": [
+                "El punto de origen/convergencia de los 5 rayos se desplaza horizontalmente hacia la derecha (ej. ~62-70% del ancho de la sección en vez de 50%/centrado)",
+                "El abanico de ángulos de los rayos se reorienta para que el conjunto apunte predominantemente hacia abajo-a-la-izquierda (ángulos con sesgo negativo/izquierdo respecto al eje vertical, no simétricos ±X° como antes), mantenimiento la apertura en abanico entre rayos (no todos paralelos)",
+                "La capa de caustics (panel full-bleed heredado de UX-39/UX-40) se atenúa (menor opacidad y/o cobertura acotada) para dejar de interferir/competir visualmente con los rayos y el contenido de texto del hero, sin eliminarla por completo",
+                "Se mantienen las restricciones de docs/design.md §13.1 (sin gradientes CSS, sin libs 3D/WebGL nuevas, solo tokens de color existentes) y prefers-reduced-motion sigue cubriendo todo el movimiento",
+                "No se modifican las cards de Funcionalidades ni otras secciones de Landing.tsx",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-41",
+            "name": "Landing pública — hero: rayos de sol convergentes vistos desde el fondo del mar (composición 'god rays')",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Cuarta ronda sobre el hero (2026-07-21). UX-40 corrigió el problema técnico del blend mode, pero el usuario aclara que el problema es de COMPOSICIÓN, no solo de técnica: quiere el efecto clásico conocido como 'god rays'/'crepuscular rays' — como estar en el fondo del mar mirando hacia arriba, con rayos de sol que penetran la superficie del agua y CONVERGEN hacia un único punto de origen (el sol/la superficie), abriéndose en abanico hacia abajo. Los 3 haces de UX-40 estaban sueltos, sin punto de convergencia común, por eso no se leía como el efecto real. Fix: todos los rayos deben compartir el mismo punto/eje de origen cerca de la parte superior del hero (`transform-origin` común), cada uno como una cuña angosta arriba y ancha abajo (triángulo/trapezoide), rotados en abanico alrededor de ese origen, superpuestos con opacidad baja (blending alfa normal, sin mix-blend-mode roto). Se mantiene el patrón de caustics (shimmer de agua) de UX-40 como capa de apoyo. Sigue vigente docs/design.md §13.1: sin gradientes CSS, sin librerías 3D/WebGL nuevas, solo tokens de color existentes, prefers-reduced-motion obligatorio.",
+            "acceptance_criteria": [
+                "Los rayos de luz del hero comparten un único punto/eje de convergencia (transform-origin común) cerca de la parte superior de la sección, y se abren en abanico hacia abajo — no son haces sueltos en posiciones arbitrarias",
+                "Cada rayo es una forma angosta en el origen y más ancha en el extremo opuesto (cuña/trapezoide/triángulo), no un rectángulo uniforme",
+                "Al menos 4-6 rayos superpuestos con opacidad baja (blending alfa normal) para que las zonas de superposición se vean naturalmente más brillantes cerca del punto de convergencia",
+                "El patrón de caustics (shimmer tipo agua) de UX-40 se mantiene como capa complementaria, no se elimina",
+                "El conjunto se percibe como 'luz solar atravesando la superficie del agua vista desde abajo' (efecto god rays/crepuscular rays), coherente con el resto del hero",
+                "Se mantienen las restricciones de docs/design.md §13.1: sin gradientes CSS, sin libs 3D/WebGL nuevas, colores solo de tokens existentes, prefers-reduced-motion cubre todo el movimiento",
+                "No se modifican las cards de Funcionalidades ni otras secciones de Landing.tsx",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-40",
+            "name": "Landing pública — corrección visual del efecto de caustics del hero (no se ve como luz bajo el agua)",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Tercera ronda de feedback del usuario (2026-07-21) sobre el hero de Landing.tsx. UX-39 fue aprobada técnicamente por el reviewer (cumple las reglas de design.md §13.1, sin gradientes, build/lint OK), pero el usuario reporta que visualmente NO funciona: 'no parecen rayos de luz entrando bajo el agua, sino manchas raras'. Diagnóstico de causa probable (a validar/corregir por el implementer): la técnica de UX-39 usa `feDisplacementMap` para desplazar la GEOMETRÍA de círculos sólidos de color, lo que deforma su silueta en manchas orgánicas ('blobs') en vez de generar un patrón de luz. El efecto de 'caustics' real (la red de luz que se ve en el fondo de una pileta) se logra usando el ruido de `feTurbulence` como MÁSCARA DE LUMINOSIDAD/OPACIDAD (vía `feColorMatrix`/`feComponentTransfer` con curva de alto contraste) sobre un plano de color claro, en vez de deformar la silueta de una forma. Para el efecto de 'rayos de luz' se sugiere agregar por separado 2-3 haces de luz (formas alargadas/diagonales con blur suave, tono cálido gold/accent, opacidad baja, `mix-blend-mode: screen` u `overlay`) que se balancean lentamente, superpuestos sobre el patrón de caustics. Esta feature reemplaza/corrige el efecto visual del hero manteniendo las restricciones de docs/design.md §13.1 (sin gradientes CSS, sin librerías 3D/WebGL nuevas, respeta prefers-reduced-motion) — no reabre ningún otro punto de UX-38/UX-39 (cards de Funcionalidades ya aprobadas, no tocar).",
+            "acceptance_criteria": [
+                "El efecto de fondo del hero se percibe visualmente como luz/rayos entrando bajo el agua (patrón de caustics tipo red de luz + 2-3 haces de luz diagonales suaves), no como manchas/blobs sueltos sin relación entre sí",
+                "La técnica de caustics usa el ruido de feTurbulence como máscara de opacidad/luminosidad (feColorMatrix o feComponentTransfer con curva de contraste) en vez de feDisplacementMap deformando la silueta de una forma sólida",
+                "Se mantienen todas las restricciones de docs/design.md §13.1: sin gradientes CSS (linear/radial/conic-gradient, bg-gradient-*), sin librerías de render 3D/WebGL nuevas, colores solo de los tokens ya definidos",
+                "El efecto sigue detrás del contenido del hero (z-index/pointer-events correctos) sin afectar legibilidad",
+                "prefers-reduced-motion sigue cubriendo todo el movimiento nuevo",
+                "No se modifican las cards de Funcionalidades (UX-39, ya aprobadas) ni ninguna otra sección de Landing.tsx fuera del efecto de fondo del hero",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",

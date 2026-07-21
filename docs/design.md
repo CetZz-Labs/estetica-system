@@ -473,6 +473,34 @@ decorativas:
 externas de animación. Cualquier transición no listada aquí debe proponerse antes de
 implementarse.
 
+### 13.1 Excepción — Landing pública (marketing, UX-38)
+
+Decisión de producto (2026-07-21): la Landing pública (`views/Landing.tsx`) es la única vista
+del sistema donde se permite una capa de movimiento más notoria que el resto de la app, para
+transmitir dinamismo comercial. Esta excepción **no** se extiende a ninguna vista autenticada
+(Dashboard, Clientes, Turnos, etc.) ni reabre `components/react-bits/` (eliminado en UX-37).
+
+* **Librería permitida (única excepción a "prohibido librerías externas"):** `motion` (sucesora
+  de Framer Motion), instalada solo como dependencia de `apps/client` y consumida solo desde
+  `views/Landing.tsx` y componentes que Landing define para sí misma.
+* **Efectos permitidos:** movimiento continuo/en loop en el hero (float sutil, parallax liviano,
+  formas decorativas en movimiento lento), reveal progresivo al hacer scroll (`whileInView` con
+  fade + slide corto, stagger entre cards de features), micro-interacciones de hover con
+  `scale`/`translate` leve **limitadas a la Landing**.
+* **Sigue prohibido incluso en Landing:** gradientes decorativos, `box-shadow` de card, más de
+  un bloque `wine` sólido por vista, modo oscuro, colores/fuentes fuera de §2/§14 — la Landing
+  debe seguir leyéndose como Shear, solo "más viva".
+* **Aclaración (UX-39, 2026-07-21):** no cuenta como "gradiente decorativo" el uso de formas
+  sólidas (círculos/blobs) con `blur`/opacidad + `mix-blend-mode`, ni filtros SVG animados
+  (`feTurbulence`/`feDisplacementMap`) para simular luz o movimiento tipo "caustics" —  no
+  codifican un degradé de color vía `gradient`, y quedan permitidos en el hero de Landing como
+  parte de esta misma excepción. Siguen sin admitirse `linear-gradient`/`radial-gradient`/
+  `conic-gradient` ni clases `bg-gradient-*`. No se agregan librerías de render 3D/WebGL
+  (three.js, pixi, ogl) para lograr el efecto — se resuelve con SVG/CSS + `motion`.
+* **Accesibilidad obligatoria:** toda animación agregada respeta
+  `prefers-reduced-motion: reduce` (desactivar o reducir drásticamente loops/parallax cuando el
+  usuario lo tiene activado).
+
 ---
 
 ## 14. CSS base (reset + variables)
