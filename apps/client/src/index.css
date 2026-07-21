@@ -1,128 +1,139 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700&family=Figtree:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
+/* UX-32 elimina esta línea cuando ThemeToggle.tsx/useIsDark.ts se retiren (única referencia viva
+   restante a la variante `dark:` es Landing.tsx, fuera de alcance de UX-31). Se conserva como
+   excepción documentada para no arriesgar el build mientras esos archivos siguen montados. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #faf6f1;
-  --foreground: #7a6a5e;
-  --card: #ffffff;
-  --card-foreground: #7a6a5e;
-  --popover: #ffffff;
-  --popover-foreground: #7a6a5e;
-  --primary: #c97580;
-  --primary-foreground: #ffffff;
-  --secondary: #f2ece5;
-  --secondary-foreground: #7a6a5e;
-  --muted: #f7f2ed;
-  --muted-foreground: #a89888;
-  --accent: #f5d5cc;
-  --accent-foreground: #c4656a;
-  --destructive: #d04040;
-  --destructive-foreground: #fdfcfd;
-  --warning: #E5A059;
-  --warning-foreground: #5c4b43;
-  --border: #ead9cf;
-  --input: #ead9cf;
-  --ring: #80a890;
-  --destructive-subtle: #f5e0e0;
-  --ring-subtle: #dde8e2;
-  --sidebar: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: transparent;
-  --radius: 0.5rem;
-  --shadow-sm: 0px 2px 10px 0px hsl(0 0% 0% / 0.03), 0px 1px 2px -1px hsl(0 0% 0% / 0.03);
-  --shadow: 0px 2px 10px 0px hsl(0 0% 0% / 0.03), 0px 1px 2px -1px hsl(0 0% 0% / 0.03);
-  --shadow-md: 0px 2px 10px 0px hsl(0 0% 0% / 0.03), 0px 2px 4px -1px hsl(0 0% 0% / 0.03);
-  --shadow-lg: 0px 2px 10px 0px hsl(0 0% 0% / 0.03), 0px 4px 6px -1px hsl(0 0% 0% / 0.03);
-  --shadow-xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.03), 0px 8px 10px -1px hsl(0 0% 0% / 0.03);
-}
+  /* Neutros / superficies — docs/design.md §2.1 */
+  --bg: #FAF6F4;
+  --surface: #FFFFFF;
+  --surface-2: #FDFAFB;
+  --border: #F0E4E4;
+  --border-soft: #F7EFF1;
+  --dotted: #E7D8DC;
 
-.dark {
-  --background: oklch(0.1979 0.0107 39.2759);
-  --foreground: oklch(0.9135 0.0123 43.2722);
-  --card: oklch(0.2379 0.0124 44.5317);
-  --card-foreground: oklch(0.9135 0.0123 43.2722);
-  --popover: oklch(0.2379 0.0124 44.5317);
-  --popover-foreground: oklch(0.9135 0.0123 43.2722);
-  --primary: oklch(0.7508 0.1610 2.6024);
-  --primary-foreground: oklch(0.1979 0.0107 39.2759);
-  --secondary: oklch(0.2696 0.0148 39.2735);
-  --secondary-foreground: oklch(0.9135 0.0123 43.2722);
-  --muted: oklch(0.2696 0.0148 39.2735);
-  --muted-foreground: oklch(0.6608 0.0272 49.5764);
-  --accent: oklch(0.2964 0.0372 5.9697);
-  --accent-foreground: oklch(0.8436 0.0913 2.8077);
-  --destructive: oklch(0.6256 0.1933 23.0261);
-  --destructive-foreground: oklch(0.9921 0.0017 325.5900);
-  --warning: #E5A059;
-  --warning-foreground: oklch(0.9135 0.0123 43.2722);
-  --border: oklch(0.2937 0.0152 45.3658);
-  --input: oklch(0.2937 0.0152 45.3658);
-  --ring: oklch(0.7508 0.1610 2.6024);
-  --destructive-subtle: oklch(0.35 0.06 23);
-  --ring-subtle: oklch(0.35 0.05 150);
-  --sidebar: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: transparent;
-  --shadow-sm: 0px 4px 15px 0px hsl(0 0% 0% / 0.30), 0px 1px 2px -1px hsl(0 0% 0% / 0.30);
-  --shadow: 0px 4px 15px 0px hsl(0 0% 0% / 0.30), 0px 1px 2px -1px hsl(0 0% 0% / 0.30);
-  --shadow-md: 0px 4px 15px 0px hsl(0 0% 0% / 0.30), 0px 2px 4px -1px hsl(0 0% 0% / 0.30);
-  --shadow-lg: 0px 4px 15px 0px hsl(0 0% 0% / 0.30), 0px 4px 6px -1px hsl(0 0% 0% / 0.30);
-  --shadow-xl: 0px 4px 15px 0px hsl(0 0% 0% / 0.30), 0px 8px 10px -1px hsl(0 0% 0% / 0.30);
+  /* Texto — docs/design.md §2.2 */
+  --text: #3E2A33;
+  --text-2: #5C4650;
+  --text-3: #7A666E;
+  --muted: #A08D95;
+  --placeholder: #B9A6AD;
+
+  /* Marca / acentos — docs/design.md §2.3 */
+  --accent: #B76E84;
+  --accent-rose: #D98BA4;
+  --wine: #6B3444;
+  --sage: #8C9178;
+  --gold: #C89A5B;
+
+  /* Tintes de fondo — docs/design.md §2.4 */
+  --rose-bg: #F7E7EC;
+  --sage-bg: #EEF0E6;
+  --gold-bg: #F6EFE3;
+  --wine-bg: #EFE3E8;
+  --alert-bg: #F9E8E2;
+
+  /* Pares de texto de badge/tinte — docs/design.md §2.4 y §8 */
+  --sage-text: #71774F;
+  --gold-text: #A87C3F;
+  --alert-text: #B0553F;
+  --rose-text: #B76E84;
+  --accent-tint: #E3B9C6;
+  --hover-soft: #FAF3F5;
+
+  /* Radios — docs/design.md §5 */
+  --r-card: 14px;
+  --r-ctrl: 10px;
+  --r-pill: 99px;
+
+  /* Fuentes — docs/design.md §3 */
+  --serif: 'Cormorant Garamond', serif;
+  --sans: 'Figtree', sans-serif;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
+  /* Tokens Shear nativos — nombres literales de docs/design.md (bg-bg, bg-surface, text-text, etc.) */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-destructive-subtle: var(--destructive-subtle);
-  --color-ring-subtle: var(--ring-subtle);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --font-sans: "Manrope", system-ui, sans-serif;
-  --font-serif: "Fraunces", Georgia, serif;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --shadow-sm: var(--shadow-sm);
-  --shadow: var(--shadow);
-  --shadow-md: var(--shadow-md);
-  --shadow-lg: var(--shadow-lg);
-  --shadow-xl: var(--shadow-xl);
+  --color-border-soft: var(--border-soft);
+  --color-dotted: var(--dotted);
+
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-muted: var(--muted);
+  --color-placeholder: var(--placeholder);
+
+  --color-accent: var(--accent);
+  --color-accent-rose: var(--accent-rose);
+  --color-wine: var(--wine);
+  --color-sage: var(--sage);
+  --color-gold: var(--gold);
+
+  --color-rose-bg: var(--rose-bg);
+  --color-sage-bg: var(--sage-bg);
+  --color-gold-bg: var(--gold-bg);
+  --color-wine-bg: var(--wine-bg);
+  --color-alert-bg: var(--alert-bg);
+
+  --color-sage-text: var(--sage-text);
+  --color-gold-text: var(--gold-text);
+  --color-alert-text: var(--alert-text);
+  --color-rose-text: var(--rose-text);
+  --color-accent-tint: var(--accent-tint);
+  --color-hover-soft: var(--hover-soft);
+
+  --radius-card: var(--r-card);
+  --radius-ctrl: var(--r-ctrl);
+  --radius-pill: var(--r-pill);
+
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Figtree', sans-serif;
+
+  /* Alias-puente temporales — UX-35 los elimina cuando todas las vistas migren a los tokens Shear
+     nativos de arriba. Decisión de conflicto (UX-31): --color-accent y --color-muted YA quedaron
+     definidos más arriba con la semántica NUEVA de Shear (accent = #B76E84 marca, muted = #A08D95
+     texto atenuado), porque docs/design.md exige las clases literales bg-accent/text-accent y
+     text-muted apuntando a esos valores. No se agrega una segunda entrada --color-accent/--color-muted
+     con la semántica vieja (fondo de acento suave / fondo gris claro) para evitar una definición
+     conflictiva dentro del mismo @theme. Efecto aceptado: los ~19 usos viejos de bg-accent/text-accent
+     y los ~60 usos viejos de bg-muted en vistas todavía no migradas cambian de apariencia hasta que
+     se migren en UX-32+. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: #ffffff;
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-foreground: var(--text);
+  --color-background: var(--bg);
+  --color-muted-foreground: var(--muted);
+  --color-border: var(--border);
+  --color-secondary: var(--rose-bg);
+  --color-secondary-foreground: var(--wine);
+
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--text);
+  --color-sidebar-primary: var(--accent);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: var(--rose-bg);
+  --color-sidebar-accent-foreground: var(--wine);
+  --color-sidebar-border: var(--border);
+
+  /* Tokens sin equivalente Shear directo, con uso residual detectado en el código
+     (text-destructive, text-warning, focus:ring-ring/ring-ring-subtle) — mapeados de forma segura
+     en vez de inventar semántica nueva, ver impl_UX-31.md */
+  --color-destructive: var(--alert-text);
+  --color-destructive-foreground: #ffffff;
+  --color-warning: var(--gold);
+  --color-warning-foreground: #ffffff;
+  --color-ring: var(--accent-rose);
+  --color-destructive-subtle: var(--alert-bg);
+  --color-ring-subtle: var(--rose-bg);
 }
 
 @layer base {
@@ -132,6 +143,20 @@
   body {
     @apply bg-background text-foreground min-h-screen antialiased;
     transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--wine);
+  }
+  input::placeholder {
+    color: var(--placeholder);
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent-rose);
   }
 }
 
@@ -146,20 +171,14 @@
   border-radius: 20px;
 }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: #ead9cf;
+  background-color: var(--dotted);
 }
 
-@keyframes pageIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-.animate-page-in {
-  animation: pageIn 200ms ease-out;
+::-webkit-scrollbar-thumb {
+  background: var(--dotted);
+  border-radius: 8px;
 }

@@ -82,7 +82,7 @@ export default function AppointmentDetail({ appointment }: DetailProps) {
             {appointment.notes && (
                 <div>
                     <h4 className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2">Notas</h4>
-                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg border border-border">{appointment.notes}</p>
+                    <p className="text-sm text-muted-foreground bg-surface-2 p-3 rounded-lg border border-border">{appointment.notes}</p>
                 </div>
             )}
 

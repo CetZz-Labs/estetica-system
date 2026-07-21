@@ -25,7 +25,7 @@ export default function ConfirmModal({
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-ctrl text-sm font-medium bg-surface border border-[var(--dotted)] text-wine hover:bg-hover-soft transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -33,7 +33,7 @@ export default function ConfirmModal({
                 type="button"
                 onClick={onConfirm}
                 disabled={isPending}
-                className="bg-destructive hover:bg-red-700 disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+                className="bg-alert-text hover:opacity-90 disabled:opacity-50 text-white px-6 py-2.5 rounded-ctrl text-sm font-medium transition-opacity cursor-pointer disabled:cursor-not-allowed"
             >
                 {isPending ? 'Procesando...' : confirmLabel}
             </button>
@@ -45,11 +45,11 @@ export default function ConfirmModal({
             isOpen={isOpen}
             onClose={onClose}
             title={title}
-            icon={<FiAlertTriangle className="text-destructive" size={18} />}
+            icon={<FiAlertTriangle className="text-alert-text" size={18} />}
             maxWidth="max-w-sm"
             footer={footer}
         >
-            <p className="text-sm text-gray-600 leading-relaxed">{message}</p>
+            <p className="text-sm text-text-2 leading-relaxed">{message}</p>
         </Modal>
     );
 }

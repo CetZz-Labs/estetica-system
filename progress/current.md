@@ -1,18 +1,34 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-10
-- **Sesión:** cerrada
-- **Feature en curso:** ninguna
+- **Última actualización:** 2026-07-21
+- **Sesión:** activa
+- **Feature en curso:** ninguna — ciclo del rediseño Shear (fase 1 + fase 2) cerrado
 
 ## Plan de Acción
-- (vacío — sin feature en curso)
+- **Ciclo del rediseño Shear cerrado en esta sesión:** `UX-31`, `UX-32`, `UX-33` (4 sub-lotes A–D),
+  `UX-36` (correcciones post-QA) y `UX-37` (Fase 2 — Landing pública, 4 sub-lotes A–D) están todos
+  **done**, revisados y con `impl_*.md`/`explore_*.md` archivados en `_archive/`. Ver minutas
+  consolidadas en `progress/history.md` (entradas 2026-07-21).
+- **Quedan `pending` del plan original** (`progress/plan_shear-redesign.md`): `UX-34` (Agenda,
+  Servicios, Configuración, perfiles) y `UX-35` (limpieza final de alias-puente de tokens + cierre
+  documental del ciclo). No se activan solas — esperar instrucción del usuario.
+- **Gotcha para cuando se retome UX-34:** `docs/patterns-frontend.md` § P13 — el puente de tokens
+  de UX-31 hace que `bg-muted` y `text-muted-foreground` resuelvan al mismo hex; grep dirigido antes
+  de dar por migrada cualquier vista nueva.
+- **Sin feature activa.** Próximo arranque: esperar pedido del usuario (retomar UX-34, o cualquier
+  otro trabajo).
 
 ## Estado del Backlog
-- UX-30 Historial general de visitas (nueva vista propia) → **done** (1 ronda de review, APROBADO; primera aplicación real de P1/P3)
-- UX-29 Alinear leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx) → **done** (1 ronda de review, APROBADO)
-- UX-28 Editar fecha/hora de retoque desde el modal de detalle del Dashboard → **done** (2 pasadas de review: 1ra CHANGES_REQUESTED por un falso positivo de línea base — HEAD anterior a UX-27 y UX-28, ninguna commiteada todavía —, 2da APROBADO tras corrección del leader)
-- UX-27 Bug: "próximo retoque" aceptaba fechas pasadas → **done** (2 rondas: 1ra CHANGES_REQUESTED por bug de timezone en el cálculo de "hoy" del servidor, 2da APROBADO tras fix con `tenant.timezone` real vía `dateUtils.ts`)
+- UX-37 Rediseño Shear Fase 2 (Landing pública) → **done**
+- UX-36 Correcciones post-QA visual (nav, topbar, contraste) → **done**
+- UX-33 Rediseño Shear Etapa 3 (Dashboard, tablas, listados) → **done**
+- UX-32 Rediseño Shear Etapa 2 (shell, topbar, fin modo oscuro) → **done**
+- UX-31 Rediseño Shear Etapa 1 (fundación CSS) → **done**
+- UX-30 Historial general de visitas (nueva vista propia) → **done**
+- UX-29 Alinear leyenda de profesionales a la derecha del filtro, misma altura (Turnos.tsx) → **done**
+- UX-28 Editar fecha de retoque desde el modal de detalle del Dashboard → **done**
+- UX-27 Bug: "próximo retoque" aceptaba fechas pasadas → **done**
 - EP-17-b Migrar envío de mails de SMTP por-tenant a SMTP global de la app → **done**
 - UX-26 Bug: tooltip de hover del calendario detrás de otros elementos → **done**
 - UX-24 Bug visual: Select de hora recortado por el modal → **done**
@@ -36,26 +52,35 @@
 - EP-11 Gestión de Profesionales agendables → done
 
 ### Pendientes
+- UX-34 Rediseño Shear Etapa 4 (Agenda, Servicios, Config, perfiles)
+- UX-35 Rediseño Shear Etapa 5 (limpieza de alias-puente + cierre)
 - EP-18 a EP-22 Reportes (Fase 5)
 - EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
-- Pendiente de commit (2026-07-10): UX-27, UX-28, UX-29 y UX-30 no tienen commit propio todavía (último commit real `fc2e585`). Esto causó un falso positivo en la primera pasada de review de UX-28 (línea base mezclaba features). Commitear cuanto antes para no repetir el problema en la próxima feature.
-- Deuda técnica UX-24 (2026-07-08): el fix de portal (`menuPortalTarget`+`styles.menuPortal`) se aplicó solo al Select de Hora en `Turnos.tsx`/`RegistroModal.tsx`, por decisión de producto. Los otros Select (Cliente/Servicio/Profesional/Producto) comparten la misma causa raíz (mismo contenedor con overflow) y podrían recortarse igual — generalizar si se reporta el mismo síntoma.
-- Riesgo aceptado UX-24 (2026-07-08): sin entorno E2E, no se verificó en navegador real que el portal no rompa el cierre por click-afuera (UX-22). Análisis de código indica riesgo bajo — pendiente de confirmación visual humana.
-- Riesgo aceptado UX-26 (2026-07-08): mismo tipo de limitación — el fix de `z-index` en el tooltip de hover no se verificó visualmente en navegador real.
+- **Riesgo sistémico UX-31/UX-36 (2026-07-21):** el bug de colisión `bg-muted`+`text-muted-foreground`
+  (mismo hex `--muted`) puede reaparecer en cualquier vista de UX-34 todavía sin migrar (Turnos,
+  Profesionales, Negocio, Disponibilidad, ProfileClient, RegistroModal, Login, Register). Ver
+  `docs/patterns-frontend.md` § P13.
+- Pendiente de commit: todo el ciclo UX-31..UX-37 sigue sin commit propio (working tree). Evaluar
+  commitear antes de que crezca más el diff acumulado.
+- Deuda técnica UX-33 (2026-07-21, hallazgo del reviewer): `Clients.tsx` sigue sin paginación
+  server-side (`getClients()` plano, filtrado client-side desde EP-02) — candidato a migración P1/P3.
+- Deuda de higiene UX-33 (2026-07-21): `CargaMasivaClientesModal.tsx`/`CargaMasivaModal.tsx` tienen
+  botones de footer sin `type="button"` explícito (preexistente, sin impacto funcional).
+- Deuda no bloqueante UX-37 (2026-07-21): `HeroMockup()` en `Landing.tsx` usa `p-3`/`p-4` en sus
+  mini-cards decorativas, por debajo del `p-6` mínimo de cards de dashboard reales — aceptado por
+  ser ilustración decorativa, respetar `p-6` si el patrón se reutiliza en una vista funcional.
 - Backfill manual de `tenantId` pendiente para datos legados (operativo, no bloquea desarrollo).
-- Deuda de lint preexistente: `apps/client/src/components/ProductoModal.tsx:37` (`'stock' unused`).
 - Observación UX-05: `GET /api/profesionales` expone `inviteToken` e `inviteTokenExpiry`. Candidato a `select('-inviteToken -inviteTokenExpiry')`.
 - Deuda UX-09: `window.confirm` pre-existente en `handleCancelTouchup` (Dashboard.tsx) y `handleDelete` (ProfileClient.tsx) — violación GOV-CLIENT mandate 3, pendiente.
-- Deuda UX-09: estado `isError` ausente en queries del Dashboard — 4 estados incompletos (patrón pre-existente).
-- Deuda EP-11-fix (2026-07-01): `PUT /api/profesionales/:id` no valida `confirm` con `express-validator` como sí hace el `DELETE` — asimetría de higiene, sin riesgo de seguridad (el campo nunca se persiste).
+- Deuda EP-11-fix (2026-07-01): `PUT /api/profesionales/:id` no valida `confirm` con `express-validator` como sí hace el `DELETE` — asimetría de higiene, sin riesgo de seguridad.
 - Deuda EP-17 (2026-07-01): sin tests automatizados para `mailService.ts`/`reminderScheduler.ts`.
-- Riesgo EP-17 (2026-07-01): `pnpm --filter @estetica/server test` falla en este sandbox por un problema de entorno (descarga del binario de `mongodb-memory-server`), no por regresión de código — a confirmar en un entorno con acceso de red completo antes de asumir que la suite de tests está sana.
-- Limitación conocida UX-12 (2026-07-06, decisión de producto): la validación de superposición de turnos NO corre cuando el turno no tiene `professional` asignado (campo opcional en el form). Riesgo aceptado explícitamente por el usuario — no reabrir sin nueva decisión de producto.
-- Deuda técnica UX-13 (2026-07-06): tras el fix del auto-completado de retoques (`nextTouchupDate: { $lte: ... }`), un `ServiceRecord` `pending` con `nextTouchupDate` null/ausente queda excluido del `updateMany` y **nunca** se auto-completa automáticamente (antes sí se cerraba, sin importar la fecha). No es regresión respecto al criterio de aceptación, pero podría generar retoques "pending" huérfanos. Candidato a feature separada: exigir `nextTouchupDate` cuando `touchupStatus` nace `pending`.
-- Deuda de higiene UX-13 (2026-07-06): la lógica de auto-completado de retoques queda duplicada en `serviceRecordController.ts` y `appointmentController.ts` (mismo filtro `updateMany`, no extraído a `services/`). Candidato a refactor futuro si se vuelve a tocar esa regla.
-- Deuda de higiene UX-14 (2026-07-06, hallazgo del explorer, no corregido — fuera de alcance): `Turnos.tsx:527,733` formatea hora con `toLocaleTimeString` ad-hoc en vez de delegar en `formatDateTime`, violando `.claude/rules/frontend.md` §4. No es la causa del bug corregido, pero es candidato a limpieza futura.
-- Riesgo aceptado UX-14 (2026-07-06): los `nextTouchupDate`/`startTime` ya persistidos antes del fix quedan con el offset horario incorrecto (dato histórico contaminado). No se migró — decisión explícita de acotar el alcance a "iguales visitas hacia adelante". Evaluar backfill si se reporta como problema real.
-- Deuda EP-17-b (2026-07-08): `apps/server/src/utils/crypto.ts` (`encryptSecret`/`decryptSecret`) queda sin consumidores tras la migración a SMTP global por variables de entorno. Se conservó como utilitario genérico reutilizable (no se eliminó) — candidato a remover si nunca se reutiliza.
-- Deuda técnica UX-30 (2026-07-10): `getClients`/`getServices`/`getProfessionals` (usados como catálogos para selects, incluido el nuevo `Historial.tsx`) siguen sin paginar pese a estar documentado P1 — es la primera aplicación real fiel del patrón (backend `getServiceRecords` + frontend `Historial.tsx`), pero el resto de listados de negocio (Clientes, Inventario) sigue sin migrar. Candidato a tanda futura de migración a P1/P3.
+- Riesgo EP-17 (2026-07-01): `pnpm --filter @estetica/server test` falla en este sandbox por un problema de entorno (descarga del binario de `mongodb-memory-server`), no por regresión de código.
+- Limitación conocida UX-12 (2026-07-06, decisión de producto): la validación de superposición de turnos NO corre cuando el turno no tiene `professional` asignado. Riesgo aceptado explícitamente por el usuario.
+- Deuda técnica UX-13 (2026-07-06): un `ServiceRecord` `pending` con `nextTouchupDate` null/ausente nunca se auto-completa automáticamente.
+- Deuda de higiene UX-13 (2026-07-06): lógica de auto-completado de retoques duplicada en `serviceRecordController.ts` y `appointmentController.ts`.
+- Deuda de higiene UX-14 (2026-07-06): `Turnos.tsx:527,733` formatea hora con `toLocaleTimeString` ad-hoc en vez de delegar en `formatDateTime`.
+- Riesgo aceptado UX-14 (2026-07-06): datos históricos con offset horario incorrecto no migrados.
+- Deuda EP-17-b (2026-07-08): `apps/server/src/utils/crypto.ts` queda sin consumidores tras la migración a SMTP global.
+- Deuda técnica UX-30 (2026-07-10): `getClients`/`getServices`/`getProfessionals` (catálogos para selects) siguen sin paginar.

@@ -54,7 +54,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         mutationFn: (data: BulkClientData[]) => createBulkClients(data),
         onSuccess: (data) => {
             toast.success(data.message, {
-                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
+                style: { background: '#EEF0E6', color: '#71774F', borderColor: '#8C9178' }
             });
             queryClient.invalidateQueries({ queryKey: ['clients'] });
             handleClose();
@@ -119,14 +119,14 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
         <>
             <button
                 onClick={handleClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-ctrl text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
             <button
                 onClick={() => mutate(previewData)}
                 disabled={isPending || previewData.length === 0}
-                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="bg-accent hover:opacity-90 disabled:opacity-50 text-white px-6 py-2.5 rounded-ctrl text-sm font-semibold transition-opacity flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
                 {isPending ? 'Procesando...' : <><FiCheckCircle /> Confirmar Carga</>}
             </button>
@@ -144,50 +144,50 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
             footer={footer}
         >
             {/* Guía de formato — siempre visible */}
-            <div className="bg-background border border-border rounded-lg p-4 mb-4">
-                <p className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-3">Formato del archivo</p>
+            <div className="bg-bg border border-border rounded-ctrl p-4 mb-4">
+                <p className="text-[11.5px] font-semibold tracking-wide text-muted uppercase mb-3">Formato del archivo</p>
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                         <thead>
                             <tr>
-                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Nombre</th>
-                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Apellido</th>
-                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Telefono</th>
-                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">Email</th>
-                                <th className="text-left p-2 border border-border bg-white font-mono font-semibold text-gray-700">NotasMedicas</th>
+                                <th className="text-left p-2 border border-border bg-surface-2 font-mono font-semibold text-text-2">Nombre</th>
+                                <th className="text-left p-2 border border-border bg-surface-2 font-mono font-semibold text-text-2">Apellido</th>
+                                <th className="text-left p-2 border border-border bg-surface-2 font-mono font-semibold text-text-2">Telefono</th>
+                                <th className="text-left p-2 border border-border bg-surface-2 font-mono font-semibold text-text-2">Email</th>
+                                <th className="text-left p-2 border border-border bg-surface-2 font-mono font-semibold text-text-2">NotasMedicas</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">Obligatorio</span></td>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-alert-bg text-alert-text text-[10px] font-semibold rounded-pill">Obligatorio</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-alert-bg text-alert-text text-[10px] font-semibold rounded-pill">Obligatorio</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p className="text-[10px] text-gray-500 font-semibold mt-3 mb-1 uppercase tracking-widest">Ejemplo</p>
+                <p className="text-[10px] text-muted font-semibold mt-3 mb-1 uppercase tracking-widest">Ejemplo</p>
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                         <tbody>
                             <tr>
-                                <td className="p-2 border border-border bg-white text-gray-600">María</td>
-                                <td className="p-2 border border-border bg-white text-gray-600">González</td>
-                                <td className="p-2 border border-border bg-white text-gray-400 italic">+54 9 11 1234-5678</td>
-                                <td className="p-2 border border-border bg-white text-gray-400 italic">juana@ejemplo.com</td>
-                                <td className="p-2 border border-border bg-white text-gray-400 italic">Alérgica al tinte</td>
+                                <td className="p-2 border border-border bg-surface text-text-2">María</td>
+                                <td className="p-2 border border-border bg-surface text-text-2">González</td>
+                                <td className="p-2 border border-border bg-surface text-muted italic">+54 9 11 1234-5678</td>
+                                <td className="p-2 border border-border bg-surface text-muted italic">juana@ejemplo.com</td>
+                                <td className="p-2 border border-border bg-surface text-muted italic">Alérgica al tinte</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-3">El sistema omite filas duplicadas (mismo nombre y apellido ya registrados).</p>
+                <p className="text-[10px] text-muted mt-3">El sistema omite filas duplicadas (mismo nombre y apellido ya registrados).</p>
                 <div className="flex justify-end mt-3">
                     <button
                         type="button"
                         onClick={downloadClienteEjemplo}
-                        className="flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs text-accent hover:underline cursor-pointer"
                     >
                         <FiDownload className="text-sm" />
                         Descargar archivo de ejemplo
@@ -197,10 +197,10 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
 
             {!fileName ? (
                 <label
-                    className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer group ${
+                    className={`border-2 border-dashed rounded-card p-12 flex flex-col items-center justify-center transition-colors cursor-pointer group ${
                         isDragOver
-                            ? 'border-primary bg-primary/10'
-                            : 'border-gray-200 hover:border-primary hover:bg-primary/5'
+                            ? 'border-accent bg-rose-bg/60'
+                            : 'border-[var(--dotted)] hover:border-accent-rose hover:bg-rose-bg/40'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
@@ -211,49 +211,49 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                         if (file) processFile(file);
                     }}
                 >
-                    <FiUploadCloud className="text-5xl text-gray-300 group-hover:text-primary mb-4 transition-colors" />
-                    <span className="text-gray-600 font-medium">Hacé clic o arrastrá el archivo aquí</span>
-                    <span className="text-xs text-gray-400 mt-2">Compatib. Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
+                    <FiUploadCloud className="text-5xl text-dotted group-hover:text-accent mb-4 transition-colors" />
+                    <span className="text-text-2 font-medium">Hacé clic o arrastrá el archivo aquí</span>
+                    <span className="text-xs text-muted mt-2">Compatib. Excel (.xlsx), Excel 97 (.xls) y CSV (.csv)</span>
                     <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} />
                 </label>
             ) : (
                 <div className="space-y-6">
-                    <div className="flex items-center gap-4 p-4 bg-background border border-border rounded-lg">
-                        <div className="p-3 bg-white rounded-lg shadow-sm text-primary">
+                    <div className="flex items-center gap-4 p-4 bg-bg border border-border rounded-ctrl">
+                        <div className="p-3 bg-surface border border-border rounded-ctrl text-accent">
                             <FiFileText size={24} />
                         </div>
                         <div className="flex-1">
-                            <p className="font-medium text-foreground">{fileName}</p>
-                            <p className="text-xs text-gray-500">{previewData.length} clientes detectados</p>
+                            <p className="font-medium text-text">{fileName}</p>
+                            <p className="text-xs text-muted">{previewData.length} clientes detectados</p>
                         </div>
                         <button
                             type="button"
                             onClick={() => { setFileName(''); setPreviewData([]); }}
-                            className="text-xs text-destructive font-semibold hover:underline cursor-pointer"
+                            className="text-xs text-alert-text font-semibold hover:underline cursor-pointer"
                         >
                             Cambiar
                         </button>
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto border border-border rounded-lg">
+                    <div className="max-h-60 overflow-y-auto border border-border rounded-ctrl">
                         <table className="w-full text-xs text-left">
-                            <thead className="bg-gray-50 sticky top-0">
+                            <thead className="bg-surface-2 sticky top-0">
                                 <tr>
-                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Nombre Apellido</th>
-                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest">Teléfono</th>
+                                    <th className="p-3 font-semibold text-muted uppercase tracking-widest">Nombre Apellido</th>
+                                    <th className="p-3 font-semibold text-muted uppercase tracking-widest">Teléfono</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border bg-white">
+                            <tbody className="divide-y divide-border-soft bg-surface">
                                 {previewData.slice(0, 10).map((c, i) => (
                                     <tr key={i}>
-                                        <td className="p-3 font-medium text-gray-700">{c.firstName} {c.lastName}</td>
-                                        <td className="p-3 text-gray-500">{c.phone || <span className="italic text-gray-300">—</span>}</td>
+                                        <td className="p-3 font-medium text-text">{c.firstName} {c.lastName}</td>
+                                        <td className="p-3 text-text-2">{c.phone || <span className="italic text-muted">—</span>}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                         {previewData.length > 10 && (
-                            <p className="p-3 text-center text-gray-400 bg-gray-50 italic">Y {previewData.length - 10} clientes más...</p>
+                            <p className="p-3 text-center text-muted bg-surface-2 italic">Y {previewData.length - 10} clientes más...</p>
                         )}
                     </div>
                 </div>

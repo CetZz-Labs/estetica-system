@@ -34,14 +34,13 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
     const { mutate, isPending } = useMutation({
         mutationFn: (data: ProductFormData) => {
             if (productToEdit) {
-                const { stock, ...updateData } = data;
-                return updateProduct(productToEdit._id, updateData);
+                return updateProduct(productToEdit._id, { name: data.name, brand: data.brand, description: data.description });
             }
             return createProduct(data);
         },
         onSuccess: () => {
             toast.success(productToEdit ? 'Producto actualizado exitosamente' : 'Producto registrado exitosamente', {
-                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
+                style: { background: '#EEF0E6', color: '#71774F', borderColor: '#8C9178' }
             });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             onClose();
@@ -56,7 +55,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-ctrl text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -64,7 +63,7 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                 form="productoForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-ctrl text-sm font-semibold transition-opacity cursor-pointer"
             >
                 {isPending ? 'Guardando...' : (productToEdit ? 'Guardar Cambios' : 'Crear Producto')}
             </button>
@@ -83,18 +82,18 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
             <form id="productoForm" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Nombre del Producto *</label>
+                    <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Nombre del Producto *</label>
                     <input
                         type="text"
                         placeholder="Ej: Oxidante 20 Vol..."
-                        className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.name ? 'border-destructive' : 'border-border'}`}
+                        className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.name ? 'border-alert-text' : 'border-border'}`}
                         {...register('name', {
                             required: 'El nombre es requerido',
                             validate: (value) => value.trim() !== '' || 'No puede estar vacío'
                         })}
                     />
                     {errors.name && (
-                        <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
                             <FiAlertCircle /> {errors.name.message}
                         </span>
                     )}
@@ -102,18 +101,18 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Marca *</label>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Marca *</label>
                         <input
                             type="text"
                             placeholder="Ej: Wella, Olaplex..."
-                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.brand ? 'border-destructive' : 'border-border'}`}
+                            className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.brand ? 'border-alert-text' : 'border-border'}`}
                             {...register('brand', {
                                 required: 'La marca es requerida',
                                 validate: (value) => value.trim() !== '' || 'No puede estar vacío'
                             })}
                         />
                         {errors.brand && (
-                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
                                 <FiAlertCircle /> {errors.brand.message}
                             </span>
                         )}
@@ -121,18 +120,18 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
 
                     {!productToEdit && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Stock Inicial *</label>
+                            <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Stock Inicial *</label>
                             <input
                                 type="number"
                                 min="0"
-                                className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring ${errors.stock ? 'border-destructive' : 'border-border'}`}
+                                className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.stock ? 'border-alert-text' : 'border-border'}`}
                                 {...register('stock', {
                                     required: 'Requerido',
                                     min: { value: 0, message: 'No puede ser negativo' }
                                 })}
                             />
                             {errors.stock && (
-                                <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
+                                <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
                                     <FiAlertCircle /> {errors.stock.message}
                                 </span>
                             )}
@@ -141,20 +140,20 @@ export default function ProductoModal({ isOpen, onClose, productToEdit }: Props)
                 </div>
 
                 {productToEdit && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 text-blue-700 text-xs">
-                        <FiInfo className="text-blue-500 mt-0.5 shrink-0" size={14} />
+                    <div className="bg-rose-bg/60 border border-border rounded-ctrl p-3 flex items-start gap-2 text-wine text-xs">
+                        <FiInfo className="text-accent mt-0.5 shrink-0" size={14} aria-hidden />
                         <p>Para modificar la cantidad en stock, utilizá el botón <strong>"Ajustar Stock"</strong> desde la tabla principal del inventario.</p>
                     </div>
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                        Descripción <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                    <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase flex justify-between">
+                        Descripción <span className="text-muted font-normal normal-case">Opcional</span>
                     </label>
                     <textarea
                         rows={2}
                         placeholder="Detalles extra del producto..."
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring resize-none"
+                        className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors resize-none"
                         {...register('description')}
                     />
                 </div>

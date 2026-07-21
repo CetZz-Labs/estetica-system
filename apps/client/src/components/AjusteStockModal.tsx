@@ -46,7 +46,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
         },
         onSuccess: () => {
             toast.success('Stock actualizado exitosamente', {
-                style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
+                style: { background: '#EEF0E6', color: '#71774F', borderColor: '#8C9178' }
             });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             onClose();
@@ -74,7 +74,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-ctrl text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -82,7 +82,7 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                 form="ajusteStockForm"
                 type="submit"
                 disabled={isPending || isInvalidStock}
-                className="bg-foreground hover:bg-accent hover:text-accent-foreground disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-ctrl text-sm font-semibold transition-opacity cursor-pointer"
             >
                 {isPending ? 'Procesando...' : 'Confirmar Ajuste'}
             </button>
@@ -98,34 +98,34 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
             icon={<FiActivity />}
             footer={footer}
         >
-            <div className="mb-6 flex items-center justify-between bg-white border border-gray-200 px-4 py-3 rounded-lg shadow-sm">
-                <span className="text-sm font-medium text-gray-500">Stock Actual</span>
-                <span className="text-xl font-serif">{product.stock} <span className="text-sm font-sans text-gray-400 font-normal">unidades</span></span>
+            <div className="mb-6 flex items-center justify-between bg-surface-2 border border-border px-4 py-3 rounded-ctrl">
+                <span className="text-sm font-medium text-muted">Stock Actual</span>
+                <span className="text-xl font-serif text-text">{product.stock} <span className="text-sm font-sans text-muted font-normal">unidades</span></span>
             </div>
 
             <form id="ajusteStockForm" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                 <div className="grid grid-cols-2 gap-3">
-                    <label className={`relative flex flex-col items-center p-4 border rounded-lg cursor-pointer transition-all ${type === 'add' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <label className={`relative flex flex-col items-center p-4 border rounded-ctrl cursor-pointer transition-colors ${type === 'add' ? 'border-sage bg-sage-bg' : 'border-border hover:border-[var(--dotted)] bg-surface'}`}>
                         <input type="radio" value="add" className="sr-only" {...register('type')} />
-                        <FiArrowUpRight className={`text-2xl mb-1 ${type === 'add' ? 'text-primary' : 'text-gray-400'}`} />
-                        <span className={`text-sm font-medium ${type === 'add' ? 'text-primary' : 'text-gray-600'}`}>Ingreso (+)</span>
+                        <FiArrowUpRight className={`text-2xl mb-1 ${type === 'add' ? 'text-sage-text' : 'text-muted'}`} aria-hidden />
+                        <span className={`text-sm font-semibold ${type === 'add' ? 'text-sage-text' : 'text-text-2'}`}>Ingreso (+)</span>
                     </label>
 
-                    <label className={`relative flex flex-col items-center p-4 border rounded-lg cursor-pointer transition-all ${type === 'subtract' ? 'border-red-500 bg-red-50 ring-1 ring-red-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    <label className={`relative flex flex-col items-center p-4 border rounded-ctrl cursor-pointer transition-colors ${type === 'subtract' ? 'border-alert-text bg-alert-bg' : 'border-border hover:border-[var(--dotted)] bg-surface'}`}>
                         <input type="radio" value="subtract" className="sr-only" {...register('type')} />
-                        <FiArrowDownRight className={`text-2xl mb-1 ${type === 'subtract' ? 'text-red-500' : 'text-gray-400'}`} />
-                        <span className={`text-sm font-medium ${type === 'subtract' ? 'text-red-600' : 'text-gray-600'}`}>Egreso / Merma (-)</span>
+                        <FiArrowDownRight className={`text-2xl mb-1 ${type === 'subtract' ? 'text-alert-text' : 'text-muted'}`} aria-hidden />
+                        <span className={`text-sm font-semibold ${type === 'subtract' ? 'text-alert-text' : 'text-text-2'}`}>Egreso / Merma (-)</span>
                     </label>
                 </div>
 
                 <div className="space-y-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Cantidad a mover *</label>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Cantidad a mover *</label>
                         <input
                             type="number"
                             min="1"
-                            className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring text-lg font-medium text-center ${errors.amount ? 'border-destructive' : 'border-gray-200'}`}
+                            className={`w-full px-3.5 py-3 bg-bg border rounded-ctrl focus:outline-none focus:border-accent-rose transition-colors text-lg font-medium text-center text-text ${errors.amount ? 'border-alert-text' : 'border-border'}`}
                             {...register('amount', {
                                 valueAsNumber: true,
                                 required: 'Requerido',
@@ -135,21 +135,21 @@ export default function AjusteStockModal({ isOpen, onClose, product }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                            Motivo <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase flex justify-between">
+                            Motivo <span className="text-muted font-normal normal-case">Opcional</span>
                         </label>
                         <input
                             type="text"
                             placeholder="Ej: Compra a proveedor, Producto dañado..."
-                            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-ring focus:border-ring"
+                            className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors"
                             {...register('reason')}
                         />
                     </div>
                 </div>
 
-                <div className={`p-4 rounded-lg border flex justify-between items-center transition-colors ${isInvalidStock ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                <div className={`p-4 rounded-ctrl border flex justify-between items-center transition-colors ${isInvalidStock ? 'bg-alert-bg border-alert-text text-alert-text' : 'bg-surface-2 border-border text-text-2'}`}>
                     <span className="text-sm font-medium">Stock resultante proyectado:</span>
-                    <span className={`text-xl font-bold ${isInvalidStock ? 'text-red-600' : 'text-foreground'}`}>
+                    <span className={`text-xl font-bold ${isInvalidStock ? 'text-alert-text' : 'text-text'}`}>
                         {finalStock}
                     </span>
                 </div>

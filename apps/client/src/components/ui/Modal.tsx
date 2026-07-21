@@ -54,20 +54,20 @@ export default function Modal({
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className={`bg-card border border-border rounded-lg w-full ${maxWidth} shadow-xl overflow-hidden flex flex-col max-h-[90vh] ${containerClassName}`}
+                className={`bg-surface border border-border rounded-card w-full ${maxWidth} overflow-hidden flex flex-col max-h-[90vh] ${containerClassName}`}
             >
                 {/* ── Header ── */}
-                <div className="flex justify-between items-center p-5 sm:p-6 border-b border-border bg-background shrink-0">
+                <div className="flex justify-between items-center p-5 sm:p-6 border-b border-border shrink-0">
                     <div className="flex items-center gap-3">
                         {icon && (
-                            <div className="p-2.5 bg-white border border-border rounded-lg shadow-sm text-gray-600">
+                            <div className="p-2.5 bg-surface border border-border rounded-ctrl text-text-2">
                                 {icon}
                             </div>
                         )}
                         <div>
-                            <h2 className="text-2xl font-serif text-foreground">{title}</h2>
+                            <h2 className="text-2xl font-serif text-text">{title}</h2>
                             {subtitle && (
-                                <p className="text-gray-500 text-sm mt-0.5">{subtitle}</p>
+                                <p className="text-muted text-sm mt-0.5">{subtitle}</p>
                             )}
                         </div>
                     </div>
@@ -75,7 +75,7 @@ export default function Modal({
                     <button
                         onClick={onClose}
                         aria-label="Cerrar modal"
-                        className="text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                        className="text-muted hover:text-text-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-accent-rose focus-visible:outline-offset-2"
                     >
                         <FiX className="text-2xl" />
                     </button>
@@ -88,7 +88,7 @@ export default function Modal({
 
                 {/* ── Footer (opcional) ── */}
                 {footer && (
-                    <div className="p-5 sm:p-6 border-t border-border bg-gray-50/50 flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
+                    <div className="p-5 sm:p-6 border-t border-border bg-surface-2 flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
                         {footer}
                     </div>
                 )}

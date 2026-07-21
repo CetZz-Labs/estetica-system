@@ -923,3 +923,87 @@
 * **`feature_list.json`:** `UX-30` → `"done"`.
 * **Deuda técnica ya documentada (no bloqueante, fuera de alcance):** `getClients`/`getServices`/`getProfessionals` (catálogos usados como select de filtro en `Historial.tsx`) siguen sin paginar — exención de P1 para catálogos cortos usados en selects, no una regresión de esta feature. `selectStyles` queda duplicado localmente en `Historial.tsx` (mismo objeto que `RegistroModal.tsx`/`Turnos.tsx`), sin precedente de extracción en el repo.
 * **Estado del backlog:** no quedan features UX pendientes. Próximo bloque disponible: EP-18+ Reportes (Fase 5).
+
+---
+
+## 2026-07-20 — UX-31: Rediseño Shear — Etapa 1: Fundación index.css + index.html
+
+* **Agente:** Claude (Leader) + implementer + reviewer (1 ronda, APROBADO).
+* **Objetivo:** Primera de 5 etapas de un rediseño completo de interfaz. `docs/design.md` reemplazó por completo el sistema visual anterior (paleta shadcn rose/durazno, fuentes Fraunces+Manrope, modo oscuro completo) por el nuevo Sistema de Diseño **Shear** (Cormorant Garamond + Figtree, tokens hex `bg`/`surface`/`wine`/`sage`/`gold`/`accent`/`accent-rose`, sin modo oscuro, sin sombras de card, sin gradientes ni lift). Esta etapa reescribió únicamente la fundación de estilos — ninguna vista fue tocada. Plan completo de las 5 etapas en `progress/plan_shear-redesign.md`.
+* **Hallazgo de diagnóstico previo (no de esta feature, del leader durante la planificación):** el archivo `desing-system.md` que `docs/design.md` cita como "fuente canónica" de los tokens (§2, §11) **no existe** en el repo — referencia colgante confirmada con `git ls-files`/`git log --all`. El bloque `:root` de `design.md §14` quedó establecido como la única fuente de verdad real de los tokens hex.
+* **Cambios Frontend (100% frontend, sandbox hermético — solo 2 archivos):**
+  - `apps/client/src/index.css` — reescritura completa: fuentes Cormorant Garamond (ital 500/600/700) + Figtree (400/500/600/700); bloque `:root` con los 27 tokens hex exactos de `design.md §2`/`§14` (neutros, texto, marca/acentos, tintes de fondo, pares de texto de badge, radios); `@theme inline` remapea a clases Tailwind v4 con nombres literales del doc (`bg-bg`, `bg-surface`, `text-text`, `bg-wine`, `bg-accent-rose`, etc.) y a `--font-serif`/`--font-sans` (las ~64 clases `font-serif`/`font-sans` ya usadas en el código remapean solas); eliminado por completo el bloque `.dark` (~35 líneas oklch), la escala `--shadow-sm..xl` y la keyframe `pageIn`/`.animate-page-in` (usaba `translateY`, prohibido por §13); agregados los base styles de §14 (`a`/`a:hover`, `input::placeholder`, `input:focus`) y scrollbar remapeado a `--dotted`/`--border`.
+  - `apps/client/index.html` — `<link>` de Google Fonts reemplazado por Cormorant Garamond + Figtree (mismo `<link>` que `index.css`), preconnects sin cambios.
+  - **Alias-puente temporales** (documentados en el `@theme`, con comentario explícito de que `UX-35` los elimina): `--color-primary`, `--color-card`, `--color-foreground`, `--color-background`, `--color-muted`, `--color-muted-foreground`, `--color-border`, `--color-secondary` y el set `sidebar-*`, apuntando al valor Shear más cercano — necesarios para que el build no se rompa mientras las ~500 clases de tokens viejos en `views/`/`components/` no están migradas (UX-32 a UX-35).
+* **Decisiones de conflicto (ADRs de la bitácora `impl_UX-31.md`):**
+  1. `--color-accent`: el token viejo shadcn (`bg-accent`/`text-accent`, semántica "fondo suave") colisionaba con el nuevo `--accent` Shear (`#B76E84`, color principal). Se priorizó la semántica Shear nueva — afecta ~19 usos viejos que cambian de apariencia hasta migrar en etapas futuras.
+  2. `--color-muted` (conflicto análogo, detectado por el propio implementer, no estaba en la consigna original): misma resolución, prioridad a Shear (`#A08D95`). Afecta ~60 usos de `bg-muted`, mayormente skeletons `animate-pulse` en Dashboard/Historial/Inventario — señalado como el mayor impacto visual transitorio, a priorizar en UX-33.
+  3. `@custom-variant dark` se mantuvo como excepción documentada (Landing.tsx/AceptarInvitacion.tsx siguen dependiendo del toggle basado en clase `.dark` hasta que UX-32 elimine `ThemeToggle`/`useIsDark`).
+  4. Tokens sin mapeo natural con uso residual real (`destructive`, `warning`, `ring`) mapeados de forma segura a sus equivalentes Shear más cercanos (`alert-text`, `gold`, `accent-rose` respectivamente).
+* **Verificación del reviewer:** re-ejecutó los 2 comandos él mismo: `pnpm --filter @estetica/client build` → Exit 0; `pnpm --filter @estetica/client lint` → Exit 1, pero verificado con `git diff --stat` que los 6 errores + 4 warnings son idénticos a la deuda preexistente ya documentada (`ProductoModal.tsx:37`, `react-bits/*`, `AceptarInvitacion.tsx`, `watch()` en `Negocio.tsx`/`Turnos.tsx`), todos en archivos `.tsx` no tocados por esta feature — cero regresiones nuevas. Confirmó sandbox hermético (solo `index.css`/`index.html`), fidelidad exacta de tokens contra `design.md`, ausencia total de `.dark`/`--shadow-*`/`pageIn`/`oklch`, y alias-puente correctamente documentados.
+* **Veredicto:** APPROVED, 1 ronda. Ver `progress/reviews/review_UX-31.md`.
+* **`feature_list.json`:** `UX-31` → `"done"`.
+* **Estado del backlog del rediseño:** `UX-32` (shell `AppLayout` + topbar vía contexto + fin del modo oscuro) es la siguiente feature a activar. `UX-33`/`UX-34`/`UX-35` quedan `pending`. Plan completo en `progress/plan_shear-redesign.md`.
+
+---
+
+## 2026-07-20 — UX-32: Rediseño Shear — Etapa 2: Shell (AppLayout, topbar, fin del modo oscuro)
+
+* **Agente:** Claude (Leader) + implementer + reviewer (1 ronda, APROBADO).
+* **Objetivo:** Segunda de 5 etapas del rediseño de interfaz (plan completo en `progress/plan_shear-redesign.md`). Reescribir el shell de la app (`AppLayout.tsx`) según `docs/design.md §6`/`§7.1`, cablear un topbar nuevo de 66px vía contexto de layout, y eliminar el modo oscuro por completo (decisión ya confirmada con el usuario durante la planificación).
+* **Cambios Frontend (sandbox hermético):**
+  - `apps/client/src/layouts/AppLayout.tsx` — reescrito: sidebar `w-[236px]` `bg-surface`/`border-border`; navegación reemplazada por puntos de color (6px, `bg-accent` activo/`bg-dotted` inactivo) en vez de íconos `react-icons/fi`, estado activo `bg-rose-bg text-wine font-bold`, inactivo `text-text-3 hover:bg-hover-soft`; mismo orden y role-gating de items preservado sin regresión (Inventario oculto a RECEPTIONIST, Profesionales/Configuración solo ADMIN); logo único sin condicional de tema; wrapper de contenido `bg-card border rounded-xl shadow-lg` + `animate-page-in` eliminado, contenido ahora directo sobre `bg-bg p-7` (28px); topbar nuevo de 66px (`bg-surface`/`border-border`) que envuelve el `<Outlet/>` en `TopbarProvider` y renderiza título (24px, ligera discrepancia vs. 26px de spec, no bloqueante)/buscador visual sin lógica conectada/acción primaria/avatar (`<UserButton/>` de Clerk reutilizado sin wrapper custom).
+  - `apps/client/src/layouts/TopbarContext.tsx` (nuevo) — `TopbarProvider` + hook `useTopbar(config?: TopbarConfig)` donde `TopbarConfig = { title, primaryAction?: { label, onClick }, searchSlot? }`. Las vistas futuras (UX-33/34) consumen `useTopbar({ title: '...', primaryAction: {...} })` en su primera línea; `AppLayout` la consume sin argumentos para leer el estado. El efecto interno solo se re-dispara si cambian `title`/`primaryAction.label`/`searchSlot` (evita loops por `onClick` inline redefinida en cada render).
+  - Eliminados: `apps/client/src/components/ui/ThemeToggle.tsx`, `apps/client/src/hooks/useIsDark.ts`.
+  - `apps/client/src/views/AceptarInvitacion.tsx` y `apps/client/src/views/Landing.tsx` — recortes puntuales (solo remoción de `ThemeToggle`/`useIsDark`/2 usos de `dark:` y prop `isDark` de `HeroMockup` en Landing); el resto de esas vistas no se tocó (Landing es fase 2, fuera de este ciclo).
+* **Decisiones de alcance documentadas (no bloqueantes):** selector de tenant del footer del sidebar (`design.md §6.1`) no implementado — no era acceptance criteria literal de UX-32, queda para una iteración futura. Buscador del topbar es solo visual, sin lógica de búsqueda conectada (esperado en esta etapa). `@custom-variant dark` queda residual en `index.css` — quedó sin ningún uso real tras esta feature (los 2 únicos usos de `dark:` en todo `src/` se eliminaron), pero `index.css` está fuera del sandbox de UX-32 (pertenece a UX-31 ya cerrada); se escala como ítem menor de limpieza para UX-35.
+* **Verificación del reviewer:** re-ejecutó los 2 comandos él mismo: `pnpm --filter @estetica/client build` → Exit 0; `pnpm --filter @estetica/client lint` → Exit 1 pero cero regresiones nuevas (los 9 problemas preexistentes caen en 8 archivos no tocados por esta feature). Confirmó sandbox hermético vía `git status --porcelain apps/client` (timestamps de filesystem descartan que `index.css`/`index.html` se hayan tocado), borrado real (no solo vaciado) de `ThemeToggle.tsx`/`useIsDark.ts`, cero usos residuales de `dark:` en `.tsx`/`.jsx`, y **verificó línea por línea el role-gating del sidebar contra el diff para descartar regresión de permisos**.
+* **Veredicto:** APPROVED, 1 ronda. Ver `progress/reviews/review_UX-32.md`.
+* **`feature_list.json`:** `UX-32` → `"done"`.
+* **Estado del backlog del rediseño:** `UX-33` (Dashboard/tablas/listados) es la siguiente feature a activar, ahora que `useTopbar`/`TopbarProvider` está disponible para que las vistas lo consuman. `UX-34`/`UX-35` quedan `pending`.
+
+---
+
+## 2026-07-21 — UX-33: Rediseño Shear Etapa 3 (Dashboard, tablas y listados) + UX-36: correcciones post-QA visual
+
+* **Agente:** Claude (Leader) + implementer (5 rondas: sub-lotes A/B/C/D de UX-33 + UX-36) + reviewer (1 ronda, conjunta).
+* **Objetivo:** completar la Etapa 3 del rediseño visual «Shear» (`docs/design.md`, plan completo en `progress/plan_shear-redesign.md`) migrando Dashboard, Clientes, Historial e Inventario al nuevo lenguaje visual, y corregir 4 hallazgos puntuales reportados por el usuario durante la revisión visual en vivo.
+
+* **UX-33 — sub-lotes:**
+  - **A** — primitivos compartidos `components/ui/{Modal,ConfirmModal,Pagination}.tsx` remapeados a tokens Shear, sin `box-shadow` decorativo.
+  - **B** — `views/Dashboard.tsx` + `utils/appointmentStatus.tsx`: KPIs con jerarquía label/cifra, bloque destacado `wine` "Ingresos de la semana", lista "Citas de hoy", panel "Poco stock".
+  - **C** — `views/Clients.tsx` + `ClienteModal.tsx` + `CargaMasivaClientesModal.tsx` + `views/Historial.tsx`: tabla §7.8, avatar con tint rotativo determinístico (hash sobre `_id`), patrón *stretched link* para filas clickeables sin `<tr onClick>`.
+  - **D** — `views/Inventario.tsx` (venía migrado de una sesión previa interrumpida, verificado sin reescritura) + `ProductoModal.tsx`/`AjusteStockModal.tsx`/`CargaMasivaModal.tsx`: badges "En stock"/"Reponer" con trifecta, selector Ingreso/Egreso con color semántico `sage`/`alert`.
+
+* **UX-36 — correcciones post-QA visual (reporte directo del usuario, 2026-07-21):**
+  1. Sacada la entrada "Mi Negocio" del sidebar (`AppLayout.tsx`) — la ruta sigue existiendo, solo se retiró el nav.
+  2. Sacado el buscador del topbar (`AppLayout.tsx`, componente `Topbar`) — sin funcionalidad conectada, decisión técnica/de tiempo del usuario.
+  3-4. **Bug real de contraste detectado y corregido**: `Servicios.tsx` (badge de días de retoque) y `AppointmentDetail.tsx` (caja de Notas) mostraban texto invisible porque el puente de tokens de UX-31 hace que `bg-muted` y `text-muted-foreground` resuelvan al mismo hex (`--muted: #A08D95`, pensado como color de texto, no de fondo). Fix puntual: `bg-muted` → `bg-surface-2`. Patrón documentado como gotcha reutilizable en `docs/patterns-frontend.md` § P13 para que UX-34 no lo reintroduzca en las vistas todavía no migradas.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0, `pnpm --filter @estetica/client build` Exit 0, lint sin issues nuevos en los 16+3 archivos tocados (errores/warnings preexistentes en `react-bits/*`, `RegistroModal.tsx`, `Negocio.tsx`, `Turnos.tsx`, ajenos a esta sesión). Reviewer: **APPROVED** en ambas → `progress/reviews/review_UX-33.md`, `progress/reviews/review_UX-36.md`. UX-33 y UX-36 → **done**.
+
+* **Hallazgos no bloqueantes para backlog (deuda preexistente, no introducida por esta sesión):**
+  - `Clients.tsx`: `getClients()` sigue sin paginación server-side (client-side filtering desde EP-02) — candidato a migración P1/P3 junto con el resto de listados no paginados.
+  - `CargaMasivaClientesModal.tsx`/`CargaMasivaModal.tsx`: botones de footer sin `type="button"` explícito (sin impacto funcional, no están dentro de `<form>`).
+  - **Riesgo sistémico:** el bug de colisión `bg-muted`+`text-muted-foreground` puede reaparecer en cualquier vista de UX-34 todavía no migrada (Turnos, Profesionales, Negocio, Disponibilidad, ProfileClient, RegistroModal, Login, Register) — ver `docs/patterns-frontend.md` § P13.
+
+---
+
+## 2026-07-21 — UX-37: Rediseño Shear Fase 2 (Landing pública)
+
+* **Agente:** Claude (Leader) + explorer (1 ronda) + implementer (4 rondas: sub-lotes A/B/C/D) + reviewer (1 ronda).
+* **Objetivo:** migrar `views/Landing.tsx` (759 líneas) al sistema Shear y eliminar por completo `components/react-bits/` + las dependencias de animación (`motion`, `gsap`, `@gsap/react`, `ogl`) que solo la Landing consumía — fase 2 planificada en `progress/plan_shear-redesign.md` Etapa 0, pospuesta hasta cerrar el ciclo principal (UX-31..UX-33/UX-36).
+
+* **Exploración previa** (`explore_UX-37.md`): confirmó 8 de los 11 componentes react-bits en uso real, 3 huérfanos (GlareHover, GlassIcons, y **SplitText** — hallazgo nuevo que corregía el plan original, único consumidor restante de `@gsap/react`). Las 4 deps de animación quedaron confirmadas 100% aisladas a Landing+react-bits. Propuso fragmentar en 4 sub-lotes secuenciales (un solo dueño de `Landing.tsx` por vez).
+
+* **Sub-lotes:**
+  - **A** — Nav + Hero + HeroMockup: `ClickSpark`/`Aurora`(ogl)/`TextType` retirados sin reemplazo o por versión estática ("simplifica" fija); nav pill con blur/sombra → header sólido `bg-surface` sticky; botones CTA migrados de `rounded-full` a `rounded-ctrl` estándar (decisión del leader: consistencia sobre estética de marketing).
+  - **B** — Features + Stats: `HorizontalScrollFeatures` (scroll-jacking `h-[300vh]`+`sticky`+`useScroll`/`useTransform`) reemplazado por grid estático responsive, preservando copy/orden exacto de las 6 features (cambio estructural documentado explícitamente para el reviewer). `GradientText`/`SpotlightCard`/`CountUp` retirados.
+  - **C** — How it works + CTA final + Footer: `ShinyText`+`animate-ping` → número estático con tinte rotativo; `Aurora`+`StarBorder` del CTA → único bloque `bg-wine` sólido de la página con botón invertido `bg-white text-wine` (accent pierde contraste sobre wine, documentado).
+  - **D** — Limpieza: grep previo confirmó cero consumidores inesperados fuera de `react-bits/`; borrado completo de `components/react-bits/` (19 archivos/11 carpetas) vía `git rm -r`; `pnpm remove motion gsap @gsap/react ogl` en `apps/client/`.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0, `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` **Exit 0 limpio** (los 4 errores preexistentes de `react-bits/Aurora|SplitText|TextType` desaparecieron al eliminarse esos archivos). Reviewer verificó en vivo (no solo tomó lo declarado): grep de tokens legacy/sombras/lift/gradientes en `Landing.tsx` → 0; grep de `react-bits`/`motion`/`gsap`/`ogl` en `apps/client/src` → 0; contenido de las 6 features y 3 pasos preservado íntegro (sin diff en esos arrays); rutas/guard de auth intactos; `AceptarInvitacion.tsx` confirmado fuera de alcance. **UX-37 → APPROVED** → `progress/reviews/review_UX-37.md`. UX-37 → **done**.
+
+* **Hallazgo no bloqueante para backlog:** `HeroMockup()` usa `p-3`/`p-4` en sus mini-cards decorativas, por debajo del `p-6` mínimo exigido a cards de dashboard reales — aceptado por ser ilustración decorativa en miniatura, no componente funcional; respetar `p-6` si el patrón se reutiliza en una vista real.
+
+* **Estado del ciclo Shear al cierre de esta sesión:** UX-31, UX-32, UX-33, UX-36 y UX-37 → **done**. Quedan **pending**: UX-34 (Agenda/Servicios/Config/perfiles) y UX-35 (limpieza de alias-puente + cierre final del ciclo).

@@ -1,611 +1,527 @@
-# Sistema de Diseño y Directrices de Interfaz (Maison CRM UI/UX)
+# Shear — Sistema de Diseño e Interfaz (Guía de Implementación UI)
 
-> **Estándar de Calidad para el Subagente Revisor:** Este documento rige de manera inmutable el aspecto visual, accesibilidad y comportamiento de la interfaz de usuario en `apps/client`. El subagente `reviewer` evaluará los componentes creados por el `implementer` contra estas especificaciones. Si un patrón o token visual no se encuentra en este archivo, se considerará inválido.
-
----
-
-## 1. Filosofía de Interfaz: Clean Minimalism
-
-Maison CRM adopta un enfoque de **minimalismo limpio y cálido** diseñado para la operación diaria de un centro de estética. La interfaz prioriza la legibilidad de datos del cliente, la velocidad de registro de visitas y el escaneo rápido del estado de retoques e inventario. Las superficies son claras, los acentos tipográficos son serif para elegancia, y los estados críticos usan colores vibrantes sobre fondos neutros.
-
-### El Patrón Bento Grid Estructural
-
-La distribución de información en Dashboards y listados se organiza mediante celdas modulares:
-
-- Cada tarjeta dentro de la grilla tiene fondo blanco sólido, bordes beige sutiles y un propósito informativo único.
-- El espacio en blanco separa conceptos, reduciendo la fatiga cognitiva del operador sin sacrificar densidad de datos.
+> **Estándar de calidad para revisión de componentes.** Este documento rige de manera
+> inmutable el aspecto visual, la accesibilidad y el comportamiento de la interfaz de **Shear**,
+> la app de gestión para estéticas (multitenant). Cualquier componente nuevo debe evaluarse
+> contra estas especificaciones: si un patrón o token visual no está aquí, se considera inválido
+> y debe proponerse como adición a este documento antes de implementarse.
+>
+> **Reemplaza por completo** cualquier guía de diseño previa (paleta rose/durazno con
+> `Fraunces` + `Manrope`, tokens shadcn/Tailwind v4, modo oscuro, animaciones de *lift* en
+> botones). Ese sistema queda obsoleto. La referencia canónica de tokens es `desing-system.md`;
+> este archivo la desarrolla en patrones de componente, accesibilidad, responsive y reglas de
+> implementación.
 
 ---
 
-## 2. Paleta de Colores Inmutable (Tokens Tailwind v4)
+## 1. Filosofía de interfaz
 
-Los tokens se definen en `apps/client/src/index.css` mediante la estructura `:root` + `@theme inline` de Tailwind v4 (patrón shadcn). Adaptada desde un theme shadcn con oklch, convertido a hex para consistencia.
+Shear adopta un **minimalismo limpio, cálido y femenino**, pensado para el uso diario de una
+recepcionista o dueña de estética: alta legibilidad de datos de clientas, lectura rápida del
+estado de turnos y stock, y una sola superficie de color fuerte por vista para no saturar.
 
-### 2.1 Colores de Marca (Maison)
+1. **Limpio y respirado** — mucho espacio en blanco, tarjetas claras sobre fondo cálido
+   (`bg` `#FAF6F4`), un solo nivel de sombra sutil. Nada de gradientes ni bordes de acento gruesos.
+2. **Jerarquía por tipografía, no por color** — los títulos usan la serif `Cormorant Garamond`;
+   el color fuerte (vino/rosa) se reserva para acentos, estados y datos clave. La interfaz
+   evita depender de iconografía decorativa: los puntos de color, los avatares con iniciales y
+   el peso tipográfico hacen el trabajo que en otros sistemas haría un ícono.
+3. **Máximo 1–2 fondos por vista** — casi todo vive sobre `bg` y `surface` (blanco). El vino
+   profundo `#6B3444` aparece **una sola vez por vista**, en un bloque destacado (ver §7.6).
+4. **Color con significado** — cada categoría de servicio y cada estado de turno/stock tiene un
+   color fijo (§4 y §8). No se introduce color decorativo sin propósito semántico.
+5. **Personalizable por tenant** — `accent` y el nombre de marca son variables por estética;
+   todo lo demás permanece constante para garantizar consistencia entre tenants.
 
-| Token | Valor Hex | Uso y Aplicación en la Interfaz |
-|-------|-----------|---------------------------------|
-| `--color-background` | `#faf6f1` | Fondo general de la aplicación. Rose muy claro, cálido. |
-| `--color-foreground` | `#7a6a5e` | Color por defecto para texto principal y títulos. Rose oscuro. |
-| `--color-card` | `#ffffff` | Fondo de tarjetas, bloques Bento Grid, tablas, modales. Blanco puro. |
-| `--color-primary` | `#c97580` | Rose medio. Botones primarios, fondos de acción, texto de alto impacto. |
-| `--color-primary-foreground` | `#ffffff` | Texto sobre fondos primary. |
-| `--color-secondary` | `#f2ece5` | Fondo secundario, badges sutiles, hover states. |
-| `--color-secondary-foreground` | `#7a6a5e` | Texto sobre fondos secondary. |
-| `--color-muted` | `#f7f2ed` | Fondos sutiles, secciones de nota, estados inactivos. |
-| `--color-muted-foreground` | `#a89888` | Metadatos, subtítulos, etiquetas secundarias. |
-| `--color-accent` | `#f5d5cc` | Acentos rose claros, hover de sidebar items. |
-| `--color-accent-foreground` | `#c4656a` | Texto sobre fondos accent. |
-| `--color-border` | `#ead9cf` | Borde por defecto en tarjetas, inputs, tablas y divisores. |
-| `--color-input` | `#ead9cf` | Borde de inputs (igual que border). |
-| `--color-ring` | `#80a890` | Verde semántico: retoques futuros, stock saludable, operaciones exitosas. |
-| `--color-destructive-subtle` | `#f5e0e0` | Fondo pastel rojo para hover de botones de acción (cancelar). |
-| `--color-ring-subtle` | `#dde8e2` | Fondo pastel verde para hover de botones de acción (completar). |
-| `--color-destructive` | `#d04040` | Rojo semántico: retoques atrasados, stock agotado, errores. |
-| `--color-destructive-foreground` | `#fdfcfd` | Texto sobre fondos destructive. |
-| `--color-warning` | `#E5A059` | Naranja semántico: retoques próximos (1-7 días), stock bajo (≤ 5), notas médicas. |
-| `--color-warning-foreground` | `#5c4b43` | Texto sobre fondos warning. |
+### Patrón de grilla modular (dashboard)
 
-### 2.2 Colores del Sidebar
-
-Tokens dedicados para la sidebar de navegación, permitiendo un estilo independiente del contenido principal.
-
-| Token | Valor Hex | Uso |
-|-------|-----------|-----|
-| `--color-sidebar` | `#f9f4ef` | Fondo de la sidebar. |
-| `--color-sidebar-foreground` | `#7a6a5e` | Texto general de la sidebar. |
-| `--color-sidebar-primary` | `#d46670` | Elemento primario activo en sidebar. |
-| `--color-sidebar-primary-foreground` | `#ffffff` | Texto sobre fondos sidebar-primary. |
-| `--color-sidebar-accent` | `#f5d5cc` | Fondo de item activo / hover en sidebar. |
-| `--color-sidebar-accent-foreground` | `#c4656a` | Texto de item activo en sidebar. |
-| `--color-sidebar-border` | `#edddd4` | Bordes y divisores dentro de la sidebar. |
-
-> **Contraste AA mínimo verificado:** `text-foreground` (#7a6a5e) sobre `bg-background` (#faf6f1) = ~7:1. `text-sidebar-foreground/60` sobre `bg-sidebar` = suficiente para texto secundario.
-
-### 2.3 Modo Oscuro (Dark Mode)
-
-El sistema soporta modo oscuro mediante la clase `.dark` en `<html>`. Los tokens se redefinen en `index.css` bajo el bloque `.dark {}`. La paleta oscura es un tema shadcn adaptado con tonos cálidos rose/marrón.
-
-| Token | Valor Hex (Dark) | Equivalente Light |
-|-------|------------------|-------------------|
-| `--background` | `#332c28` | `#faf6f1` |
-| `--foreground` | `#e8ddd4` | `#7a6a5e` |
-| `--card` | `#3d3530` | `#ffffff` |
-| `--card-foreground` | `#e8ddd4` | `#7a6a5e` |
-| `--primary` | `#d46670` | `#c97580` |
-| `--primary-foreground` | `#332c28` | `#ffffff` |
-| `--secondary` | `#443b35` | `#f2ece5` |
-| `--muted` | `#443b35` | `#f7f2ed` |
-| `--accent` | `#4a3a35` | `#f5d5cc` |
-| `--accent-foreground` | `#e8a0a0` | `#c4656a` |
-| `--border` | `#4a403a` | `#ead9cf` |
-| `--destructive-subtle` | `#5a3535` | `#f5e0e0` |
-| `--ring-subtle` | `#3a5045` | `#dde8e2` |
-| `--sidebar` | `#2a2420` | `#f9f4ef` |
-| `--sidebar-accent` | `#4a3a35` | `#f5d5cc` |
-| `--sidebar-border` | `#443b35` | `#edddd4` |
-
-**Componente:** `apps/client/src/components/ui/ThemeToggle.tsx` — botón que alterna entre `FiSun` / `FiMoon`, persiste preferencia en `localStorage` bajo la key `theme`.
-
-**Transición:** `body` tiene `transition: background-color 0.2s ease, color 0.2s ease` para un cambio suave entre modos.
-
-**Uso de tokens en dark mode:** Todas las clases de Tailwind que usan tokens CSS (`bg-background`, `text-foreground`, `bg-card`, etc.) cambian automáticamente al alternar modos. No se requieren clases `dark:` explícitas cuando se usan tokens del theme.
-
-### 2.4 Colores del Sistema (Tailwind nativos)
-
-Usar directamente clases Tailwind para escalas de grises, manteniendo consistencia:
-
-| Clase | Hex | Uso |
-|-------|-----|-----|
-| `text-gray-400` | `#9CA3AF` | Metadatos, subtítulos, etiquetas secundarias |
-| `text-gray-500` | `#6B7280` | Texto de cuerpo secundario, placeholders |
-| `text-gray-600` | `#4B5563` | Texto de interfaz, contenido de tablas |
-| `bg-gray-50` | `#F9FAF8` | Fondos de filas hover, badges, secciones de nota |
-| `bg-gray-200` | `#E5E7EB` | Esqueletos (skeleton loading) `animate-pulse` |
+El panel de Inicio organiza la información en celdas independientes: 4 tarjetas KPI en fila,
+dos columnas de contenido (lista de turnos del día + panel lateral de stock y bloque destacado
+de ingresos). Cada celda tiene un propósito informativo único y fondo blanco sólido con borde
+sutil — nunca sombra pronunciada.
 
 ---
 
-## 3. Sistema Tipográfico y Jerarquía
+## 2. Paleta de color
 
-Maison CRM utiliza una combinación de dos familias tipográficas.
+Fuente canónica: `desing-system.md §2`. Se referencia aquí junto a su aplicación concreta en
+las vistas existentes (Inicio, Agenda, Clientes, Servicios, Productos, Configuración).
 
-- **Títulos y Display:** `"Fraunces"` (Serif variable weight 100-900, elegante y legible; confiere calidez a títulos de página y encabezados de módulo).
-- **Cuerpo e Interfaz (UI):** `"Manrope"` (Sans-serif geométrico moderno; lectura limpia en todos los tamaños).
+### 2.1 Neutros / superficies
 
-Ambas declaradas en `@theme inline` como `--font-serif` y `--font-sans`, y cargadas via Google Fonts en `index.html`.
+| Token | Hex | Uso confirmado en la UI |
+|---|---|---|
+| `bg` | `#FAF6F4` | Fondo del área de contenido, detrás de sidebar y topbar |
+| `surface` | `#FFFFFF` | Sidebar, topbar, tarjetas, filas de tabla, cards de servicio |
+| `surface-2` | `#FDFAFB` | Cabecera de tabla (Clientes/Productos), fila hover, segmented control inactivo |
+| `border` | `#F0E4E4` | Borde de tarjetas y borde derecho de sidebar / inferior de topbar |
+| `border-soft` | `#F7EFF1` | Divisor entre filas de "Citas de hoy" y "Poco stock" |
+| `dotted` | `#E7D8DC` | Punto de nav inactivo, línea punteada de precios (Servicios), track de toggle off |
 
-### Escala de Utilidades Tipográficas
+### 2.2 Texto
 
-| Uso | Clase | Fuente | Tamaño | Tracking |
-|-----|-------|--------|--------|----------|
-| Saludo / Título de página | `font-serif text-3xl sm:text-4xl` | Fraunces | `1.875rem` / `2.25rem` | normal |
-| Título de modal | `font-serif text-2xl` | Fraunces | `1.5rem` | normal |
-| Título de tarjeta/módulo | `font-serif text-xl` | Fraunces | `1.25rem` | normal |
-| Número estadístico (KPI) | `font-serif text-3xl` | Fraunces | `1.875rem` | normal |
-| Nombre de servicio en card | `font-serif text-xl` | Fraunces | `1.25rem` | normal |
-| Iniciales de avatar | `font-serif text-lg` | Fraunces | `1.125rem` | normal |
-| Cuerpo estándar | `font-sans text-sm` | Manrope | `0.875rem` | normal |
-| Label de sección | `font-sans text-xs font-semibold tracking-widest uppercase` | Manrope | `0.75rem` | `0.1em` |
-| Tabla / dato tabular | `font-sans text-sm` | Manrope | `0.875rem` | normal |
-| Badge / pill | `font-sans text-xs font-semibold` | Manrope | `0.75rem` | normal |
+| Token | Hex | Uso confirmado |
+|---|---|---|
+| `text` | `#3E2A33` | Nombre de clienta en tabla/lista, cifras KPI (excepto alerta) |
+| `text-2` | `#5C4650` | Cuerpo general, texto de fila |
+| `text-3` | `#7A666E` | Ítem de nav inactivo, subtítulo de fila |
+| `muted` | `#A08D95` | Labels en mayúscula ("INGRESOS HOY"), metadatos, "Mínimo sugerido: X u." |
+| `placeholder` | `#B9A6AD` | Placeholder del buscador del topbar |
 
-### Principios de Jerarquía Visual
+### 2.3 Marca / acentos
 
-#### Emphasize by De-emphasizing
-- Las **etiquetas secundarias** de tarjetas, secciones y cabeceras usan: `text-xs` · `uppercase` · `tracking-widest` · `font-semibold` · color atenuado (`text-gray-400`).
-- El **dato principal** (número de KPI, nombre de cliente) ejerce peso visual mediante la fuente serif (`font-serif`), tamaños grandes (`text-3xl`/`text-4xl`) y color `text-foreground`.
-- Prohibido que la etiqueta secundaria compita en peso visual con el dato principal.
+| Token | Hex | Uso confirmado |
+|---|---|---|
+| `accent` | `#B76E84` (personalizable) | Botón "+ Nueva cita", ítem de nav activo (punto), links ("Ver agenda →", "Productos →"), hoy en mini calendario |
+| `accent-rose` | `#D98BA4` | Foco de input, categoría Color/Pestañas/Maquillaje, barra de agenda de la Colorista |
+| `wine` | `#6B3444` | Bloque "Ingresos de la semana", avatar de dueña (MR), precios en lista de Servicios, texto de tab activo |
+| `sage` | `#8C9178` | Categoría Corte/Faciales/Depilación, estado "Completada"/"En stock" |
+| `gold` | `#C89A5B` | Categoría Uñas, barra de agenda de la Manicurista |
 
-#### Labels are a Last Resort
-- Los datos deben autocontextualizarse mediante formato o posición en el layout.
-- Micro-iconos semánticos (`react-icons/fi`) acompañan datos cuando aportan contexto.
-- Los placeholders en inputs siguen formato: `"Ej: Coloración completa"`.
+### 2.4 Tintes de fondo (chips, avatares, bloques suaves)
+
+| Token | Hex | Pareja de texto | Uso confirmado |
+|---|---|---|---|
+| `rose-bg` | `#F7E7EC` | `#B76E84` | Badge "Confirmada", chip "Color"/"Pestañas", avatar tint, día con turnos en mini calendario |
+| `sage-bg` | `#EEF0E6` | `#71774F` | Badge "Completada"/"En stock", chip "Faciales"/"Corte" |
+| `gold-bg` | `#F6EFE3` | `#A87C3F` | Badge "Sin confirmar", chip "Uñas" |
+| `wine-bg` | `#EFE3E8` | `#6B3444` | Avatar tint alternativo |
+| `alert-bg` | `#F9E8E2` | `#B0553F` | Badge "Reponer", stock crítico (cifra + barra de progreso en rojo) |
+
+> **Regla de acento por tenant:** el acento se elige de una paleta curada
+> (`#B76E84`, `#6B3444`, `#8C9178`, `#C89A5B`) — nunca de un selector libre — para garantizar
+> contraste AA sobre blanco y sobre `rose-bg` sin importar qué tenant lo use.
 
 ---
 
-## 4. Componentes y Patrones de UI
+## 3. Tipografía
 
-### 4.1 Sidebar (Navegación)
-
-| Propiedad | Valor |
-|-----------|-------|
-| Fondo | `bg-sidebar` (sin border-right para integración limpia con el contenedor flotante) |
-| Ancho | `w-64` (fijo) |
-| Brand | Solo logo (`/shear-logo.png`), sin texto adicional |
-| Ítems | Layout flex con ícono + texto: `flex items-center gap-3 px-3 py-2 rounded-lg text-sm` |
-| Ítems inactivos | `text-sidebar-foreground/60` con `hover:text-sidebar-foreground hover:bg-sidebar-accent/50` |
-| Ítem activo | `bg-sidebar-accent text-sidebar-accent-foreground` |
-| Íconos | `react-icons/fi`, tamaño `size={18}`, alineados a la izquierda del texto |
-| Secciones | Divisores `border-t border-sidebar-border` con labels `text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40` |
-| Transición | `transition-colors` |
-| Móvil | Slide-in desde izquierda con overlay `bg-black/40 backdrop-blur-sm`, header sticky con hamburguesa `FiMenu`/`FiX` |
-| Cierre | Botón `FiX` en header + clic en overlay + clic en enlace (`closeMenu`) |
-| Footer | `ThemeToggle` + `UserButton` (Clerk) + label "Mi Cuenta", separado por `border-t border-sidebar-border` |
-
-### 4.1.1 Elevación del Contenido Principal
-
-El área de contenido principal se rendering como un contenedor con elevación visual sobre la sidebar:
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor externo | `flex-1 p-3 md:p-4 overflow-x-hidden overflow-y-auto` |
-| Contenedor interno | `bg-card border border-border rounded-xl shadow-lg min-h-full` |
-| Padding interno | `p-4 md:p-8` |
-
-**Efecto visual:** El `shadow-lg` + `rounded-xl` del contenedor interno crea la ilusión de que el contenido "sobresale" sobre la sidebar, similar al patrón de shadcn/ui dashboard. En modo oscuro, las sombras se intensifican automáticamente via los tokens `--shadow-*` redefinidos en el bloque `.dark`.
-
-### 4.1.1 Íconos de Navegación (Sidebar)
-
-Cada ítem de navegación incluye un ícono de `react-icons/fi` (Feather Icons) tamaño 18px:
-
-| Ruta | Label | Ícono |
-|------|-------|-------|
-| `/dashboard` | Inicio | `FiHome` |
-| `/clientes` | Clientes | `FiUsers` |
-| `/servicios` | Servicios | `FiScissors` |
-| `/inventario` | Inventario | `FiPackage` |
-| `/turnos` | Turnos | `FiCalendar` |
-| `/profesionales` | Profesionales | `FiUser` |
-| `/configuracion/negocio` | Mi Negocio | `FiBriefcase` |
-| `/configuracion/disponibilidad` | Disponibilidad | `FiClock` |
-| `/configuracion/notificaciones` | Notificaciones | `FiBell` |
-
-**Regla:** Los íconos son obligatorios en la sidebar. No se permiten ítems de navegación sin ícono.
-
-### 4.2 Botones
-
-| Tipo | Clases | Uso |
-|------|--------|-----|
-| **Primario** | `bg-primary hover:bg-accent hover:text-accent-foreground text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer` | Acciones principales (Nueva Visita, Agregar Cliente, Guardar) |
-| **Secundario** | `bg-card border border-border hover:border-primary/40 text-muted-foreground px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer` | Acciones secundarias (Directorio, Carga Masiva) |
-| **En línea** (icon button) | `p-2 text-muted-foreground hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm cursor-pointer` | Editar, Eliminar (dentro de cards) |
-| **En línea con hover reveal** | `sm:opacity-0 sm:group-hover:opacity-100 transition-opacity` | Acciones que aparecen al hover de la card/fila |
-| **Modal footer** | `px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm` | Cancelar (texto gris, hover bg-accent), Guardar (primario con hover bg-accent) |
-| **Disabled** | `disabled:bg-gray-400 disabled:cursor-not-allowed` | Botón primario deshabilitado |
-
-#### Animación de Hover (Botones)
-
-Todos los botones interactivos usan la misma micro-animación para consistencia:
-
-| Propiedad | Clase | Efecto |
-|-----------|-------|--------|
-| Transición | `transition-all duration-200` | Transición suave de 200ms en todas las propiedades |
-| Elevación | `hover:shadow-md` | Sombra más pronunciada en hover |
-| Lift | `hover:-translate-y-0.5` | Desplazamiento vertical de 2px hacia arriba |
-| Snap back | `active:translate-y-0 active:shadow-sm` | Vuelve a la posición original al hacer click |
-
-**Regla:** Esta animación aplica SOLO a elementos `<button>` y `<a>`/`<Link>`. NO se aplica a `<li>`, `<tr>`, `<div>` interactivos, `<label>`, ni toggles — esos usan `transition-colors` sin animación de lift.
-
-### 4.3 Tarjetas (Cards)
-
-| Propiedad | Valor |
-|-----------|-------|
-| Fondo | `bg-card` |
-| Borde | `border border-border` |
-| Border radius | `rounded-lg` (8px) |
-| Padding | `p-5` o `p-6` |
-| Sombra | `shadow-sm` (sutil en reposo) |
-| Hover | `hover:shadow-md` (cards interactivas) |
-| Transición | `transition-all` o `transition-colors` |
-
-### 4.4 Formularios (Inputs)
-
-| Propiedad | Valor |
-|-----------|-------|
-| Fondo | `bg-background` |
-| Borde default | `border border-border` |
-| Borde error | `border-destructive` |
-| Border radius | `rounded-lg` (8px) |
-| Padding | `px-4 py-2.5` |
-| Focus | `focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring` |
-| Label | `text-xs font-bold tracking-widest text-gray-500 uppercase` |
-| Placeholder | `placeholder:text-gray-400` o texto inline |
-
-**Nota:** El focus ring usa el token `--color-ring` (#80a890, verde seco) para dar feedback visual consistente con la semántica del sistema (operaciones exitosas, estado saludable).
-
-### 4.4.1 React-Select (Selects Inteligentes)
-
-Los componentes `react-select` usan inline styles para mantener consistencia con el theme:
-
-| Propiedad | Valor |
-|-----------|-------|
-| Fondo control | `#fff9f6` (bg-background) |
-| Borde default | `#E5E7EB` |
-| Borde focus | `#80a890` (ring, verde seco) |
-| Focus ring | `0 0 0 2px #80a890` |
-| Hover borde | `#D1D5DB` |
-| Border radius | `0.5rem` (rounded-lg) |
-| Opción selected | `#111827` fondo, `white` texto |
-| Opción focus | `#F3F4F6` fondo |
-
-**Nota:** Los valores hex en `selectStyles` deben mantenerse sincronizados con los tokens CSS del theme.
-
-### 4.5 Modal
-
-Basado en el componente `Modal` (`apps/client/src/components/ui/Modal.tsx`).
-
-| Elemento | Clases / Valor |
-|----------|----------------|
-| Overlay | `fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm` |
-| Contenedor | `bg-card border border-border rounded-lg w-full {maxWidth} shadow-xl overflow-hidden` |
-| Max width default | `max-w-md` (puede variar: `max-w-lg`, `max-w-3xl`) |
-| Header | `p-5 sm:p-6 border-b border-border bg-background shrink-0` |
-| Título | `font-serif text-2xl text-foreground` |
-| Subtítulo | `text-gray-500 text-sm mt-0.5` |
-| Body | `p-5 sm:p-6 overflow-y-auto custom-scrollbar` |
-| Footer | `p-5 sm:p-6 border-t border-border bg-gray-50/50 flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0` |
-| Footer botón Cancelar | `px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer` |
-| Footer botón Primario | `bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer` |
-
-### 4.6 Tablas
-
-| Elemento | Clases / Valor |
-|----------|----------------|
-| Contenedor | `bg-card border border-border rounded-lg shadow-sm overflow-hidden` |
-| Scroll horizontal | `overflow-x-auto` wrap, `min-w-[520px]` en `<table>` |
-| Table | `w-full text-left border-collapse` |
-| Head | `border-b border-border bg-background/50` |
-| TH | `px-4 sm:px-6 py-4 text-xs font-bold tracking-widest text-gray-500 uppercase` |
-| Body rows | `divide-y divide-border` |
-| Hover | `hover:bg-gray-50 transition-colors` |
-
-### 4.7 Badges / Pills
-
-| Propiedad | Valor |
-|-----------|-------|
-| Clase base | `inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border` |
-| Verde (stock ok) | `bg-green-50 text-green-600 border-green-200` |
-| Naranja (stock bajo) | `bg-orange-50 text-orange-600 border-orange-200` |
-| Rojo (sin stock) | `bg-red-50 text-red-600 border-red-200` |
-| Rojo (atrasado) | `bg-red-50 text-destructive border border-red-100` |
-| Naranja (próximo) | `bg-orange-50 text-warning border border-orange-100` |
-| Verde (futuro) | `bg-green-50 text-ring border border-green-100` |
-| Gris (lejano) | `bg-gray-50 text-gray-500 border border-gray-200` |
-
-### 4.8 Skeleton Loading
-
-| Elemento | Clases |
-|----------|--------|
-| Contenedor | `animate-pulse` |
-| Bloque | `h-{n} bg-gray-200 rounded-{w}` |
-| Avatar | `w-{n} h-{n} bg-gray-200 rounded-full shrink-0` |
-| Texto línea | `h-{n} bg-gray-200 rounded w-{frac}` |
-
-Los skeletons replican exactamente la estructura visual del contenido real (mismas clases de layout, gap, flex) para evitar saltos de layout (CLS).
-
-### 4.9 Search Input
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `relative w-full sm:w-96` |
-| Icono | `absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400` |
-| Input | `w-full pl-11 pr-4 py-2.5 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-all shadow-sm` |
-
-### 4.10 Empty States
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `bg-card border border-border rounded-2xl p-12 text-center shadow-sm` |
-| Icono wrapper | `w-16 h-16 bg-background border border-border rounded-full flex items-center justify-center mx-auto mb-4` |
-| Título | `text-lg font-serif text-foreground mb-2` |
-| Texto | `text-sm text-gray-500` |
-
-### 4.11 Error States
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `p-12 text-center text-destructive` |
-| Mensaje | Texto amigable: "No pudimos cargar los {recurso} en este momento. Por favor, intenta de nuevo." |
-
-### 4.12 Dashboard — Stat Card
-
-Tarjetas KPI del dashboard principal. Diseño compacto con borde accent en la parte superior.
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-4 flex items-center gap-3 hover:shadow-md hover:border-t-primary/60 transition-all duration-200 cursor-default group` |
-| Icono wrapper | `bg-primary/10 p-2.5 rounded-lg shrink-0 group-hover:bg-primary/20 transition-colors` |
-| Icono | `text-lg text-primary` |
-| Label | `text-[10px] font-semibold tracking-widest text-muted-foreground uppercase` |
-| Número KPI | `text-2xl font-serif text-foreground leading-tight` |
-
-**Regla:** El borde superior `border-t-2 border-t-primary/30` crea un accent visual sutil que intensifica en hover (`hover:border-t-primary/60`). El icono usa `bg-primary/10` con transición a `group-hover:bg-primary/20`. El layout es compacto (`p-4`, `gap-3`, `items-center`) para mantener las cards visiblemente más pequeñas que las secciones principales.
-
-### 4.13 Dashboard — Section Card
-
-Contenedores de sección del dashboard (retoques, turnos, movimientos). Mismo patrón de borde accent que las stat cards.
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `bg-card border border-border border-t-2 border-t-primary/30 rounded-lg p-6 shadow-sm hover:border-t-primary/60 transition-all duration-200` |
-| Título sección | `text-xl font-serif text-foreground` |
-| Subtítulo | `text-sm text-muted-foreground mt-1` |
-| Skeleton blocks | `bg-muted` (no `bg-gray-200`) |
-
-**Regla:** Los skeleton loading usan `bg-muted` en lugar de `bg-gray-200` para mantener consistencia con los tokens del theme y soporte correcto de dark mode. El borde superior `border-t-primary/30` intensifica a `/60` en hover para feedback visual consistente con las stat cards.
-
-### 4.14 Dashboard — Timeline Item (Retoques)
-
-Items individuales dentro del timeline de retoques próximos.
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `relative flex justify-between items-center bg-card border border-border rounded-lg p-4 shadow-sm ml-6 hover:shadow-md hover:border-primary/30 transition-all duration-200` |
-| Dot indicador | `absolute -left-11.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full {dotColor} ring-4 ring-card` |
-| Avatar iniciales | `w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center font-serif text-lg text-primary` |
-| Nombre cliente | `font-medium text-foreground truncate` |
-| Nombre servicio | `text-sm text-muted-foreground mt-0.5 truncate` |
-| Badge status | `inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mb-1.5 {pillClass}` |
-| Fecha | `text-xs text-muted-foreground font-medium` |
-| Botón cancelar | `w-8 h-8 bg-card border border-border rounded-full flex items-center justify-center text-muted-foreground hover:bg-destructive-subtle hover:text-destructive hover:border-destructive transition-all cursor-pointer shadow-sm` |
-| Botón completar | `w-8 h-8 bg-card border border-border rounded-full flex items-center justify-center text-muted-foreground hover:bg-ring-subtle hover:text-ring hover:border-ring transition-all cursor-pointer shadow-sm` |
-
-**Regla crítica:** El `ring` del dot indicador DEBE usar `ring-card` (no `ring-white`) para que funcione correctamente en dark mode. El token `--color-card` se adapta automáticamente entre modos.
-
-### 4.15 Dashboard — Turno Item
-
-Items de la lista de próximos turnos. Incluye barra de color del profesional.
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `flex items-center gap-3 p-3 bg-card border border-border rounded-lg hover:shadow-md hover:border-primary/30 transition-all duration-200` |
-| Barra profesional | `shrink-0 w-1 h-8 rounded-full` con `style={{ backgroundColor: appt.professional?.color }}` |
-| Nombre cliente | `font-medium text-foreground text-sm truncate` |
-| Nombre servicio | `text-xs text-muted-foreground truncate` |
-| Fecha/hora | `text-xs text-muted-foreground/70 mt-0.5` |
-| Botones acción | Mismo patrón que Timeline Item (ver 4.14) |
-
-**Regla:** La barra de color del profesional usa un `div` vertical de 1px de ancho (`w-1`) con la color del professional como inline style. El fallback es `#9CA3AF` (gray-400) cuando no hay color definido.
-
-### 4.16 Dashboard — Pending Alert
-
-Alerta de turnos pendientes de registrar. Usa tokens `warning` del theme (no amber hardcodeado).
-
-| Propiedad | Valor |
-|-----------|-------|
-| Contenedor | `bg-warning/10 border border-warning/30 rounded-lg p-5 flex items-start gap-4 shadow-sm` |
-| Icono wrapper | `p-2.5 bg-warning/20 rounded-lg shrink-0` |
-| Icono | `text-xl text-warning` |
-| Título | `text-sm font-semibold text-warning-foreground` |
-| Descripción | `text-xs text-muted-foreground mt-1 mb-3` |
-| Link | `text-xs font-semibold text-warning-foreground underline hover:text-warning transition-colors` |
-
-**Regla de tokens:** Esta alerta DEBE usar tokens `warning` del theme (`bg-warning/10`, `text-warning`, `text-warning-foreground`) en lugar de colores amber hardcodeados (`bg-amber-50`, `text-amber-800`). Los tokens se adaptan automáticamente entre light y dark mode.
-
-### 4.17 Dashboard — Movement Item
-
-Items de la grilla de "Últimos movimientos". Cada item es un chip con fondo sutil para máxima claridad visual.
-
-| Propiedad | Valor |
-|-----------|-------|
-| Grid container | `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3` |
-| Item | `flex items-center gap-3 bg-muted/30 hover:bg-muted/50 rounded-lg px-3 py-2.5 transition-colors group cursor-default` |
-| Dot indicator | `w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary shrink-0 transition-colors` |
-| Nombre cliente | `font-medium text-foreground text-sm truncate` |
-| Nombre servicio | `text-xs text-muted-foreground truncate` |
-| Fecha | `text-[11px] text-muted-foreground font-medium tracking-wide shrink-0` |
-
-**Regla:** Cada movimiento se renderiza como un chip con `bg-muted/30` para diferenciarlo visualmente del fondo de la section card. El dot usa `bg-primary/40` que intensifica a `bg-primary` en hover del grupo (`group-hover`). El layout horizontal (`items-center`) mantiene dot + contenido + fecha en una sola línea para escaneo rápido.
-
----
-
-## 5. Bordes, Sombras y Radios
-
-| Elemento | Border Radius |
-|----------|---------------|
-| Tarjetas, modales, contenedores | `rounded-lg` (8px) |
-| Inputs, botones de modal | `rounded-lg` (8px) |
-| Badges, pills | `rounded-full` (9999px) |
-| Botones de acción (header) | `rounded-full` (9999px) |
-| Avatares, indicadores de timeline | `rounded-full` (9999px) |
-| Tabla, contenedor de tabla | `rounded-lg` (el overflow-hidden lo aplica) |
-
-- **Bordes:** El divisor por defecto es `1px` sólido usando `--color-border` (`#ebe0da`).
-- **Sombras:** Se usa `shadow-sm` para separar planos elevados en reposo. `shadow-md` en hover de cards interactivas. Prohibido `shadow-xl` o sombras difusas excepto en modales.
-- **Hover en cards:** `hover:shadow-md transition-all` (en cards de servicios, profesionales, etc.).
-
----
-
-## 6. Accesibilidad (WCAG 2.1 Nivel AA)
-
-### La Regla de Oro de la Trifecta Visual (Checkpoint C6)
-
-Queda terminantemente prohibido delegar la comunicación de un estado crítico **únicamente a un código de color**. Todo componente visual que exprese estados sensibles debe incluir de forma simultánea:
-
-1. **Color Semántico:** Texto e icono en el color del estado (rojo/naranja/verde).
-2. **Icono Descriptivo:** Provisto por `react-icons/fi` (Feather Icons).
-3. **Texto Descriptivo Claro:** Explicación textual del estado.
-
-#### Implementaciones existentes en la codebase:
-
-| Estado | Color | Icono | Texto |
-|--------|-------|-------|-------|
-| Notas médicas (cliente) | `--color-warning` | `(ninguno aún)` | Badge "Notas Médicas" con fondo `bg-orange-50` |
-| Stock bajo | `--color-warning` | `FiAlertTriangle` | Card "Stock Bajo (≤ 5)" con conteo |
-| Sin stock | `--color-destructive` | `FiBox` | Card "Sin Stock" con conteo |
-| Retoque atrasado | `--color-destructive` | (dot color) | Label "Atrasado Xd" |
-| Retoque próximo | `--color-warning` | (dot color) | Label "En X días" / "Mañana" |
-| Error en formulario | `--color-destructive` | `FiAlertCircle` | Mensaje de error debajo del input |
-| Operación exitosa | `--color-ring` | (toast nativo) | Toast "Cliente registrado exitosamente" |
-
-### Gestión de Foco
-
-- Todos los elementos interactivos usan `focus:outline-none` con `focus:ring-2 focus:ring-ring` (inputs) o patrón equivalente.
-- Botones icon-only deben tener `aria-label` descriptivo.
-- Checkboxes deben tener `<label>` asociado.
-
----
-
-## 7. Notificaciones (Toast)
-
-- **Librería:** `sonner` (`toast.success()`, `toast.error()`, `toast.info()`).
-- **Posición:** Top-right (default de sonner).
-- **Estilo personalizado para éxito:**
-  ```tsx
-  toast.success('Mensaje', {
-    style: { background: '#fff9f6', color: '#6b8e7b', borderColor: '#6b8e7b' }
-  })
-  ```
-- **Duración:** Default de sonner (aproximadamente 4s).
-
----
-
-## 8. Responsive Breakpoints
-
-| Breakpoint | Clase | Comportamiento |
-|------------|-------|----------------|
-| Móvil (`<640px`) | Default | Layout vertical, sidebar oculto, botones full-width relativos |
-| Tablet (`≥640px`) | `sm:` | Header con flex row, sidebar visible, grid de 2 columnas |
-| Desktop (`≥768px`) | `md:` | Sidebar fijo a la izquierda, grid de 2-3 columnas, hover reveals |
-| Desktop grande (`≥1024px`) | `lg:` | Grid de 3 columnas, sidebar + contenido en fila |
-
-Sidebar: en móvil ocupa toda la pantalla con slide-in; en `md:` es fija (`fixed md:relative`).
-
----
-
-## 9. Animaciones y Transiciones
-
-- **Hover en botones:** `transition-all duration-200` con lift (`hover:-translate-y-0.5`), elevación (`hover:shadow-md`) y snap back (`active:translate-y-0 active:shadow-sm`). Ver §4.2 para patrón completo.
-- **Hover en cards/filas:** `transition-colors` (150ms). Solo bots de acción usan lift.
-- **Hover reveals:** `sm:opacity-0 sm:group-hover:opacity-100 transition-opacity`.
-- **Sidebar móvil:** `transform transition-transform duration-300 ease-in-out`.
-- **Skeleton loading:** `animate-pulse` (Tailwind nativo, 2s infinite).
-- **Modal overlay:** sin animación de entrada (inmediatez). `backdrop-blur-sm` estático.
-- **Prohibido:** sombras animadas, gradientes, Framer Motion o librerías de animación externas.
-- **Prohibido en no-botones:** La animación de lift (`hover:-translate-y-0.5`) NO se aplica a `<li>`, `<tr>`, `<div>`, `<label>`, ni toggles.
-
-### 9.1 Page Transitions (Transiciones entre Vistas)
-
-Toda vista que se renderice dentro de `AppLayout` lleva una transición de entrada CSS al navegar entre secciones. Aplica a vistas actuales y futuras sin excepción.
-
-| Parámetro | Valor | Justificación |
-|-----------|-------|---------------|
-| Animación | `fadeIn` + `slideUp` | Entrada limpia y sutil, coherente con minimalismo |
-| Duración | `200ms` | Rápido pero perceptible (>300ms se siente lento) |
-| Easing | `ease-out` | Desaceleración natural al final |
-| Desplazamiento Y | `8px` (`translateY(8px)`) | Micro-movimiento vertical, nada dramático |
-| Opacidad | `0 → 1` | Fade in suave |
-
-**Keyframes:**
-
-```css
-@keyframes pageIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+```html
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
 
-**Clase utilitaria:** `.animate-page-in { animation: pageIn 200ms ease-out; }`
+- **`Cormorant Garamond`** (serif) — títulos de página, encabezados de tarjeta/sección, cifras
+  hero (KPI, montos). Aporta el carácter "estética / belleza" de la marca.
+- **`Figtree`** (sans) — todo el texto de interfaz: labels, cuerpo, botones, tablas, inputs,
+  badges.
 
-**Implementación en AppLayout:** Un `<div key={location.pathname} className="animate-page-in">` envuelve al `<Outlet />`. El `key` con la ruta fuerza el re-montado del componente al navegar, disparando la animación en cada cambio de ruta.
+| Uso | Familia | Tamaño | Peso | Notas |
+|---|---|---|---|---|
+| Cifra hero (KPI, monto destacado) | Cormorant | 30–36 px | 600 | Ej. `$ 186.500`, `$ 1.284.300` |
+| Título de página | Cormorant | 26 px | 600 | "Agenda", "Clientes", "Servicios" |
+| Encabezado de tarjeta/sección | Cormorant | 20 px | 600 | "Citas de hoy", "Poco stock", título de categoría de servicio |
+| Nombre / dato principal de fila | Figtree | 14 px | 600 | Nombre de clienta, nombre de producto |
+| Cuerpo | Figtree | 13.5 px | 400–500 | Texto de tabla, contacto |
+| Metadato / subtítulo | Figtree | 12.5 px | 400 | "Semipermanente · Micaela", "Mínimo sugerido: 6 u." |
+| Label (mayúsculas) | Figtree | 11.5–12.5 px, `letter-spacing:.04–.05em`, uppercase | 600–700 | "INGRESOS HOY", "CLIENTE", "CONTACTO" |
+| Chip / badge | Figtree | 11.5 px | 600 | "Confirmada", "En stock", "Uñas" |
 
-**Regla:** Esta transición es global y automática. Las vistas NO deben declarar su propia animación de entrada. La única clase necesaria es `.animate-page-in` aplicada por el layout.
-
----
-
-## 10. Iconografía
-
-- **Set:** `react-icons/fi` (Feather Icons — iconos delgados y minimalistas).
-- **Tamaños:** `text-lg` (1.125rem), `text-xl` (1.25rem), `text-2xl` (1.5rem), `text-5xl` (3rem para estados vacíos).
-- **Íconos usados en la codebase existente:**
-
-| Icono | Uso |
-|-------|-----|
-| `FiUsers` | KPI Total de Clientes |
-| `FiScissors` | KPI Servicios Realizados, estado vacío servicios |
-| `FiCalendar` | KPI Próximos Retoques |
-| `FiPlus` | Botón Nueva Visita, Agregar Servicio/Cliente/Producto |
-| `FiCheck` | Botón completar retoque |
-| `FiEdit2` | Botón editar (servicios, productos) |
-| `FiTrash2` | Botón eliminar (servicios) |
-| `FiClock` | Badge de retoque en días |
-| `FiBox` | Estado vacío / Sin Stock |
-| `FiAlertTriangle` | Alerta stock bajo |
-| `FiLayers` | KPI Total Productos |
-| `FiActivity` | Botón Ajustar Stock |
-| `FiUploadCloud` | Carga Masiva |
-| `FiSearch` | Input de búsqueda |
-| `FiFileText` | Icono archivo cargado |
-| `FiCheckCircle` | Confirmar Carga (masiva) |
-| `FiUser` | Botón Ver Perfil (cliente) |
-| `FiPhone` | Teléfono del cliente |
-| `FiMenu` | Hamburguesa (sidebar móvil) |
-| `FiX` | Cerrar (modal, sidebar móvil) |
-| `FiAlertCircle` | Error de formulario |
-| `FiInfo` | Info banner (producto en edición) |
-| `FiArrowUpRight` / `FiArrowDownRight` | Ajuste de stock (ingreso/egreso) |
+`text-wrap: pretty` en párrafos largos (notas de clienta, descripciones).
 
 ---
 
-## 11. Scrollbar Personalizado
+## 4. Color por categoría de servicio
 
-Clase utilitaria `custom-scrollbar` para listas internas con overflow:
+Color fijo por categoría — se repite consistentemente como punto de color en Servicios, chip de
+preferencia en Clientes, borde de bloque en Agenda:
 
-```css
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--color-border);
-  border-radius: 20px;
-}
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: #ebe0da;
-}
+| Categoría | Color | Tinte de fondo |
+|---|---|---|
+| Color / tinte · Pestañas y cejas · Maquillaje | `accent-rose` `#D98BA4` | `rose-bg` |
+| Corte y peinado · Faciales/skincare · Depilación | `sage` `#8C9178` | `sage-bg` |
+| Uñas (mani/pedi) | `gold` `#C89A5B` | `gold-bg` |
+
+**Regla:** este mapeo es único y no se reinterpreta por vista. Un bloque de agenda de
+"Color completo" siempre es rosa, sin importar qué profesional lo realice.
+
+---
+
+## 5. Espaciado, radios y sombras
+
+- **Grilla base:** múltiplos de 4. Padding de tarjeta `20px`; gap de layout `16px`; padding de
+  fila de tabla `13px 20px`; padding de contenido principal `28px`.
+- **Radios:** tarjeta `14px` · input/botón/chip cuadrado `10px` · ítem de nav `10px` ·
+  pill/badge `99px` · avatar `50%` (o `10px` para el logo-mark).
+- **Bordes:** `1px solid var(--border)` en tarjetas y sidebar; divisores internos
+  `1px solid var(--border-soft)`.
+- **Sombras — casi ninguna, y nunca decorativas:**
+  - Knob del toggle: `0 1px 3px rgba(0,0,0,0.2)`.
+  - Botón activo del segmented control (Día/Semana): `0 1px 3px rgba(107,52,68,0.12)`.
+  - **Prohibido** `box-shadow` en tarjetas de reposo o en hover de botones. La separación entre
+    superficies es siempre por borde + cambio de fondo, no por elevación.
+
+---
+
+## 6. Layout general
+
+```
+┌─────────┬──────────────────────────────────────────────┐
+│ Sidebar │  Topbar: título · buscador · +Nueva · avatar  │
+│  236px  ├──────────────────────────────────────────────┤
+│         │  Contenido (scroll propio, padding 28px)      │
+│  logo   │                                                │
+│  nav    │  grid auto-fit / lista / tabla según vista     │
+│  ...    │                                                │
+│ tenant  │                                                │
+└─────────┴──────────────────────────────────────────────┘
 ```
 
+### 6.1 Sidebar (236 px)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | `surface` (blanco), borde derecho `1px solid border` |
+| Logo | Wordmark "Shear" en script/serif decorativa + acento gráfico (hoja/flor), arriba, sin subtítulo |
+| Navegación | Columna de ítems (ver §7.1), orden fijo: **Inicio · Agenda · Clientes · Servicios · Productos · Configuración** |
+| Selector de tenant | Fijado abajo (`margin-top:auto`): avatar circular con inicial de la estética + nombre de estética/ubicación (truncado) + link secundario "Cambiar estética ↓" |
+
+### 6.2 Topbar (66 px)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | `surface`, borde inferior `1px solid border`, altura 66 px, `display:flex; align-items:center; justify-content:space-between` |
+| Título | Izquierda, serif 26 px. En Inicio es un saludo dinámico ("Buen día, {nombre}"); en el resto, el nombre de la sección |
+| Buscador | Input centro-derecha, placeholder "Buscar clientes, turnos, productos...", ancho fijo (~320–360 px), fondo `bg`, radio `10px` |
+| Botón primario | "+ Nueva cita" (o acción principal de la vista), estilo primario §7.3 |
+| Avatar de usuaria | Círculo con iniciales a la derecha, fondo `wine`, texto blanco (rol dueña/admin) |
+
+### 6.3 Contenido
+
+- Scroll propio, padding `28px`, fondo `bg`.
+- Grillas de tarjetas: `repeat(auto-fit, minmax(200–320px, 1fr))`, gap `16px`.
+- **Responsive:** en móvil, sidebar → barra inferior o drawer; grillas colapsan a 1 columna;
+  tablas → tarjetas apiladas (cada fila se convierte en una card con los mismos pares
+  label/valor, en el mismo orden que las columnas de escritorio).
+
 ---
 
-## ❌ Qué NO Hacer en la Capa Visual
+## 7. Componentes
 
-- ❌ No usar sombras pesadas (`shadow-lg`, `shadow-xl`) ni efectos de desenfoque de fondo (`backdrop-blur-sm` solo autorizado en overlay de modal y sidebar móvil).
-- ❌ No introducir colores fuera de los tokens definidos en `index.css` o Tailwind nativos `gray-*`. Prohibido gradientes.
-- ❌ No omitir el atributo `aria-label` en botones interactivos que contengan exclusivamente un icono gráfico.
-- ❌ No usar fuentes distintas a las dos autorizadas: `Fraunces` (serif) y `Manrope` (sans).
-- ❌ No usar Framer Motion ni librerías de animación externas. Solo utilidades nativas de Tailwind (`transition-*`, `animate-pulse`, `transform transition-transform`).
-- ❌ No introducir animaciones de entrada en modales, alertas o notificaciones. Deben aparecer instantáneamente.
+### 7.1 Ítem de navegación (sidebar)
+
+| Estado | Especificación |
+|---|---|
+| Base | Padding `10px 14px`, radio `10px`, `display:flex; align-items:center; gap:10px`, punto de color de 6 px a la izquierda del texto |
+| **Activo** | Fondo `rose-bg`, texto `wine`, peso 700, punto = `accent` |
+| **Inactivo** | Fondo transparente, texto `text-3`, peso 500, punto = `dotted`. Hover: fondo `#FAF3F5` |
+| Transición | `transition: background-color .15s, color .15s` (sin animación de elevación) |
+
+No se usan íconos de librería junto al texto de navegación; el punto de color + el peso
+tipográfico son suficientes para distinguir el estado activo, en línea con el principio §1.2.
+
+### 7.2 Botón
+
+| Tipo | Especificación | Uso confirmado |
+|---|---|---|
+| **Primario** | Fondo `accent`, texto blanco, peso 600, padding `10px 18px`, radio `10px`. Hover: `opacity:.9`. Sin sombra ni desplazamiento en hover | "+ Nueva cita", "Guardar" |
+| **Secundario** | Fondo blanco, borde `#E7D8DC`, texto `wine`, mismo padding/radio. Hover: fondo `#FAF3F5` | "+ Invitar" (Configuración → Personal) |
+| **Link de acción** | Texto `accent`, sin fondo ni borde, peso 600, tamaño 13 px | "Ver agenda →", "Productos →" |
+
+**Regla de animación:** ningún botón usa `translateY`, `hover:shadow` ni lift. El único feedback
+de hover es cambio de opacidad o de fondo, coherente con §1.1 (nada de gradientes ni sombras
+agresivas).
+
+### 7.3 Tarjeta genérica
+
+| Propiedad | Valor |
+|---|---|
+| Fondo | `surface` |
+| Borde | `1px solid border` |
+| Radio | `14px` |
+| Padding | `18–24px` |
+| Encabezado | Serif 20 px a la izquierda + link/acción a la derecha (mismo renglón) |
+| Sombra | Ninguna |
+
+### 7.4 KPI card (fila de 4 en Inicio)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | Card genérica, altura uniforme, contenido apilado verticalmente |
+| Label | Mayúsculas, `muted`, 11.5 px, letter-spacing `.04em` — ej. "INGRESOS HOY", "PRODUCTOS CON POCO STOCK" |
+| Cifra | Cormorant 34 px, peso 600, color `text` en KPIs neutros/positivos |
+| Sublínea de tendencia | Figtree 12.5 px, color según semántica: `sage` para variación positiva ("+12% vs. jueves pasado", "+3 vs. junio"), `muted` para dato neutro ("3 completadas · 8 restantes"), **`alert` (`#B0553F`)** cuando el KPI es en sí una alerta accionable (ej. "Productos con poco stock" → la cifra y/o la sublínea "Reponer esta semana" usan `alert`, no `text`, para reforzar urgencia sin depender solo del color) |
+
+### 7.5 Bloque destacado — "Ingresos de la semana" (1 por vista)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | Fondo `wine` `#6B3444`, radio `14px`, texto blanco/`#E3B9C6`, padding `24px` |
+| Label | Mayúsculas, `#E3B9C6` atenuado, 11.5 px |
+| Cifra | Cormorant ~34 px, blanco, peso 600 |
+| Sublínea | `#E3B9C6`, 12.5 px — ej. "+18% vs. semana anterior · 64 servicios" |
+| Mini gráfico de barras | 7 columnas (L a D), barras en `rgba(227,185,198,.45)`; la barra del día con mayor actividad (o el día actual) resaltada en `#E3B9C6` sólido; labels de día debajo en mayúsculas pequeñas atenuadas |
+
+Este es el **único** bloque de fondo sólido fuerte por vista (regla §1.3).
+
+### 7.6 Ítem de lista — "Citas de hoy"
+
+| Elemento | Especificación |
+|---|---|
+| Fila | `display:flex; align-items:center; justify-content:space-between`, padding vertical ~14px, borde inferior `border-soft` |
+| Hora | Figtree 13.5 px, peso 600, `text`, columna fija a la izquierda |
+| Punto de categoría | 6–8 px, color según §4 (categoría del servicio agendado) |
+| Nombre de clienta | Figtree 14 px, peso 600, `text` |
+| Servicio + profesional | Figtree 12.5 px, `text-3` o `muted` — formato `"{Servicio} · {Profesional}"` |
+| Badge de estado | Pill a la derecha, ver §8 |
+
+### 7.7 Ítem de lista — "Poco stock"
+
+| Elemento | Especificación |
+|---|---|
+| Fila | Nombre de producto (peso 600) + cantidad alineada a la derecha (`"4 u."`, color `alert` cuando está bajo mínimo) |
+| Subtítulo | `"Mínimo sugerido: {n} u."`, `muted`, 12 px |
+| Barra de progreso | Track fino (`~4px` alto) fondo `dotted`, relleno proporcional a `stock/mínimo` en color `alert`; radio `99px` |
+
+### 7.8 Tabla (Clientes, Productos)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | `surface`, borde `border`, radio `14px`, `overflow:hidden` |
+| Cabecera | Fondo `surface-2`, labels mayúsculas `muted` 11.5–12.5 px, borde inferior `border` |
+| Filas | Padding `13px 20px`, borde inferior `border-soft`, hover → fondo `surface-2` |
+| Primera columna (entidad) | Avatar circular con iniciales (tint rotativo, ver §7.10) + nombre en Figtree 14 px peso 600 |
+| Columna de contacto | Teléfono (texto `text-2`) sobre email (`accent`, subrayado en hover — hereda el estilo global de link) |
+| Columnas numéricas/fecha | Figtree 13.5 px, `text-2`, alineadas según el contenido de la columna |
+| Columna de categoría (Productos) | `muted`, sin badge — texto plano |
+| Columna de stock (Productos) | Cifra en `text` si está en stock; en color `alert` cuando está por debajo del mínimo |
+| Columna de estado/preferencia | Badge/chip (§8 o §4) |
+| Fila clickeable | `cursor:pointer` cuando lleva a un detalle (ej. fila de clienta) |
+
+### 7.9 Chip / badge
+
+| Tipo | Especificación |
+|---|---|
+| Base | Pill `99px`, padding `4px 10px`, 11.5 px, peso 600, fondo tinte + texto pareja (§2.4) |
+| De estado de turno/stock | Ver tabla completa en §8 |
+| De categoría/preferencia | Tinte según §4 (ej. "Color" → `rose-bg`/`accent-rose`, "Uñas" → `gold-bg`/`gold`) |
+| De rol (Configuración → Personal) | "Dueña" → `rose-bg`/`accent`; "Profesional" → `sage-bg`/`sage` (texto `#71774F`); "Recepción" → `gold-bg`/`gold` (texto `#A87C3F`) |
+
+### 7.10 Avatar
+
+| Propiedad | Valor |
+|---|---|
+| Forma | Círculo, iniciales centradas, Figtree peso 600 |
+| Rotación de tinte | Rota entre 4 parejas: `rose` / `sage` / `gold` / `wine`, asignada de forma determinística por entidad (ej. hash del id o nombre) para que la misma clienta siempre tenga el mismo color |
+| Dueña / admin | Fondo `wine`, texto `rose-bg` (excepción fija, no rota) |
+
+### 7.11 Toggle (switch)
+
+| Estado | Especificación |
+|---|---|
+| Track | `38×22px`, radio `99px` |
+| Off | Fondo `dotted` `#E7D8DC`, knob a la izquierda (`left:3px`) |
+| On | Fondo `accent`, knob a la derecha (`left:19px`) |
+| Knob | `16px`, blanco, sombra `0 1px 3px rgba(0,0,0,0.2)` |
+| Transición | `.15s` |
+
+### 7.12 Tabs (Configuración)
+
+| Elemento | Especificación |
+|---|---|
+| Fila | Borde inferior `border`, tabs en línea: **Horarios · Personal · Servicios y precios · Facturación · Notificaciones** |
+| Tab activo | Peso 700, texto `wine`, borde inferior `2px solid accent` |
+| Tab inactivo | Peso 500, texto `text-3`, sin borde |
+
+### 7.13 Segmented control (Agenda: Día / Semana)
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | Fondo `#FAF3F5`, radio `10px`, padding `3px` |
+| Opción activa | Fondo blanco, texto `wine`, sombra `0 1px 3px rgba(107,52,68,0.12)` |
+| Opción inactiva | Sin fondo, texto `text-3` |
+
+### 7.14 Input
+
+| Propiedad | Valor |
+|---|---|
+| Borde | `1px solid border` |
+| Radio | `10px` |
+| Padding | `9px 14px` |
+| Fondo | `bg` |
+| Placeholder | `placeholder` `#B9A6AD` |
+| Foco | Borde `accent-rose`, sin outline nativo |
+
+### 7.15 Leader dots (lista de precios — Servicios)
+
+| Elemento | Especificación |
+|---|---|
+| Fila | `display:flex; align-items:baseline; gap:8px` |
+| Nombre + duración | `"{Servicio}  {duración} min"`, nombre en `text`/peso 500, duración en `muted` más pequeña |
+| Línea guía | `flex:1; border-bottom:1px dotted #E7D8DC; margin-bottom:4px` |
+| Precio | `wine`, peso 600, alineado a la derecha |
+
+### 7.16 Card de categoría de servicio
+
+| Elemento | Especificación |
+|---|---|
+| Contenedor | Card genérica (§7.3) |
+| Encabezado | Punto de color de categoría (§4) + título serif 20 px (ej. "Corte y peinado", "Uñas") |
+| Cuerpo | Lista de servicios en formato leader dots (§7.15) |
+
+### 7.17 Configuración → Personal y permisos
+
+| Elemento | Especificación |
+|---|---|
+| Header de card | Título serif "Personal y permisos" + botón secundario "+ Invitar" a la derecha |
+| Fila de persona | Avatar (§7.10) + nombre (peso 600) sobre email (`muted`, 12.5 px) a la izquierda; badge de rol (§7.9) + texto de permisos (`accent`, ítems separados por " · ", ej. "Agenda propia · Clientes") a la derecha |
+| Divisor | `border-soft` entre filas |
+
+---
+
+## 8. Estados (badges de turno y stock)
+
+| Estado | Fondo | Texto |
+|---|---|---|
+| Confirmada | `rose-bg` `#F7E7EC` | `#B76E84` |
+| Completada | `sage-bg` `#EEF0E6` | `#71774F` |
+| Sin confirmar | `gold-bg` `#F6EFE3` | `#A87C3F` |
+| En stock | `sage-bg` `#EEF0E6` | `#71774F` |
+| Reponer / stock bajo / sin stock | `alert-bg` `#F9E8E2` | `#B0553F` |
+
+**Regla de accesibilidad:** ningún estado se comunica solo por color. Cada badge lleva siempre
+el texto descriptivo del estado ("Confirmada", "Reponer", etc.) junto al tinte de fondo —
+nunca un punto de color aislado sin etiqueta. Verificar que el par fondo/texto de cada fila de
+esta tabla mantenga contraste AA (≥4.5:1 para texto de 11.5 px/peso 600, que cuenta como texto
+pequeño en negrita).
+
+---
+
+## 9. Agenda (calendario)
+
+| Elemento | Especificación |
+|---|---|
+| Mini calendario | Grid 7 columnas (L M X J V S D), mes y año en serif arriba ("Julio 2026"). Días con turnos → fondo `rose-bg`. Día actual → fondo `accent`, texto blanco |
+| Legend "Equipo" | Lista de profesionales: punto de color fijo + nombre (peso 600) + rol (`muted`, debajo) |
+| Vista Día | Columnas por profesional, cada una con borde superior `2px` del color fijo del profesional. Grilla horaria de fondo: `linear-gradient(border-soft 1px, transparent 1px)` cada 56 px (= 1 hora). Bloques de turno posicionados en absoluto según hora/duración: fondo = tinte de la **categoría del servicio** (§4), borde izquierdo `3px` del mismo color |
+| Vista Semana | 7 columnas; el día actual con fondo `rose-bg` y número en `wine` |
+| Segmented Día/Semana | Ver §7.13 |
+| Color fijo por profesional | Colorista → `accent-rose` · Estilista → `sage` · Manicurista → `gold` · Cosmetóloga → `wine` |
+
+> **Distinción importante:** el color del **borde superior de columna** identifica al
+> profesional; el color del **relleno del bloque de turno** identifica la categoría del
+> servicio. Ambos sistemas de color coexisten en la misma vista y no deben confundirse.
+
+---
+
+## 10. Formato regional (Argentina)
+
+- **Moneda:** `"$ " + Number.toLocaleString('es-AR')` → `$ 186.500` (punto como separador de
+  miles, sin decimales para montos enteros).
+- **Fechas:** formato largo `16 jul 2026` en tablas; título de agenda `"Jueves 16 de julio"`;
+  días abreviados en calendario: `L M X J V S D` (Lun/Mar/Mié/Jue/Vie/Sáb/Dom).
+- **Datos fiscales** (Configuración → Facturación): CUIT, condición frente al IVA
+  (Resp. Inscripto), alias/CBU, Mercado Pago.
+- **Copy:** español rioplatense — "turno" (no "cita" salvo en el botón "+ Nueva cita", que es
+  la excepción de copy ya establecida en la UI), "seña", "clienta", "profesional", "estética"
+  (no "salón" ni "spa").
+
+---
+
+## 11. Accesibilidad
+
+- **Contraste:** `text` (`#3E2A33`) sobre `bg` (`#FAF6F4`) y sobre `surface` (blanco) supera
+  AA cómodamente. Verificar especialmente los pares de badge (§8, §2.4): son texto pequeño en
+  negrita sobre tinte pastel y son los de menor margen de contraste del sistema.
+- **Nunca color solo:** todo estado (turno, stock, rol) se expresa con texto + tinte de fondo
+  simultáneamente (ver regla en §8). El punto de color en Agenda/nav es un refuerzo visual
+  adicional, no el único portador de significado — el nombre del profesional/sección siempre
+  acompaña al punto.
+- **Foco de teclado:** todo elemento interactivo (input, tab, ítem de nav, fila clickeable,
+  botón) debe mostrar un estado de foco visible. Para inputs, el borde `accent-rose` de §7.14
+  cumple esta función; para botones/tabs/nav, agregar `outline: 2px solid var(--accent-rose); outline-offset: 2px` cuando el foco es por teclado.
+  Evitar `outline:none` sin reemplazo visible.
+  
+  
+
+- **Toggle y segmented control:** deben ser operables por teclado (`Tab` + `Space`/`Enter`) y
+  anunciar su estado (`aria-checked` en toggle, `aria-selected` en segmented control).
+- **Tablas responsive:** al colapsar a tarjetas en móvil (§6.3), cada valor debe conservar su
+  label visible (no depender solo del orden espacial que sí existe en la tabla de escritorio).
+
+---
+
+## 12. Responsive
+
+| Breakpoint | Comportamiento |
+|---|---|
+| Móvil (`<640px`) | Sidebar colapsa a barra inferior o drawer; topbar simplificado (buscador puede ocultarse tras un ícono); grids de KPI y tarjetas → 1 columna |
+| Tablet (`≥640px`) | Grids de 2 columnas; sidebar puede mostrarse como drawer |
+| Desktop (`≥1024px`) | Layout completo: sidebar fija 236 px + topbar + contenido con grids `auto-fit` |
+
+- **Tablas → tarjetas apiladas:** en pantallas angostas, cada fila de tabla (Clientes,
+  Productos) se convierte en una card individual con los mismos pares label/valor.
+- **Agenda en móvil:** la vista Día es la más viable (columnas por profesional se apilan o se
+  vuelven scrolleables horizontalmente); el mini calendario puede colapsar a un selector de
+  fecha simple.
+
+---
+
+## 13. Animaciones y transiciones
+
+Coherente con el principio "limpio y respirado" (§1.1), las animaciones son mínimas y nunca
+decorativas:
+
+| Elemento | Transición |
+|---|---|
+| Botón primario/secundario (hover) | `opacity .9` o cambio de fondo — **sin** `translateY` ni `box-shadow` |
+| Ítem de nav (hover/activo) | `background-color .15s, color .15s` |
+| Toggle | `.15s` (posición del knob + color de track) |
+| Tabs / segmented control | Cambio instantáneo de fondo/borde al activarse; sin animación de deslizamiento |
+| Filas de tabla (hover) | `background-color .15s` |
+
+**Prohibido:** sombras animadas, gradientes, efectos de elevación (`lift`) en hover, librerías
+externas de animación. Cualquier transición no listada aquí debe proponerse antes de
+implementarse.
+
+---
+
+## 14. CSS base (reset + variables)
+
+Fuente canónica — copiar tal cual desde `desing-system.md §11`:
+
+```css
+:root{
+  --bg:#FAF6F4; --surface:#FFFFFF; --surface-2:#FDFAFB;
+  --border:#F0E4E4; --border-soft:#F7EFF1; --dotted:#E7D8DC;
+  --text:#3E2A33; --text-2:#5C4650; --text-3:#7A666E; --muted:#A08D95;
+  --accent:#B76E84; --accent-rose:#D98BA4; --wine:#6B3444;
+  --sage:#8C9178; --gold:#C89A5B;
+  --rose-bg:#F7E7EC; --sage-bg:#EEF0E6; --gold-bg:#F6EFE3; --alert-bg:#F9E8E2;
+  --r-card:14px; --r-ctrl:10px; --r-pill:99px;
+  --serif:'Cormorant Garamond',serif; --sans:'Figtree',sans-serif;
+}
+html,body{margin:0;padding:0;background:var(--bg);font-family:var(--sans);color:var(--text);}
+*{box-sizing:border-box;}
+a{color:var(--accent);text-decoration:none;} a:hover{color:var(--wine);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--dotted);border-radius:8px;}
+input::placeholder{color:#B9A6AD;}
+input:focus{outline:none;border-color:var(--accent-rose);}
+```
+
+> **Nota de implementación:** el estilo va **inline** en cada elemento, usando estas variables
+> vía `var(--token)` — no hay hoja de estilos con clases utilitarias (tipo Tailwind) en el
+> proyecto actual. Si el proyecto migra a una app con hojas de estilo propias, este `:root` es
+> el punto de partida y las tablas de §7–§9 deben traducirse a clases equivalentes sin cambiar
+> ningún valor.
+
+---
+
+## ❌ Qué NO hacer en la capa visual
+
+- ❌ No introducir colores fuera de los tokens de §2. El acento por tenant se elige únicamente
+  de la paleta curada de §2.4 (regla de acento personalizable) — nunca de un selector de color
+  libre.
+- ❌ No usar más de **un** bloque de fondo `wine` sólido por vista (§1.3, §7.5).
+- ❌ No usar fuentes distintas a `Cormorant Garamond` (serif) y `Figtree` (sans).
+- ❌ No usar sombras de tarjeta, `box-shadow` decorativo, ni efectos de `lift`/elevación en
+  hover de botones o filas (§5, §13).
+- ❌ No comunicar un estado (turno, stock, rol) únicamente con color — siempre color + texto
+  (§8, §11).
+- ❌ No agregar iconografía decorativa junto a la navegación o los estados; el sistema se apoya
+  en puntos de color, avatares con iniciales y jerarquía tipográfica (§1.2, §7.1).
+- ❌ No introducir modo oscuro: no está definido en este sistema y ninguna vista de referencia
+  lo contempla.
+- ❌ No mezclar el color de "profesional" (borde de columna en Agenda) con el color de
+  "categoría de servicio" (relleno de bloque) — son dos sistemas de color independientes (§9).
+- ❌ No usar gradientes en ningún elemento (§1.1).

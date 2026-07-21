@@ -521,4 +521,21 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ---
 
+## P13 — Gotcha: `bg-muted`+`text-muted-foreground` colisionan al mismo hex en el puente de tokens Shear
+
+> **Origen:** UX-31 (fundación del rediseño Shear) dejó alias-puente temporales en `@theme` de `index.css` para que las vistas todavía no migradas no rompieran el build. Descubierto como bug real en UX-36 (2026-07-21): `Servicios.tsx` y `AppointmentDetail.tsx` mostraban texto **invisible** en dos badges/cajas.
+
+**Causa:** `--color-muted: var(--muted)` y `--color-muted-foreground: var(--muted)` en `index.css` apuntan **al mismo** token literal de Shear (`--muted: #A08D95`, diseñado en `docs/design.md` como color de **texto**, no de fondo). Cualquier elemento no migrado que combine `bg-muted` (pensado en el sistema viejo como fondo gris claro) con `text-muted-foreground` (pensado como texto gris) en el mismo bloque termina con texto y fondo del mismo color exacto — invisible, sin error de build ni de lint.
+
+**Mandato al migrar cualquier vista de UX-34 (o cualquier archivo todavía no migrado a Shear):** antes de dar por buena una vista, `grep` la combinación `bg-muted` + `text-muted-foreground` dentro del mismo elemento. Fix: reemplazar `bg-muted` por `bg-surface-2` (fondo claro real de Shear), dejando `text-muted`/`text-muted-foreground` como está (mismo valor, ambos nombres resuelven a `#A08D95`, legible sobre `--surface-2: #FDFAFB`).
+
+```diff
+- <div className="bg-muted border border-border ... text-muted-foreground">
++ <div className="bg-surface-2 border border-border ... text-muted">
+```
+
+**Gotcha:** el bug no aparece en `pnpm build`/`lint` — es puramente visual (contraste 1:1). Solo se detecta mirando la app renderizada o haciendo el grep dirigido de la combinación de clases.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

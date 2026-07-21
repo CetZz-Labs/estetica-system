@@ -81,7 +81,7 @@ export default function Servicios() {
                             </div>
                             <h4 className="text-xl font-serif font-semibold text-foreground mb-3">{servicio.name}</h4>
                             <div className="flex flex-wrap gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted border border-border rounded-lg text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 border border-border rounded-lg text-xs font-semibold uppercase tracking-widest text-muted">
                                     <FiClock />
                                     {servicio.defaultTouchupDays > 0 ? `Retoque en ${servicio.defaultTouchupDays} días` : 'Sin retoque'}
                                 </div>

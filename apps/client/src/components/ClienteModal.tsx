@@ -60,7 +60,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
             <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-ctrl text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
@@ -68,7 +68,7 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                 form="clienteForm"
                 type="submit"
                 disabled={isPending}
-                className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="bg-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-ctrl text-sm font-semibold transition-opacity cursor-pointer"
             >
                 {isPending ? 'Guardando...' : 'Guardar Cliente'}
             </button>
@@ -88,28 +88,28 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Nombre *</label>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Nombre *</label>
                         <input
                             type="text"
-                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.firstName ? 'border-destructive' : 'border-border'}`}
+                            className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.firstName ? 'border-alert-text' : 'border-border'}`}
                             {...register('firstName', { required: 'Requerido' })}
                         />
                         {errors.firstName && (
-                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
                                 <FiAlertCircle /> {errors.firstName.message}
                             </span>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Apellido *</label>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Apellido *</label>
                         <input
                             type="text"
-                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.lastName ? 'border-destructive' : 'border-border'}`}
+                            className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.lastName ? 'border-alert-text' : 'border-border'}`}
                             {...register('lastName', { required: 'Requerido' })}
                         />
                         {errors.lastName && (
-                            <span className="flex items-center gap-1 text-xs text-destructive mt-1 font-medium">
+                            <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
                                 <FiAlertCircle /> {errors.lastName.message}
                             </span>
                         )}
@@ -117,32 +117,32 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Teléfono</label>
+                    <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Teléfono</label>
                     <input
                         type="tel"
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                        className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors"
                         {...register('phone')}
                     />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                        Email <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                    <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase flex justify-between">
+                        Email <span className="text-muted font-normal normal-case">Opcional</span>
                     </label>
                     <input
                         type="email"
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                        className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors"
                         {...register('email')}
                     />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase flex justify-between">
-                        Notas Médicas <span className="text-gray-400 font-normal normal-case">Opcional</span>
+                    <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase flex justify-between">
+                        Notas Médicas <span className="text-muted font-normal normal-case">Opcional</span>
                     </label>
                     <textarea
                         rows={3}
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-none"
+                        className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors resize-none"
                         {...register('medicalNotes')}
                     />
                 </div>

@@ -3,12 +3,15 @@ import { FiCheck, FiX, FiCheckCircle, FiAlertTriangle, FiClock } from 'react-ico
 
 import type { Appointment } from '../types';
 
+// UX-33-B: colores remapeados a los tokens nativos Shear (docs/design.md §8). Turnos.tsx y
+// AppointmentDetail.tsx consumen esta misma paleta y heredan el cambio — pendiente de revisión
+// visual en esos archivos durante UX-34.
 const STATUS_PALETTE: Record<string, { bg: string; border: string; text: string }> = {
-    confirmed: { bg: 'var(--color-ring-subtle)', border: 'var(--color-ring)', text: 'var(--color-ring)' },
-    cancelled: { bg: 'var(--color-destructive-subtle)', border: 'var(--color-destructive)', text: 'var(--color-destructive)' },
-    completed: { bg: 'var(--color-muted)', border: 'var(--color-border)', text: 'var(--color-muted-foreground)' },
-    pending: { bg: 'var(--color-muted)', border: 'var(--color-border)', text: 'var(--color-muted-foreground)' },
-    overdue: { bg: 'var(--color-destructive-subtle)', border: 'var(--color-destructive)', text: 'var(--color-destructive)' },
+    confirmed: { bg: 'var(--color-rose-bg)', border: 'var(--color-rose-text)', text: 'var(--color-rose-text)' },
+    cancelled: { bg: 'var(--color-alert-bg)', border: 'var(--color-alert-text)', text: 'var(--color-alert-text)' },
+    completed: { bg: 'var(--color-sage-bg)', border: 'var(--color-sage-text)', text: 'var(--color-sage-text)' },
+    pending: { bg: 'var(--color-gold-bg)', border: 'var(--color-gold-text)', text: 'var(--color-gold-text)' },
+    overdue: { bg: 'var(--color-alert-bg)', border: 'var(--color-alert-text)', text: 'var(--color-alert-text)' },
 };
 
 /** Paleta de color asociada al estado (render) de un turno. Reutilizada por el calendario y el detalle. */

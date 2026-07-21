@@ -512,6 +512,120 @@
             ]
         },
         {
+            "id": "UX-31",
+            "name": "Rediseño Shear — Etapa 1: Fundación index.css + index.html",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "done",
+            "description": "Plan completo en `progress/plan_shear-redesign.md`. `docs/design.md` reemplazó por completo el sistema visual (paleta rose/durazno shadcn + Fraunces/Manrope + modo oscuro) por el nuevo sistema Shear (Cormorant Garamond + Figtree, tokens hex bg/surface/wine/sage/gold/accent, sin modo oscuro, sin sombras/gradientes/lift). Esta etapa reescribe la fundación de estilos: fuentes, tokens `:root`/`@theme` de Tailwind v4, y elimina el bloque `.dark`, la escala de sombras y la animación `pageIn`. Mantiene alias-puente temporales de los tokens viejos (`--color-primary`, `--color-card`, `--color-foreground`, `--color-background`, `--color-muted`, `--color-muted-foreground`, `--color-border`, `--color-secondary`) para que el build no se rompa mientras las vistas no están migradas todavía (se eliminan en UX-35).",
+            "acceptance_criteria": [
+                "apps/client/index.html y apps/client/src/index.css cargan Cormorant Garamond (ital 500/600/700) + Figtree (400/500/600/700) en vez de Fraunces/Manrope",
+                "El bloque :root de index.css define todos los tokens hex de design.md §14 (bg, surface, surface-2, border, border-soft, dotted, text, text-2, text-3, muted, placeholder, accent, accent-rose, wine, sage, gold, rose-bg, sage-bg, gold-bg, wine-bg, alert-bg) más los pares de texto de badges (sage-text, gold-text, alert-text, rose-text) y radios (r-card, r-ctrl, r-pill)",
+                "@theme inline mapea esos tokens a clases Tailwind con nombres literales de design.md (bg-bg, bg-surface, text-text, bg-wine, text-wine, bg-accent-rose, etc.) y remapea --font-serif/--font-sans a Cormorant Garamond/Figtree",
+                "Se elimina por completo el bloque .dark, @custom-variant dark, la escala --shadow-sm..xl y la keyframe pageIn/.animate-page-in de index.css",
+                "Se mantienen alias-puente temporales de los tokens viejos (primary, card, foreground, background, muted, muted-foreground, border, secondary) apuntando al valor Shear más cercano, documentados con un comentario que referencia UX-35 como responsable de removerlos",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint terminan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-32",
+            "name": "Rediseño Shear — Etapa 2: Shell (AppLayout, topbar, fin del modo oscuro)",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "done",
+            "description": "Depende de UX-31. Plan completo en `progress/plan_shear-redesign.md` (Etapa 2). Elimina el modo oscuro por completo (ThemeToggle.tsx, useIsDark.ts, y sus 3 puntos de montaje en AppLayout/Landing/AceptarInvitacion) — decisión ya confirmada con el usuario. Reescribe AppLayout.tsx: sidebar de 236px con navegación por puntos de color (sin íconos react-icons/fi en el nav, siguiendo design.md §7.1), y agrega un topbar de 66px nuevo cableado con un contexto de layout (TopbarProvider + hook useTopbar()) por el que cada vista declara su título y su acción principal.",
+            "acceptance_criteria": [
+                "components/ui/ThemeToggle.tsx y hooks/useIsDark.ts quedan eliminados; AppLayout.tsx, Landing.tsx y AceptarInvitacion.tsx no importan ni montan ninguno de los dos",
+                "El logo del sidebar/header usa una única imagen (/shear-logo.png), sin condicional de tema",
+                "El sidebar mide 236px (w-[236px]), fondo bg-surface, borde derecho border-border, y cada NavLink se renderiza como punto de color (6px, accent si activo / dotted si inactivo) + texto, sin íconos de react-icons/fi en la navegación principal",
+                "El estado activo del nav usa bg-rose-bg text-wine font-bold; el inactivo text-text-3 font-medium con hover bg-hover-soft (o equivalente), preservando el mismo orden y role-gating de items que existe hoy",
+                "Existe un TopbarProvider + hook useTopbar() nuevo (en src/layouts/ o src/context/) que expone { title, primaryAction, searchSlot }; AppLayout renderiza un topbar de 66px (bg-surface, borde inferior border-border) leyendo ese contexto: título serif 26px a la izquierda, buscador centro-derecha, botón primario de la vista, avatar de usuaria a la derecha",
+                "El wrapper de contenido bg-card border rounded-xl shadow-lg alrededor del <Outlet/> se elimina; el contenido va directo sobre bg-bg con padding 28px, sin sombra de card ni animate-page-in con translateY",
+                "pnpm --filter @estetica/client build y lint pasan con exit code 0; grep -r \"useIsDark|ThemeToggle\" apps/client/src no encuentra resultados"
+            ]
+        },
+        {
+            "id": "UX-33",
+            "name": "Rediseño Shear — Etapa 3: Dashboard, tablas y listados",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "done",
+            "description": "Depende de UX-32 (necesita el TopbarProvider y el sidebar nuevo). Plan completo en `progress/plan_shear-redesign.md` (Etapa 3). Migra al lenguaje visual Shear las vistas de mayor densidad de datos: Dashboard (Inicio, el más pesado en usos de tokens viejos), Clients.tsx + ClienteModal + CargaMasivaClientesModal, Historial.tsx, Inventario.tsx + ProductoModal + AjusteStockModal + CargaMasivaModal, y los primitivos compartidos Modal/ConfirmModal/Pagination. Fragmentar en sub-PRs < 400 líneas si hace falta (matriz de escalado de CLAUDE.md).",
+            "acceptance_criteria": [
+                "Dashboard.tsx declara título/acción vía useTopbar, muestra 4 KPI cards en fila (label muted uppercase 11.5px + cifra Cormorant 34px, sublínea sage/muted/alert según semántica), lista 'Citas de hoy', panel 'Poco stock' con barra de progreso alert bajo mínimo, y el único bloque destacado bg-wine 'Ingresos de la semana' con mini-gráfico de 7 barras",
+                "Clients.tsx (y modales asociados) usa la tabla de design.md §7.8: cabecera bg-surface-2, avatar con inicial de tinte rotativo determinístico, columna de contacto teléfono/email, badge de preferencia por categoría de servicio",
+                "Historial.tsx conserva el patrón de listado paginado {data,meta} ya existente, remapeado a los tokens y componente Pagination.tsx nuevos",
+                "Inventario.tsx (y ProductoModal/AjusteStockModal/CargaMasivaModal) usa la tabla §7.8 con columna de stock en color alert cuando está bajo mínimo y badges 'En stock'/'Reponer' de §8",
+                "components/ui/Modal.tsx, ConfirmModal.tsx y Pagination.tsx quedan remapeados a los tokens nuevos, sin sombras de card ni box-shadow decorativo (salvo las 2 excepciones permitidas por design.md §5)",
+                "Todos los botones de estas vistas siguen el patrón §7.2 (primario bg-accent, secundario borde dotted texto wine, link text-accent) sin lift ni sombra en hover",
+                "Ningún estado/badge de estas vistas se comunica solo con color: siempre color + texto",
+                "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-34",
+            "name": "Rediseño Shear — Etapa 4: Agenda, Servicios, Configuración y perfiles",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "pending",
+            "description": "Depende de UX-32 (topbar/sidebar) y puede ejecutarse en paralelo a UX-33 si se coordina el reviewer. Plan completo en `progress/plan_shear-redesign.md` (Etapa 4). Cubre el resto de las vistas: Turnos.tsx (Agenda, la más específica del sistema — doble color por profesional/categoría de servicio, design.md §9), Servicios.tsx + ServicioModal (cards de categoría con leader dots §7.15-16), Profesionales.tsx + ProfesionalModal (filas de persona §7.17), Negocio.tsx/Disponibilidad.tsx (tabs, inputs, toggles), y las vistas restantes (ProfileClient, CompletarRegistro, NotFound, RegistroModal, AppointmentDetail, Login, Register).",
+            "acceptance_criteria": [
+                "Turnos.tsx implementa el mini calendario 7 columnas (día actual bg-accent, días con turnos bg-rose-bg), la leyenda 'Equipo' con punto de color fijo por profesional, columnas de vista Día con borde superior del color del profesional, bloques de turno con relleno de la categoría del servicio (§4) sin confundir ambos sistemas de color, y el segmented control Día/Semana de §7.13",
+                "Servicios.tsx + ServicioModal muestran cards de categoría (punto de color + título serif) con lista interna en formato leader dots (línea punteada + precio en wine)",
+                "Profesionales.tsx + ProfesionalModal usan filas de persona con avatar + badge de rol (§7.9) + texto de permisos en accent",
+                "Negocio.tsx y Disponibilidad.tsx usan tabs (§7.12), inputs (§7.14) y toggles (§7.11) del sistema Shear",
+                "ProfileClient.tsx, CompletarRegistro.tsx, NotFound.tsx, RegistroModal.tsx, AppointmentDetail.tsx, Login.tsx y Register.tsx quedan remapeados a los tokens Shear, con tipografía serif en títulos y usando formatCalendarDate/formatDateTime de utils/dates.ts para toda fecha mostrada (sin toLocaleDateString ad-hoc)",
+                "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-35",
+            "name": "Rediseño Shear — Etapa 5: Limpieza de alias-puente y cierre",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "pending",
+            "description": "Depende de UX-33 y UX-34 (todas las vistas migradas). Plan completo en `progress/plan_shear-redesign.md` (Etapa 5). Elimina los alias-puente de tokens viejos que UX-31 dejó temporalmente en @theme, confirma con grep que no queda ningún uso residual de clases/tokens del sistema anterior ni de dark:/shadow-/translateY (excepto en Landing.tsx y components/react-bits/, reservados a la fase 2 fuera de este ciclo), y actualiza CLAUDE.md/.claude/rules/frontend.md §4 que aún citan branding 'Maison'/clases bg-maison-* obsoletas.",
+            "acceptance_criteria": [
+                "Los alias-puente de tokens viejos (--color-primary, --color-card, --color-foreground, --color-background, --color-muted, --color-muted-foreground, --color-border, --color-secondary) se eliminan del @theme de index.css",
+                "grep en apps/client/src confirma cero usos de bg-primary, bg-card, text-foreground, text-muted-foreground, bg-muted, bg-background, bg-accent (valor viejo), bg-secondary, dark:, shadow-* (salvo las 2 micro-sombras permitidas) y translateY, exceptuando Landing.tsx y components/react-bits/",
+                "CLAUDE.md y .claude/rules/frontend.md §4 quedan actualizados para referenciar el branding y las clases Shear en vez de 'Maison'/bg-maison-*",
+                "progress/history.md tiene una entrada consolidada del ciclo completo (Etapas 1-5), feature_list.json tiene las 5 features UX-31..UX-35 en status done (solo el reviewer las marca así), y las bitácoras impl_*/explore_* de cada etapa quedan archivadas en progress/{implements,explores}/_archive/"
+            ]
+        },
+        {
+            "id": "UX-36",
+            "name": "Correcciones post-QA visual del Rediseño Shear (nav, topbar, contraste de texto)",
+            "module": "UI",
+            "phase": "Rediseño Shear",
+            "status": "done",
+            "description": "Reporte directo del usuario (2026-07-21) durante la revisión visual de UX-32/UX-33: (1) quitar la entrada 'Mi Negocio' del sidebar/nav (AppLayout.tsx) — decisión de producto, la sección de configuración queda solo con Disponibilidad; (2) el buscador global del topbar (AppLayout.tsx, componente Topbar) no tiene funcionalidad real conectada — por decisión técnica y de tiempo se retira el input por el momento (queda solo título + acción primaria + UserButton); (3)/(4) bug de contraste: en Servicios.tsx (badge de días de retoque) y AppointmentDetail.tsx (caja de notas del turno) el texto es invisible porque usa la combinación `bg-muted` + `text-muted-foreground`, que desde el bridge de tokens de UX-31 colapsan al MISMO valor hex (`--muted: #A08D95`, pensado como color de TEXTO en design.md, no como fondo) — texto sobre fondo idéntico. Diagnóstico confirmado leyendo `index.css` (línea ~70 `--color-muted: var(--muted)`, línea ~114 `--color-muted-foreground: var(--muted)`). Fix acotado: reemplazar `bg-muted` por `bg-surface-2` en esos dos puntos puntuales (no es una migración completa de Servicios.tsx/AppointmentDetail.tsx a Shear, eso queda para UX-34) — mismo patrón `bg-surface-2`/`text-muted` ya usado en los sub-lotes de UX-33.",
+            "acceptance_criteria": [
+                "AppLayout.tsx ya no renderiza el NavLink 'Mi Negocio' en el sidebar (sección Configuración queda solo con Disponibilidad); la ruta /configuracion/negocio puede seguir existiendo en el router, solo se retira del nav",
+                "El componente Topbar de AppLayout.tsx ya no renderiza el input de búsqueda ni mantiene su estado asociado; el layout se ajusta sin dejar un hueco vacío entre el título y el botón primario/UserButton",
+                "En Servicios.tsx, el badge de días de retoque muestra el texto legible (contraste correcto) reemplazando bg-muted por bg-surface-2 manteniendo text-muted-foreground/text-muted",
+                "En AppointmentDetail.tsx, la caja de 'Notas' del modal de detalle de turno muestra el texto legible con el mismo fix de bg-muted → bg-surface-2",
+                "No se modifica ninguna lógica de negocio, ruteo, ni el resto de las vistas fuera de estos 3 archivos",
+                "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-37",
+            "name": "Rediseño Shear — Landing pública (Fase 2)",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Fase 2 del rediseño visual, planificada y pospuesta explícitamente en el plan original (`progress/plan_shear-redesign.md`, Etapa 0) hasta cerrar el ciclo principal (UX-31..UX-36, todas done). Migra `views/Landing.tsx` (759 líneas) al lenguaje visual Shear (`docs/design.md`), eliminando por completo `components/react-bits/` (11 componentes: Aurora, ClickSpark, CountUp, GlareHover, GlassIcons, GradientText, ShinyText, SplitText, SpotlightCard, StarBorder, TextType) y las dependencias de animación que solo Landing consumía (`motion`/Framer Motion, `gsap`+`@gsap/react`, `ogl`). El sistema Shear es minimalista y cálido, sin gradientes/auroras/shine/lift — la Landing debe transmitir la misma identidad visual que ya tiene la app autenticada (Cormorant Garamond + Figtree, paleta wine/sage/gold/accent, sin sombras de card). `docs/design.md` no tiene una sección dedicada a landing/marketing pages: la composición de secciones (hero, features, pricing, footer, etc.) se resuelve extrapolando los tokens/tipografía/patrones de componente (§7) ya definidos, apoyándose en el skill `ui-ux-pro-max` para la intención de diseño de página de marketing. AceptarInvitacion.tsx ya fue tocado parcialmente en UX-32 (se le quitó ThemeToggle) y puede necesitar un repaso de coherencia visual si comparte componentes con Landing.",
+            "acceptance_criteria": [
+                "views/Landing.tsx queda migrada a tokens/tipografía Shear (Cormorant Garamond + Figtree, paleta bg/surface/wine/sage/gold/accent), sin ningún uso de bg-background/bg-card/text-foreground/text-muted-foreground/bg-primary/bg-muted (tokens legacy) ni de la combinación bg-muted+text-muted-foreground (P13 de docs/patterns-frontend.md)",
+                "components/react-bits/ queda eliminado por completo (11 componentes) y sin consumidores residuales (grep de imports de 'react-bits' en apps/client/src → 0 resultados)",
+                "Las dependencias motion, gsap, @gsap/react y ogl se desinstalan de apps/client/package.json (pnpm remove) una vez confirmado que Landing.tsx era su único consumidor",
+                "Sin sombras de card, sin gradientes decorativos, sin animaciones de lift/scale (design.md prohíbe estos patrones); cualquier transición/animación remanente es sutil (fade/opacity) y no depende de las librerías eliminadas",
+                "Botones siguen el patrón §7.2 (primario bg-accent, secundario borde dotted texto wine, sin lift/sombra en hover); tipografía serif en títulos/hero",
+                "La Landing se mantiene responsive (mobile-first) y conserva su contenido/copy funcional (CTAs de registro/login, secciones informativas) sin regresiones de navegación",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",
