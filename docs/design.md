@@ -495,11 +495,29 @@ transmitir dinamismo comercial. Esta excepción **no** se extiende a ninguna vis
   (`feTurbulence`/`feDisplacementMap`) para simular luz o movimiento tipo "caustics" —  no
   codifican un degradé de color vía `gradient`, y quedan permitidos en el hero de Landing como
   parte de esta misma excepción. Siguen sin admitirse `linear-gradient`/`radial-gradient`/
-  `conic-gradient` ni clases `bg-gradient-*`. No se agregan librerías de render 3D/WebGL
-  (three.js, pixi, ogl) para lograr el efecto — se resuelve con SVG/CSS + `motion`.
+  `conic-gradient` ni clases `bg-gradient-*`.
+* **Retiro de la excepción 3D/WebGL + GSAP y nueva relajación de sombra en hover (UX-45,
+  2026-07-25):** se retira por completo la excepción anterior (UX-44) que permitía
+  `three`/`@react-three/fiber`/`@react-three/drei` y `gsap`/`@gsap/react` en el hero. Esas 6
+  dependencias fueron desinstaladas de `apps/client` en el rediseño integral de UX-45 y ya no
+  están permitidas en ningún punto del código, ni siquiera acotadas al hero. `motion` pasa a ser
+  la única librería de animación de toda la Landing, usada ahora en las seis secciones (hero,
+  franja de confianza/marquee, Funcionalidades, Stats, Cómo funciona, CTA final y footer), no
+  solo en el subconjunto que cubría antes.
+  **Nueva relajación puntual:** se permite `box-shadow` sutil exclusivamente en el estado
+  `:hover` de cards/botones de `views/Landing.tsx`/`components/landing/` — valor de referencia
+  `0 8px 24px rgba(107, 52, 68, 0.10)` (10% de opacidad del token `wine`). Sigue prohibido en
+  estado de reposo y fuera de la Landing; no se relaja el límite de 1 bloque `wine` sólido por
+  vista ni la prohibición de gradientes CSS reales (`linear-gradient`/`radial-gradient`/
+  `conic-gradient`/`bg-gradient-*`). La técnica de formas sólidas con `blur`/opacidad +
+  `mix-blend-mode` (UX-39) se sigue usando sin cambios, ahora también en el CTA final además
+  del hero.
 * **Accesibilidad obligatoria:** toda animación agregada respeta
-  `prefers-reduced-motion: reduce` (desactivar o reducir drásticamente loops/parallax cuando el
-  usuario lo tiene activado).
+  `prefers-reduced-motion: reduce` (desactivar o reducir drásticamente loops/parallax/reveals
+  cuando el usuario lo tiene activado), cubriendo cada efecto de `motion` en las seis secciones
+  de la Landing (UX-45): drift/parallax de blobs, tilt de tarjetas, hover magnético, reveal por
+  palabra del título, marquee, clip-path de Features, conteo de Stats, línea de "Cómo funciona"
+  y fades de CTA final/footer.
 
 ---
 

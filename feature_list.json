@@ -728,6 +728,43 @@
             ]
         },
         {
+            "id": "UX-44",
+            "name": "Landing pública — hero: animación 3D real (three.js/WebGL) + GSAP",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "Séptima ronda sobre el hero de Landing.tsx (pedido directo del usuario, 2026-07-22), tras el reset completo de UX-43 que dejó el hero sin ningún efecto de fondo. El usuario pide explícitamente GSAP y, si es posible, animación 3D. Esto excede la excepción vigente de `docs/design.md §13.1` (solo permitía `motion`, prohibía explícitamente librerías 3D/WebGL). Se le preguntó el alcance exacto entre (a) quedarse con `motion`+SVG/CSS sin nueva dependencia, (b) reinstalar GSAP sin 3D, o (c) GSAP + three.js/WebGL para 3D real — eligió (c), el alcance máximo. Esto requiere: (1) ampliar `docs/design.md §13.1` documentando la nueva excepción (three.js/@react-three/fiber + gsap/@gsap/react permitidos SOLO en el hero de Landing.tsx, con las mismas restricciones de fondo: sin gradientes CSS, sin box-shadow de card, `prefers-reduced-motion` obligatorio); (2) instalar las dependencias necesarias; (3) construir una escena 3D real (WebGL) como fondo/elemento del hero, con paleta de tokens Shear (wine/sage/gold/accent), movimiento continuo sutil y coherente con la identidad cálida/minimalista de la marca (no un efecto genérico tipo demo de Three.js); (4) usar GSAP (`useGSAP`, posiblemente ScrollTrigger) para orquestar la animación de entrada del contenido del hero (texto/CTA/mockup) y/o la relación entre el scroll y la escena 3D. Lección de proceso de UX-38..43 (ver `progress/history.md` 2026-07-21): 3 de 6 rondas anteriores fueron aprobadas técnicamente por el reviewer sin poder validar el resultado VISUAL sin navegador, y la ronda 6 terminó en descarte total — el `explorer` debe proponer una dirección visual concreta y acotada (no un rango abierto de opciones) antes de que el `implementer` construya, y se recomienda una revisión visual del usuario en navegador antes de dar el ciclo por cerrado.",
+            "acceptance_criteria": [
+                "docs/design.md §13.1 se actualiza documentando la nueva excepción: three.js (+ @react-three/fiber/drei si se usan) y gsap (+ @gsap/react) quedan permitidos EXCLUSIVAMENTE en el hero de views/Landing.tsx; se mantienen todas las demás restricciones (sin gradientes CSS, sin box-shadow de card/lift, sin modo oscuro, máximo 1 bloque wine sólido por vista) y se deja explícito que el resto de la Landing sigue usando `motion` sin cambios",
+                "apps/client/package.json agrega únicamente las dependencias necesarias para three.js/WebGL + GSAP (ej. three, @react-three/fiber, gsap, @gsap/react) — sin librerías adicionales no relacionadas",
+                "El hero tiene una escena 3D real renderizada en WebGL (no una simulación con SVG/CSS) con movimiento continuo/loop sutil, usando la paleta de tokens Shear existentes (wine/sage/gold/accent/accent-rose), coherente con la identidad cálida y minimalista de la marca",
+                "GSAP orquesta al menos la animación de entrada del contenido del hero (texto/CTA/HeroMockup) de forma vistosa, sin romper la jerarquía tipográfica ni introducir gradientes/sombras de card",
+                "El canvas/escena 3D queda acotado al hero (no ocupa toda la página) y se libera correctamente el contexto WebGL al desmontar (sin memory leaks)",
+                "prefers-reduced-motion: reduce desactiva o reduce drásticamente el loop 3D y las animaciones GSAP",
+                "Fallback razonable si WebGL no está disponible en el navegador del visitante (el hero no debe romperse ni quedar en blanco)",
+                "Ninguna otra vista de la app (autenticada) importa three.js/gsap; el float loop de HeroMockup (UX-38) y el reveal de Funcionalidades (UX-39/UX-41) con `motion` siguen intactos salvo que se decida explícitamente reemplazarlos",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
+            "id": "UX-45",
+            "name": "Landing pública — rediseño integral desde cero, llamativo y con animaciones en toda la página",
+            "module": "UI",
+            "phase": "Rediseño Shear — Fase 2",
+            "status": "done",
+            "description": "El usuario pide explícitamente un rediseño DESDE CERO de toda `views/Landing.tsx` (no un refinamiento incremental de lo existente) para que la página resulte llamativa/impactante para visitantes, con animaciones llamativas en toda la Landing (no solo el hero). Se le preguntó el alcance y confirmó: (a) descartar la dirección visual actual del hero/animaciones y proponer una composición nueva de punta a punta (no partir del blob 3D/GSAP actual ni del reveal 'mazo de cartas' de Funcionalidades); (b) está abierto a relajar reglas de `docs/design.md §1.1/§13.1` (gradientes CSS, box-shadow de card/lift, límite de 1 bloque wine sólido) caso a caso si el resultado visual lo justifica — no es un mandato de romper todo, se evalúa con el usuario en la fase de exploración/diseño qué relajación concreta se aplica y se documenta como excepción igual que hizo UX-38/UX-44. Dependencias de animación ya instaladas y disponibles para reutilizar o reemplazar: `motion` (toda la Landing, UX-38/39), `three`+`@react-three/fiber`+`@react-three/drei`+`gsap`+`@gsap/react` (hero, UX-44) — el explorer debe decidir y justificar cuáles se conservan, cuáles se descartan y si hace falta alguna dependencia nueva (requiere aprobación explícita del usuario antes de `pnpm add`, ver `.claude/rules/frontend.md §1`). Lección de proceso de UX-38..44 (ver `progress/history.md`): el explorer DEBE proponer una dirección visual concreta y acotada (secciones, tipo de animación por sección, paleta/tokens, qué reglas de design.md se relajan y por qué) antes de que el implementer construya, para evitar rondas de descarte total como UX-43. Se recomienda validación visual del usuario en navegador (`pnpm --filter @estetica/client dev`) antes de dar el ciclo por cerrado, dado que ningún reviewer de este entorno tiene navegador real disponible. Ronda de fix post-feedback (2026-07-25, ver `progress/reviews/review_UX-45-fix.md`): el usuario probó la Landing en navegador real y reportó 4 puntos, todos corregidos y auditados en disco — (1) reveal de Features roto por `clipPath` reemplazado por el patrón `opacity`/`y` ya probado en el resto del archivo; (2) línea de progreso de 'Cómo funciona' con `z-index` explícito (`z-0` en la línea, `z-10` en cada paso); (3) blobs del hero con duraciones reducidas (~11/13/9s → 5/6/4s) y 3 formas nuevas agregadas (total 6); (4) íconos de `heroStatCards` y Stats/'Impacto' reemplazados por SVGs a medida con animación perpetua en `components/landing/StatIcons.tsx`, sin tocar Funcionalidades.",
+            "acceptance_criteria": [
+                "views/Landing.tsx queda reconstruida con una composición visual nueva (no una iteración incremental sobre el hero 3D/GSAP ni el reveal 'mazo de cartas' existentes), manteniendo el contenido/copy funcional (CTAs de registro/login, secciones informativas) y la navegación sin regresiones",
+                "Toda la página tiene animaciones llamativas y coherentes entre secciones (hero, features, stats, cómo funciona, CTA final, footer si aplica) — no limitadas al hero como en UX-38..44",
+                "docs/design.md §1.1/§13.1 se actualiza documentando explícitamente qué reglas se relajan para la Landing (ej. gradientes, sombras, más de un bloque wine) y por qué, dejando claro que la app autenticada NO hereda esas excepciones",
+                "Toda dependencia de animación usada (existente o nueva) permanece exclusiva de views/Landing.tsx y/o components/landing/ — grep confirma cero imports de esas libs en vistas autenticadas",
+                "Si se agrega alguna dependencia nueva (fuera de motion/three/@react-three/fiber/@react-three/drei/gsap/@gsap/react ya instaladas), requiere aprobación explícita del usuario antes de instalarla",
+                "prefers-reduced-motion: reduce desactiva o reduce drásticamente todo el movimiento nuevo en toda la página, no solo en el hero",
+                "La Landing se mantiene responsive (mobile-first) y accesible (trifecta de accesibilidad en cualquier estado crítico que exista)",
+                "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+            ]
+        },
+        {
             "id": "EP-18",
             "name": "Reporte de actividad del negocio",
             "module": "Reports",

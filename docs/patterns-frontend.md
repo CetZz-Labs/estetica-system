@@ -538,4 +538,18 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ---
 
+## P14 — Gotcha: `useScroll({ target: ref })` de `motion` se congela si el `ref` está detrás de un `return` condicional
+
+> **Origen:** UX-45 (rediseño de la Landing, ronda A, 2026-07-25). Misma familia de bug que ya había costado 2 rondas de fix a `useGSAP` en UX-44 (`docs/history.md` 2026-07-22): un efecto de animación atado a un `ref` que no está montado en el primer render real nunca se vuelve a disparar cuando el DOM sí existe.
+
+**Causa:** `views/Landing.tsx` tiene dos `return` tempranos antes del JSX real (spinner `!isLoaded` de Clerk, `<Navigate>` si `userId`). Un `ref` pasado como `target` a `useScroll({ target: ref, offset: [...] })` (`motion`) memoiza su callback interno de arranque con dependencias `[container, target, offset]` — como el objeto `ref` conserva la MISMA identidad entre el render sin hero y el render con hero ya montado, React no vuelve a ejecutar el efecto de arranque y el progreso de scroll queda congelado en 0 para siempre, sin ningún error en consola.
+
+**Mandato:** antes de usar `useScroll({ target })`/`useGSAP({ scope })` (o cualquier hook de animación con timeline atado a un `ref`) en un componente con `return` condicional antes del JSX que contiene ese `ref`, verificar si el ref puede estar `null` en algún render intermedio real (loading state, guard de auth, etc.):
+- Si el componente **tiene** returns condicionales antes del ref → usar la variante SIN `target`/scope acotado (ej. `useScroll()` global trackeando `window`, mapeando con `useTransform` sobre coordenadas de página) o agregar las variables que gatillan esos returns (`isLoaded`, `userId`, etc.) a las dependencias del efecto.
+- Si el componente **no** tiene ningún return condicional antes del ref (la sección siempre se monta) → `target` acotado es seguro, preferible por precisión (ej. "Cómo funciona" en `Landing.tsx`, UX-45 ronda C).
+
+**Gotcha:** no produce error de build/lint ni warning en consola — la animación simplemente no ocurre nunca, indistinguible a simple vista de "no se implementó". Solo se detecta inspeccionando si el componente tiene early-returns antes del elemento con el ref, o viendo el `useScroll`/timeline nunca progresar en el navegador real.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.
