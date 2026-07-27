@@ -552,4 +552,23 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ---
 
+## P15 — Puerto de un shader fullscreen de three.js/@react-three/fiber a `ogl` (fondo decorativo liviano)
+
+> **Origen:** UX-46 (fondo `Silk` del hero de la Landing, 2026-07-27). Necesidad: reproducir un efecto visual de una librería de terceros (react-bits) cuya variante oficial requiere `three`+`@react-three/fiber` — dependencias purgadas explícitamente del proyecto en UX-45 (peso, 2 rondas de bugs de timing) — sin reabrir esa excepción.
+
+**Cuándo aplica:** un shader GLSL fullscreen (vertex+fragment puro, sin geometría 3D real) que en su forma original usa la API declarativa de `@react-three/fiber` (`<Canvas>`, `<mesh>`, `<shaderMaterial>`, `useFrame`). El GLSL en sí (vertex/fragment) es 100% portable tal cual — lo único que cambia es el "harness" que crea el contexto WebGL y expone los uniforms.
+
+**Receta con `ogl`** (biblioteca WebGL ~30-50 kB, sin relación con three.js):
+1. `Renderer` (crea `gl`/canvas) + `Program` (compila vertex+fragment, uniforms como `{ value }`, misma forma que `ShaderMaterial` de three) + `Mesh` con geometría `Triangle` de `ogl` — el idiom estándar para shaders fullscreen (un solo triángulo sobredimensionado, sin seam central, sin necesidad de cámara/matrices de proyección).
+2. Vertex shader simplificado: sin `projectionMatrix`/`modelViewMatrix` (innecesarios porque `Triangle.position` ya viene en espacio de clip) — `gl_Position = vec4(position, 0.0, 1.0);`.
+3. `ResizeObserver` sobre el contenedor (no `window.resize`) si el canvas vive dentro de una sección específica, no del viewport completo.
+4. Cleanup explícito en 4 pasos en el `return` del `useEffect` — `ogl` **no** expone un `dispose()` de alto nivel como three.js: `cancelAnimationFrame` → `resizeObserver.disconnect()` → `gl.getExtension('WEBGL_lose_context')?.loseContext()` → remover el `canvas` del DOM. Sin estos 4 pasos, montaje/desmontaje repetido (ej. navegación ida y vuelta a la Landing) puede acumular contextos WebGL huérfanos.
+5. `prefers-reduced-motion`: recibir la prop desde el componente padre (no invocar el hook adentro) y, si está activo, renderizar un único frame estático (`renderer.render()` una vez) sin llamar nunca `requestAnimationFrame`.
+
+**Ejemplo canónico:** `apps/client/src/components/landing/Silk.tsx` (ver `progress/reviews/review_UX-46.md` para el detalle de auditoría del cleanup).
+
+**Gotcha de contraste:** un shader que sale con alfa completo (`col.a = 1.0`) sobre texto real necesita un wrapper con opacidad baja (calibrar visualmente, no asumir un valor) — nunca confiar en que el propio patrón del shader ya es "sutil" solo por su matemática interna.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

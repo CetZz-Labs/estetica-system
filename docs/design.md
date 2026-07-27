@@ -518,6 +518,38 @@ transmitir dinamismo comercial. Esta excepción **no** se extiende a ninguna vis
   de la Landing (UX-45): drift/parallax de blobs, tilt de tarjetas, hover magnético, reveal por
   palabra del título, marquee, clip-path de Features, conteo de Stats, línea de "Cómo funciona"
   y fades de CTA final/footer.
+* **Excepción puntual `ogl` para el fondo Silk del hero (UX-46, 2026-07-27):** se permite
+  instalar `ogl` (biblioteca WebGL ligera, ~30-50 kB, sin relación con `three`/`@react-three/*`)
+  como dependencia de `apps/client`, consumida exclusivamente desde
+  `components/landing/Silk.tsx` para renderizar el fondo animado de olas de tela del hero de la
+  Landing (reimplementación del shader GLSL de la variante oficial Silk-JS-CSS de react-bits,
+  cuya forma original requiere `three` + `@react-three/fiber`). Esta excepción es puntual y no
+  reabre en ningún grado la excepción retirada en UX-45: `three`, `@react-three/fiber`,
+  `@react-three/drei`, `gsap` y `@gsap/react` permanecen fuera del proyecto. Los 6 `HeroBlob`
+  que antes vivían en el hero se retiraron para no apilar dos sistemas de fondo animado en la
+  misma sección (§1.3: máximo 1-2 fondos por vista); `HeroBlob` sigue existiendo como
+  componente y se sigue usando en el CTA final. `components/landing/ShapeGrid.tsx` (fondo de
+  grilla animada del resto de la Landing — Funcionalidades, Stats, Cómo funciona, CTA final y
+  footer) no requiere ninguna excepción de dependencias: es Canvas 2D puro escrito a mano, sin
+  librerías externas, igual que el resto del código de `components/landing/`. Ambos fondos son
+  decorativos (`aria-hidden`) y respetan `prefers-reduced-motion` congelando su animación en un
+  frame estático en vez de desmontarse por completo; `ShapeGrid` es la única excepción con
+  interacción real dentro de esta capa decorativa (hover simple: una celda de la grilla se
+  resalta al pasar el mouse por encima, sin estela), por lo que su wrapper en `Landing.tsx` no
+  lleva `pointer-events-none` (a diferencia del de `Silk`, puramente decorativo sin ninguna
+  interacción).
+* **`MagicBento` en Funcionalidades — NO reabre gsap (UX-47, 2026-07-27):** las cards de la
+  sección Funcionalidades incorporan spotlight global + glow de borde por proximidad del cursor +
+  partículas al hover + ripple al click (`components/landing/MagicBento.tsx`), puerto conceptual
+  de la variante `MagicBento-JS-CSS` de react-bits. La forma oficial de ese componente depende de
+  `gsap` — a diferencia de la excepción `ogl` de arriba (UX-46), acá **no se instala ninguna
+  dependencia nueva**: cada `gsap.to`/`gsap.fromTo` del original se reimplementa con `animate()`
+  de `motion` (ya permitida en toda la Landing desde UX-45) para las animaciones con timeline
+  (partículas, ripple) y con CSS puro/`transition` nativa para lo que no necesita librería
+  (posición del spotlight, glow de borde vía variables CSS `--glow-x`/`--glow-y`/
+  `--glow-intensity`). `enableTilt`/`enableMagnetism` del componente original no se portan (sin
+  rotación 3D ni desplazamiento magnético). `gsap`/`@gsap/react`/`three`/`@react-three/*` siguen
+  fuera del proyecto sin ninguna excepción nueva.
 
 ---
 

@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router';
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
-    motion, useReducedMotion, useScroll, useSpring,
+    motion, useReducedMotion, useSpring,
     useMotionValue, useMotionValueEvent, animate
 } from 'motion/react';
 import type { Variants } from 'motion/react';
@@ -18,6 +18,10 @@ import {
 import type { IconType } from 'react-icons';
 import AnimatedStatIcon from '../components/landing/StatIcons';
 import type { StatIconAnimation } from '../components/landing/StatIcons';
+import Silk from '../components/landing/Silk';
+import DotField from '../components/landing/DotField';
+import LogoLoop from '../components/landing/LogoLoop';
+import { BentoSpotlight, MagicBentoCard } from '../components/landing/MagicBento';
 
 // Variant de reveal reutilizada en Stats (§13.1) y ahora también en Features (ver
 // `featureCardReveal` — UX-45-fix, punto 1). Función (no objeto fijo) para que cada card de
@@ -67,13 +71,35 @@ const marqueeDotColors = ['bg-accent', 'bg-sage', 'bg-gold', 'bg-wine'];
 // a baja opacidad, superpuestos sobre el bloque `bg-wine`.
 const ctaDotPatternUrl = 'url("data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'2\' cy=\'2\' r=\'1.4\' fill=\'white\' fill-opacity=\'0.6\'/%3E%3C/svg%3E")';
 
-// Trazo serpenteante de la línea de "Cómo funciona" (UX-45-fix2, punto 3): curva tipo "S"
-// repetida verticalmente con `Q` (quadratic Bézier) en un viewBox angosto (40 de ancho, 600 de
-// alto) — con `preserveAspectRatio="none"` el `<svg>` estira el path para llenar el contenedor
-// real (`top-10 bottom-10` del wrapper de pasos), sin importar su alto final en píxeles. Igual
-// que la línea recta que reemplaza, funciona como columna vertebral narrativa (no un conector
-// literal círculo-a-círculo, ver nota junto al JSX).
-const howItWorksPathD = 'M20 0 Q40 75 20 150 Q0 225 20 300 Q40 375 20 450 Q0 525 20 600';
+// Fondos animados Silk/DotField (UX-46, ver components/landing/Silk.tsx y DotField.tsx —
+// DotField reemplazó a ShapeGrid en la ronda de fix UX-46-fix, 2026-07-27).
+// SILK_COLOR: accent-rose (#D98BA4, docs/design.md §2.3) — no wine, que ya está reservado como
+// "único bloque sólido por vista" en el CTA final (§1.3/§7.5); el shader sale con alfa completo,
+// por eso el wrapper que lo monta en el hero lleva opacidad + mix-blend-mode multiply (mismo
+// idiom ya aprobado en §13.1/UX-39 para los blobs).
+const SILK_COLOR = '#D98BA4';
+// DOTFIELD_DOT_COLOR: wine al 18% de opacidad — usado en AMBOS extremos del degradé interno de
+// DotField (`gradientFrom`/`gradientTo`, ver JSX de montaje más abajo). UX-46-fix: el componente
+// original de react-bits arma sus puntos con un `ctx.createLinearGradient` de 2 tonos distintos
+// (transición de color real); docs/design.md §1.3 prohíbe transiciones tipo `linear-gradient`
+// incluso en la Landing, así que se usa el MISMO valor en ambos extremos — el gradiente interno
+// del canvas queda anulado funcionalmente y los puntos se pintan de un color sólido.
+// UX-46-fix2: subido de 0.10 a 0.18 (junto con `dotRadius` 1→1.5 en el punto de montaje) —
+// feedback del usuario tras probar en navegador real: la grilla era demasiado sutil para
+// percibirse en reposo, incluso sin el bug de coordenadas del cursor (ver DotField.tsx).
+const DOTFIELD_DOT_COLOR = 'rgba(107, 52, 68, 0.18)';
+// DOTFIELD_GLOW_COLOR: wine sólido — el glow es un `radialGradient` de UN color hacia
+// transparente (fade radial, no transición entre 2 tonos), mismo idiom ya aprobado en
+// docs/design.md §13.1 (UX-39) para blobs con blur/opacidad. Esto SÍ está permitido.
+const DOTFIELD_GLOW_COLOR = '#6B3444';
+
+// MAGIC_BENTO_GLOW_COLOR (UX-47): `accent` (#B76E84, docs/design.md §2.3) en formato "R, G, B"
+// — así lo consume el CSS de `components/landing/MagicBento.tsx` (`rgba(${glowColor}, ...)`,
+// mismo formato de string que el componente original de react-bits). Distinto del `accent-rose`
+// de Silk y del `wine` de DotField/CTA — cada zona de la Landing con acento propio, sin repetir
+// literalmente el mismo tono en todos lados. NO es el placeholder `132, 0, 255` (morado) del
+// ejemplo del usuario.
+const MAGIC_BENTO_GLOW_COLOR = '183, 110, 132';
 
 // Rotación de tinte determinística (§7.10) para íconos de Features/Stats: rose → sage → gold → wine.
 const sectionTints = [
@@ -190,25 +216,17 @@ export default function Landing() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const prefersReducedMotion = useReducedMotion();
 
-    // Blobs de fondo del hero (§13.1, UX-45): sin parallax ligado a scroll (retirado en
-    // UX-45-fix2, punto 2 — confirmado explícitamente por el usuario tras pregunta directa).
-    // Quedan estáticos en su posición de fondo; el único movimiento es el drift+opacidad+escala
-    // infinito de `HeroBlob` (ver componente más abajo). El fondo decorativo ahora vive en un
-    // `<div>` wrapper compartido que envuelve `<section>` del hero + `<TrustMarquee />` (ver
-    // JSX más abajo), sin necesidad de ningún hook nuevo acá, para que el área con blur se
-    // extienda también detrás del marquee en vez de cortarse en el borde inferior del hero.
+    // Fondo del hero (§13.1, UX-45/UX-46): los `HeroBlob` que ocupaban el hero se retiraron en
+    // UX-46 y se reemplazaron por `<Silk />` (ver JSX más abajo, components/landing/Silk.tsx) —
+    // `HeroBlob` sigue existiendo como componente y se sigue usando en el CTA final. El `<div>`
+    // wrapper compartido que envuelve `<section>` del hero + `<TrustMarquee />` (UX-45-fix2,
+    // punto 2) se mantiene sin cambios estructurales.
 
-    // Línea de progreso de "Cómo funciona" (UX-45-C): esta sección NO está detrás de ningún
-    // `return` condicional (a diferencia del hero, que si lo tenía cuando usaba `useScroll()`
-    // global para el parallax ya retirado), así que `useScroll({ target })` es seguro acá — el
-    // ref se hidrata en el primer render real. Offset `['start end', 'end start']` recorre 0→1
-    // mientras la sección atraviesa completamente el viewport (entra por abajo, termina de salir
-    // por arriba).
-    const howItWorksRef = useRef<HTMLElement>(null);
-    const { scrollYProgress: howItWorksProgress } = useScroll({
-        target: howItWorksRef,
-        offset: ['start end', 'end start'],
-    });
+    // Sección de Funcionalidades (UX-47): ref propio para acotar `BentoSpotlight` (spotlight
+    // global + glow de borde) a esta sección — no tiene ningún `return` condicional por delante
+    // que la deje sin montar en el primer render real, así que un `ref` acotado es seguro
+    // (docs/patterns-frontend.md § P14).
+    const funcionalidadesSectionRef = useRef<HTMLElement>(null);
 
     if (!isLoaded) {
         return (
@@ -233,7 +251,16 @@ export default function Landing() {
     return (
         <div className="min-h-screen bg-bg text-text font-sans">
             {/* ── NAV ── */}
-            <header className="sticky top-0 z-50 bg-surface border-b border-border">
+            {/* UX-46-fix, Cambio 4: header traslúcido + blur (antes `bg-surface` opaco) para que
+                el fondo `Silk` del hero (sticky, queda superpuesto sobre él en la parte superior
+                de la página) se perciba a través en vez de taparlo. `bg-surface/70` + `backdrop-
+                blur-md` (efecto vidrio esmerilado) + `border-border/60` (borde inferior menos
+                marcado sobre un fondo ahora translúcido). Contraste verificado: sobre `bg-bg`
+                normal (resto de secciones sin Silk detrás) el texto sigue perfectamente legible;
+                sobre el hero, Silk ya llega atenuado por su propio wrapper (opacity-[0.34] +
+                mix-blend-mode multiply, ver Cambio 1 más arriba), así que no compite con el
+                contraste del logo/links del nav. */}
+            <header className="sticky top-0 z-50 bg-surface/70 backdrop-blur-md border-b border-border/60">
                 <nav className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                     <Link to="/" className="flex items-center gap-2 no-underline shrink-0">
                         <img src="/shear-logo.png" alt="Shear" className="h-9 w-auto" />
@@ -313,90 +340,50 @@ export default function Landing() {
             )}
 
             {/* ── HERO + FRANJA DE CONFIANZA: wrapper compartido de fondo decorativo (UX-45-fix2,
-                punto 2) ── */}
-            {/* Antes los 6 blobs vivían dentro del `<section>` del hero, con su propio
-                `overflow-hidden` recortando el blur justo en el borde inferior de esa sección.
-                El usuario pidió que el área decorativa se extienda también detrás de
-                `<TrustMarquee />` (la franja que sigue inmediatamente después) en vez de
-                cortarse ahí. Solución elegida (la más simple/auditable de las evaluadas): un
-                `<div>` contenedor que envuelve `<section>` (hero) + `<TrustMarquee />`, con el
-                `relative overflow-hidden bg-bg` que antes tenía el `<section>` solo — los 6
-                blobs pasan a ser hijos directos de este wrapper (mismo `position: absolute`,
-                mismas clases de posición) en vez de hijos del `<section>`, así su `blur-3xl`
-                alcanza visualmente el área de `TrustMarquee`. Los blobs con offsets negativos
-                de "bottom" (ej. `-bottom-16`, `-bottom-24`) ahora anclan contra el borde inferior
-                de este wrapper más alto (hero + marquee), por lo que su blur queda situado
-                naturalmente sobre/detrás de la franja en vez de solo asomar en el borde del
-                hero. `TrustMarquee` baja su opacidad de fondo (`bg-surface/90` en vez de
-                `bg-surface` opaco) para que ese bleed sea visible sin sacrificar la legibilidad
-                del texto de la cinta (ver componente `TrustMarquee` más abajo). */}
-            <div className="relative overflow-hidden bg-bg">
-                {/* Fondo decorativo: 6 formas sólidas con blur + mix-blend-mode (§13.1/UX-39).
-                    UX-45-fix2 punto 2: drift de posición + variación de opacidad y escala en el
-                    mismo loop infinito (antes solo posición) — bastante más dramático que la
-                    ronda anterior — y SIN parallax ligado a scroll (retirado explícitamente,
-                    confirmado con el usuario): los blobs quedan estáticos en su posición de
-                    fondo, sin desplazarse al hacer scroll. Puramente decorativo: aria-hidden +
-                    pointer-events-none. El contenido vive en contenedores `relative z-10` por
-                    encima de estos blobs (`z-0`), así que su posición no compite nunca con el
-                    texto. */}
-                <HeroBlob
-                    positionClassName="w-72 h-72 sm:w-[28rem] sm:h-[28rem] -top-24 -left-20"
-                    colorClassName="bg-wine"
-                    driftX={[0, 36]}
-                    driftY={[0, -24]}
-                    duration={5}
-                    delay={0}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-                <HeroBlob
-                    positionClassName="w-64 h-64 sm:w-80 sm:h-80 top-6 -right-16 sm:-right-24"
-                    colorClassName="bg-sage"
-                    driftX={[0, -30]}
-                    driftY={[0, 26]}
-                    duration={6}
-                    delay={1.5}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-                <HeroBlob
-                    positionClassName="w-56 h-56 sm:w-72 sm:h-72 -bottom-16 left-1/3"
-                    colorClassName="bg-gold"
-                    driftX={[0, 22]}
-                    driftY={[0, 20]}
-                    duration={4}
-                    delay={3}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-                <HeroBlob
-                    positionClassName="w-40 h-40 sm:w-56 sm:h-56 top-1/3 -right-8"
-                    colorClassName="bg-wine"
-                    driftX={[0, -18]}
-                    driftY={[0, 16]}
-                    duration={7}
-                    delay={0.8}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-                <HeroBlob
-                    positionClassName="w-48 h-48 sm:w-64 sm:h-64 -bottom-24 right-1/4"
-                    colorClassName="bg-sage"
-                    driftX={[0, 20]}
-                    driftY={[0, -18]}
-                    duration={8}
-                    delay={2.2}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-                <HeroBlob
-                    positionClassName="w-36 h-36 sm:w-48 sm:h-48 top-1/2 -left-10"
-                    colorClassName="bg-gold"
-                    driftX={[0, -16]}
-                    driftY={[0, 20]}
-                    duration={6.5}
-                    delay={1}
-                    prefersReducedMotion={!!prefersReducedMotion}
-                />
-
+                punto 2; actualizado UX-46) ── */}
+            {/* `relative overflow-hidden bg-bg` envuelve `<section>` (hero) + `<TrustMarquee />`.
+                UX-46: los 6 `HeroBlob` que vivían acá se retiraron (reemplazados por `<Silk />`,
+                confinado al `<section>` del hero, ver más abajo) — `TrustMarquee` conserva su
+                `bg-surface/90` (en vez de opaco) porque sigue funcionando como transición visual
+                suave respecto al `bg-bg` del hero, ahora sin depender de ningún blur detrás. `z-10`
+                explícito en este wrapper (UX-46): sin él, el canvas `fixed` de `<DotField />`
+                (UX-46-fix, ver más abajo, montado antes de Features) podría pintarse por encima
+                del hero al no tener ambos elementos un `z-index` explícito en el mismo stacking
+                context. */}
+            <div className="relative z-10 overflow-hidden bg-bg">
                 {/* ── HERO ── */}
                 <section className="relative z-10 pt-16 sm:pt-20 pb-16 sm:pb-24">
+                {/* Fondo Silk del hero (UX-46) — ver components/landing/Silk.tsx. Reemplaza a
+                    los 6 `HeroBlob` que vivían acá antes (retirados para no apilar dos sistemas
+                    de fondo animado en la misma sección, docs/design.md §1.3: máximo 1-2 fondos
+                    por vista); `HeroBlob` sigue existiendo y usándose en el CTA final más abajo.
+                    Decorativo puro, confinado a este `section` (no se extiende a TrustMarquee):
+                    `aria-hidden` + `pointer-events-none`, opacidad + `mix-blend-mode: multiply`
+                    porque el shader sale con alfa completo (sin esa opacidad competiría con el
+                    contraste del título/CTAs del hero). UX-46-fix (2026-07-27): feedback de
+                    navegador real del usuario — la animación se veía "muy lenta" y el contraste
+                    de color "casi no se nota". Se sube `speed` 2.2→7 (movimiento de olas
+                    notoriamente activo, no textura casi estática) y la opacidad del wrapper
+                    0.14→0.34 (más del doble — mismo orden de intensidad que los tintes de fondo
+                    `rose-bg`/`wine-bg` ya usados en badges/chips, docs/design.md §2.4, no un
+                    valor fuera de lo ya validado en el sistema) más `noiseIntensity` 1.1→1.7 para
+                    que el ruido/olas se note también como textura, no solo como color más fuerte.
+                    Verificado: el texto del hero (`text` #3E2A33, muy oscuro) sigue perfectamente
+                    legible sobre `bg-bg` (#FAF6F4) con este nivel de mezcla. */}
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-[0.34]"
+                    style={{ mixBlendMode: 'multiply' }}
+                >
+                    <Silk
+                        color={SILK_COLOR}
+                        speed={7}
+                        scale={1}
+                        noiseIntensity={1.7}
+                        rotation={0}
+                        prefersReducedMotion={!!prefersReducedMotion}
+                    />
+                </div>
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         <div className="text-center lg:text-left">
@@ -489,8 +476,46 @@ export default function Landing() {
                 <TrustMarquee prefersReducedMotion={!!prefersReducedMotion} />
             </div>
 
+            {/* Fondo DotField del resto de la Landing (UX-46-fix, reemplaza a `ShapeGrid`) — ver
+                components/landing/DotField.tsx. `fixed` (no `absolute`) para que el canvas mida
+                siempre el viewport, no el alto total de las 5 secciones que siguen (Features,
+                Stats, Cómo funciona, CTA final, footer) — evita redibujar un canvas gigante en
+                cada frame. `z-0` para quedar detrás de todo el contenido, que a partir de acá
+                lleva `z-10` explícito (ver cada sección más abajo). `pointer-events-none` en este
+                wrapper (a diferencia de `ShapeGrid`, que lo omitía): DotField trackea el mouse
+                con un listener GLOBAL en `window` (no en el propio canvas), así que el efecto de
+                bulge/glow sigue funcionando igual sin que el canvas necesite recibir eventos —
+                cero riesgo de bloquear clicks reales sobre el contenido de las secciones. */}
+            <div aria-hidden="true" className="fixed inset-0 z-0 pointer-events-none">
+                <DotField
+                    dotRadius={1.5}
+                    dotSpacing={14}
+                    cursorRadius={300}
+                    cursorForce={0.1}
+                    bulgeOnly
+                    bulgeStrength={10}
+                    glowRadius={50}
+                    sparkle={false}
+                    waveAmplitude={0}
+                    gradientFrom={DOTFIELD_DOT_COLOR}
+                    gradientTo={DOTFIELD_DOT_COLOR}
+                    glowColor={DOTFIELD_GLOW_COLOR}
+                    prefersReducedMotion={!!prefersReducedMotion}
+                />
+            </div>
+
             {/* ── FEATURES ── */}
-            <section id="funcionalidades" className="relative scroll-mt-20 bg-bg">
+            <section id="funcionalidades" ref={funcionalidadesSectionRef} className="relative z-10 scroll-mt-20">
+                {/* Spotlight global + glow de borde de las cards (UX-47) — mismo patrón de
+                    componente montado UNA vez por sección que `BentoSpotlight` (ver
+                    components/landing/MagicBento.tsx). No renderiza layout propio: solo la hoja
+                    de estilos del glow de borde + el listener global de mousemove. */}
+                <BentoSpotlight
+                    sectionRef={funcionalidadesSectionRef}
+                    spotlightRadius={400}
+                    glowColor={MAGIC_BENTO_GLOW_COLOR}
+                    prefersReducedMotion={!!prefersReducedMotion}
+                />
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-12 sm:pb-16">
                     <div className="text-center max-w-3xl mx-auto">
                         <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-4">
@@ -519,7 +544,11 @@ export default function Landing() {
                             const cardMotion = featureCardReveal(i, !!prefersReducedMotion);
                             const isBento = i === 0;
                             return (
-                                <motion.div
+                                // MagicBentoCard (UX-47): wrapper que agrega spotlight/glow de borde +
+                                // partículas al hover + ripple al click sobre el MISMO `motion.div` de
+                                // siempre — todas las props de reveal/hover que ya tenía la card (abajo)
+                                // se reenvían intactas, ver components/landing/MagicBento.tsx.
+                                <MagicBentoCard
                                     key={feat.title}
                                     className={`bg-surface border border-border rounded-card p-6 sm:p-8 flex flex-col ${isBento ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:justify-between' : ''}`}
                                     initial={cardMotion.initial}
@@ -534,13 +563,20 @@ export default function Landing() {
                                         boxShadow: '0 8px 24px rgba(107, 52, 68, 0.10)',
                                         transition: { duration: 0.15, ease: 'easeOut' },
                                     }}
+                                    glowColor={MAGIC_BENTO_GLOW_COLOR}
+                                    particleCount={12}
+                                    clickEffect
+                                    prefersReducedMotion={!!prefersReducedMotion}
                                 >
                                     <div className={`${isBento ? 'w-16 h-16' : 'w-14 h-14'} rounded-card ${tint.bg} flex items-center justify-center mb-6`}>
                                         <Icon size={isBento ? 30 : 26} className={tint.text} />
                                     </div>
 
                                     <h4 className={`${isBento ? 'text-2xl lg:text-3xl' : 'text-xl'} font-serif text-text mb-3`}>{feat.title}</h4>
-                                    <p className={`text-sm text-text-2 leading-relaxed ${isBento ? 'lg:text-base lg:max-w-md' : ''}`}>{feat.description}</p>
+                                    {/* `textAutoHide` (UX-47, pedido explícito del usuario): `magic-bento-clamp-text`
+                                        trunca con `-webkit-line-clamp` si una descripción futura desborda la
+                                        altura fija de una card chica — sin cambio visible con el copy actual. */}
+                                    <p className={`text-sm text-text-2 leading-relaxed magic-bento-clamp-text ${isBento ? 'lg:text-base lg:max-w-md' : ''}`}>{feat.description}</p>
 
                                     {feat.featured && feat.stat && (
                                         <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border-soft text-xs font-semibold text-accent">
@@ -548,7 +584,7 @@ export default function Landing() {
                                             <span>{feat.stat}</span>
                                         </div>
                                     )}
-                                </motion.div>
+                                </MagicBentoCard>
                             );
                         })}
                     </div>
@@ -556,7 +592,7 @@ export default function Landing() {
             </section>
 
             {/* ── STATS / IMPACT ── */}
-            <section className="py-16 sm:py-24 bg-bg">
+            <section className="relative z-10 py-16 sm:py-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12 sm:mb-16">
                         <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-4">
@@ -600,7 +636,7 @@ export default function Landing() {
             </section>
 
             {/* ── HOW IT WORKS ── */}
-            <section id="como-funciona" ref={howItWorksRef} className="py-24 sm:py-32 relative scroll-mt-20 bg-bg">
+            <section id="como-funciona" className="py-24 sm:py-32 relative z-10 scroll-mt-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-2xl mx-auto mb-20">
                         <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-4">
@@ -612,54 +648,16 @@ export default function Landing() {
 
                     {/* Steps */}
                     <div className="max-w-4xl mx-auto space-y-28 sm:space-y-40 relative">
-                        {/* Línea de progreso ligada a scroll, serpenteante (UX-45-fix2, punto 3):
-                            reemplaza el `div` recto con `scaleY` por un `<svg>` con un trazo
-                            ondulado (`howItWorksPathD`, curvas `Q`), "dibujado" al hacer scroll
-                            vía `pathLength` de `motion.path` (0→1) ligado al mismo
-                            `howItWorksProgress` ya calculado arriba — más simple que calcular
-                            `strokeDashoffset` a mano. Dos `<svg>` superpuestos con el mismo
-                            `path`: uno de trazo fijo (`text-dotted`, el "carril" completo) y otro
-                            con el trazo animado por encima (`text-accent`, el progreso). Spine
-                            vertical centrada en el wrapper de pasos: en `sm:` el layout alterna
-                            el círculo de lado (flex-row-reverse por paso), por lo que la línea no
-                            coincide con el centro exacto de cada círculo — decisión deliberada
-                            para no reestructurar el layout alternado ya aprobado; funciona como
-                            columna vertebral narrativa de la sección, no como conector literal
-                            círculo-a-círculo. Oculta en mobile (`hidden sm:block`) porque ahí los
-                            pasos se apilan en una sola columna centrada y el propio orden
-                            vertical ya comunica la progresión sin necesidad de spine. Se
-                            mantiene el `z-index` corregido en UX-45-fix punto 2 (`z-0` acá,
-                            `z-10` en cada paso, ver más abajo) para que la línea siga detrás del
-                            texto. Con `prefersReducedMotion`, `pathLength` queda fijo en 1 (línea
-                            completa sin animar). */}
-                        <div
-                            aria-hidden="true"
-                            className="hidden sm:block absolute z-0 left-1/2 -translate-x-1/2 top-10 bottom-10 w-10"
-                        >
-                            <svg className="absolute inset-0 w-full h-full text-dotted" viewBox="0 0 40 600" preserveAspectRatio="none" fill="none">
-                                <path d={howItWorksPathD} stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-                            </svg>
-                            <svg className="absolute inset-0 w-full h-full text-accent" viewBox="0 0 40 600" preserveAspectRatio="none" fill="none">
-                                <motion.path
-                                    d={howItWorksPathD}
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                    strokeLinecap="round"
-                                    style={{ pathLength: prefersReducedMotion ? 1 : howItWorksProgress }}
-                                />
-                            </svg>
-                        </div>
-
                         {steps.map((step, i) => {
                             const tint = sectionTints[i % sectionTints.length];
                             return (
                                 <motion.div
                                     key={step.number}
                                     className={`relative z-10 flex flex-col sm:flex-row items-center gap-8 sm:gap-16 ${i % 2 !== 0 ? 'sm:flex-row-reverse' : ''}`}
-                                    initial={prefersReducedMotion ? false : { opacity: 0, x: i % 2 !== 0 ? 24 : -24 }}
+                                    initial={prefersReducedMotion ? false : { opacity: 0, x: i % 2 !== 0 ? 140 : -140 }}
                                     whileInView={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
                                     viewport={{ once: true, amount: 0.4 }}
-                                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                                    transition={{ type: 'spring', bounce: 0.4, duration: 0.8 }}
                                 >
                                     {/* Step number - círculo que se ilumina al cruzar el centro
                                         del viewport (UX-45-C): `margin: '-50% 0px -50% 0px'`
@@ -695,7 +693,7 @@ export default function Landing() {
             </section>
 
             {/* ── CTA final — único bloque wine sólido de la página (§1.3/§7.5) ── */}
-            <section className="py-20 sm:py-28 bg-bg">
+            <section className="relative z-10 py-20 sm:py-28">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     {/* Tilt 3D al hover (UX-45-fix2, punto 4): reutiliza el mismo componente
                         `TiltCard` de las tarjetas de estadística del hero (no se reimplementa
@@ -778,7 +776,7 @@ export default function Landing() {
             {/* Fade-in simple al entrar en viewport (UX-45-D) — sin efectos adicionales, para
                 no saturar el cierre de la página. */}
             <motion.footer
-                className="border-t border-border bg-surface"
+                className="relative z-10 border-t border-border bg-surface/90"
                 initial={prefersReducedMotion ? false : { opacity: 0 }}
                 whileInView={prefersReducedMotion ? undefined : { opacity: 1 }}
                 viewport={{ once: true, amount: 0.3 }}
@@ -809,13 +807,26 @@ interface TrustMarqueeProps {
     prefersReducedMotion: boolean;
 }
 
+interface MarqueeItem {
+    word: string;
+    dotColor: string;
+}
+
 /**
  * Cinta de confianza en loop infinito (UX-45-B): puramente decorativa (el contenido real ya
- * vive en Features), por eso todo el bloque lleva `aria-hidden` y no puede recibir foco. El
- * contenido se duplica (2 copias consecutivas) para que el loop de `x: -50%` empalme sin salto
- * visible. `overflow-hidden` explícito evita scroll horizontal. Con prefersReducedMotion, el
- * loop se detiene (`animate` pasa a `undefined`) y se muestra la cinta estática, recortada por
- * el propio `overflow-hidden` del contenedor.
+ * vive en Features), por eso todo el bloque lleva `aria-hidden` y no puede recibir foco.
+ * `overflow-hidden` explícito evita scroll horizontal.
+ *
+ * UX-46-fix: el loop manual (`motion.div` con `animate={{ x: ['0%', '-50%'] }}`) se reemplaza
+ * por `LogoLoop` (components/landing/LogoLoop.tsx, puerto de react-bits) — MISMO contenido
+ * visual (las 6 palabras y sus puntos de color por índice, sin cambios), solo cambia el motor de
+ * animación (offset animado por RAF con `translate3d`, copias calculadas dinámicamente según el
+ * ancho del contenedor en vez de fijas en 2). El fade en los bordes (`fadeOut`) usa
+ * `fadeOutColor="var(--surface)"` — mismo tono que ya tenía el wrapper (`bg-surface/90`) para que
+ * el fade se sienta parte del mismo fondo. Es un fade-to-transparent de UN SOLO color (no una
+ * transición entre 2 tonos), misma excepción ya aceptada para blur/opacity en docs/design.md
+ * §13.1 (UX-39) — a diferencia del `linear-gradient` de 2 colores que sí hay que evitar (ver
+ * nota de `DOTFIELD_DOT_COLOR` más arriba).
  *
  * UX-45-fix2 punto 2: `bg-surface` opaco pasa a `bg-surface/90` — el wrapper compartido de
  * `views/Landing.tsx` ahora extiende el fondo decorativo (blobs con blur) del hero por detrás de
@@ -824,27 +835,31 @@ interface TrustMarqueeProps {
  * z-10` explícito para apilarse por encima de los blobs (`z-0`) del wrapper padre.
  */
 function TrustMarquee({ prefersReducedMotion }: TrustMarqueeProps) {
-    const renderCopy = (copyIndex: number) => (
-        <div key={copyIndex} className="flex items-center shrink-0">
-            {marqueeWords.map((word, i) => (
-                <span key={`${copyIndex}-${word}`} className="flex items-center gap-3 px-6 sm:px-10">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${marqueeDotColors[i % marqueeDotColors.length]}`} />
-                    <span className="text-sm sm:text-base font-serif text-text-2 whitespace-nowrap">{word}</span>
-                </span>
-            ))}
-        </div>
+    const items: MarqueeItem[] = marqueeWords.map((word, i) => ({
+        word,
+        dotColor: marqueeDotColors[i % marqueeDotColors.length],
+    }));
+
+    const renderItem = (item: MarqueeItem) => (
+        <span className="flex items-center gap-3 px-6 sm:px-10">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${item.dotColor}`} />
+            <span className="text-sm sm:text-base font-serif text-text-2 whitespace-nowrap">{item.word}</span>
+        </span>
     );
 
     return (
-        <div aria-hidden="true" className="relative z-10 py-5 sm:py-6 border-y border-border bg-surface/90 overflow-hidden">
-            <motion.div
-                className="flex w-max"
-                animate={prefersReducedMotion ? undefined : { x: ['0%', '-50%'] }}
-                transition={prefersReducedMotion ? undefined : { duration: 26, repeat: Infinity, ease: 'linear' }}
-            >
-                {renderCopy(0)}
-                {renderCopy(1)}
-            </motion.div>
+        <div aria-hidden="true" className="relative z-10 py-5 sm:py-6 border-y border-border bg-surface/90">
+            <LogoLoop
+                items={items}
+                renderItem={renderItem}
+                speed={40}
+                direction="left"
+                gap={0}
+                fadeOut
+                fadeOutColor="var(--surface)"
+                ariaLabel="Franja de confianza"
+                prefersReducedMotion={prefersReducedMotion}
+            />
         </div>
     );
 }
