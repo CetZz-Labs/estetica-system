@@ -566,6 +566,31 @@ transmitir dinamismo comercial. Esta excepción **no** se extiende a ninguna vis
   `bg-gradient-*` que sí produzca una transición de COLOR visible en `background`/
   `backgroundImage`. Es un efecto puramente estático (no depende de scroll/mouse/tiempo), por lo
   que no requiere guarda de `prefers-reduced-motion`.
+* **`HeroLogo3D` en el hero — segundo consumidor de `ogl`, sin reabrir three.js/@react-three/*/
+  gsap (UX-60, 2026-07-29):** las 3 tarjetas de estadística que ocupaban la columna derecha del
+  hero (`heroStatCards`) se reemplazan por un render 3D real del logo de Shear
+  (`components/landing/HeroLogo3D.tsx`, `/shear-favicon.png` como textura) con rotación continua
+  y sutil + sombreado simple (difusa + highlight especular) para percibir volumen. A diferencia
+  de `Silk.tsx` (UX-46, shader fullscreen sin geometría 3D ni cámara — un solo `Triangle` en
+  espacio de clip), `HeroLogo3D` sí necesita objeto 3D real con perspectiva: usa `Camera` +
+  `Transform` (raíz de escena) + `Mesh` (`Plane` + `Program` + `Texture`) de `ogl`, la misma
+  dependencia ya permitida puntualmente para Silk — esta excepción se **extiende** a este segundo
+  componente, sigue sin instalarse ninguna dependencia nueva. `three`, `@react-three/fiber`,
+  `@react-three/drei`, `gsap` y `@gsap/react` permanecen fuera del proyecto sin ninguna excepción
+  nueva ni reapertura parcial. Mismo criterio de `prefers-reduced-motion` que el resto de fondos
+  `ogl`: un frame estático (ángulo fijo) sin `requestAnimationFrame` en vez de desmontar el canvas.
+* **Extrusión 3D real de `HeroLogo3D` siguiendo la silueta exacta del logo — nueva dependencia
+  `earcut` (UX-63, 2026-07-29):** el `Plane` rectangular de UX-60 se reemplaza por una geometría
+  extruida (islas + huecos triangulados, más paredes laterales) que sigue el contorno exacto del
+  primer `<path>` de `public/media/shear-favicon.svg`, parseado a mano (`components/landing/
+  svgExtrude.ts`, sin librería de parseo SVG). Se aprueba explícitamente `earcut` (~3 kB,
+  triangulación de polígonos 2D, cero dependencias transitivas) como dependencia de
+  `apps/client`, de uso **exclusivo** de `svgExtrude.ts`/`HeroLogo3D.tsx` — no habilita ningún otro
+  uso de triangulación en el resto de la app. `three`, `@react-three/*` y `gsap` siguen fuera del
+  proyecto sin ninguna excepción nueva. Las paredes laterales de la extrusión no llevan la textura
+  del favicon (UV fuera de rango, `uv.x < 0.0`): usan un tono sólido oscurecido del acento `--wine`
+  (`#6B3444`) con el mismo término de luz difusa que las caras frontal/trasera, para leerse como el
+  "canto" del objeto.
 
 ---
 

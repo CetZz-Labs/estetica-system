@@ -999,6 +999,104 @@
       ]
     },
     {
+      "id": "UX-60",
+      "name": "Landing pública — hero: reemplazar las 3 cards de stats por el logo en 3D (ogl)",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario pidió reemplazar las 3 cards de estadísticas del hero (heroStatCards: '128 clientes activos', '+40% más eficiencia', '5 min setup inicial') por un render 3D real de `shear-favicon.png`. Decisión ya tomada con el usuario: WebGL real usando `ogl` (ya instalado y permitido en el proyecto exclusivamente para `components/landing/Silk.tsx`; esta feature extiende ese permiso a un segundo componente, NO reabre tres.js/@react-three/fiber/gsap, que siguen retirados sin excepción por decisión explícita de UX-45). Las 3 cards y su info numérica se eliminan por completo (decisión del usuario), no se reubican en ningún otro lado.",
+      "acceptance_criteria": [
+        "Nuevo componente `components/landing/HeroLogo3D.tsx`: usa `ogl` (Renderer + Camera + Transform + Mesh/Program + Texture, no solo un shader fullscreen como Silk) para renderizar un plano/objeto 3D con `shear-favicon.png` como textura, con perspectiva real (no un tilt CSS)",
+        "Rotación/inclinación continua y sutil en loop (mismo espíritu que 'movimiento continuo en el hero' ya permitido en docs/design.md §13.1), con algo de sombreado/luz simulada para que se perciba volumen, no un plano plano girando",
+        "Respeta `prefers-reduced-motion`: un frame estático (ángulo fijo) en vez de loop de `requestAnimationFrame`, mismo patrón que `Silk.tsx`/`DotField.tsx`",
+        "Reemplaza por completo el bloque `heroStatCards.map(...)` (las 3 `TiltCard` con ícono+cifra) en `views/Landing.tsx` — el array `heroStatCards` y su tipo se eliminan si quedan sin otro uso (confirmar con grep que `AnimatedStatIcon`/`sectionTints`/`StatIconAnimation` siguen usados en Stats/Features antes de tocar esos imports compartidos)",
+        "docs/design.md §13.1 se actualiza documentando la extensión del permiso de `ogl` a este segundo componente (mismo criterio/formato que la excepción ya escrita para Silk.tsx)",
+        "El bloque ocupa razonablemente el mismo espacio/columna que ocupaban las 3 cards en el grid del hero (`lg:grid-cols-2`), sin romper el layout responsive",
+        "No se modifica ninguna otra sección de Landing.tsx",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-61",
+      "name": "Landing pública — fix: overflow horizontal en mobile causado por los pasos de 'Cómo funciona' sin contenedor overflow-hidden",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario reportó un espacio extra a la derecha en mobile que empuja el contenido visualmente hacia la izquierda. Diagnóstico confirmado por el leader (no requiere re-investigar): NO es el menú mobile (`{mobileMenuOpen && (...)}` — al estar condicionado, no aporta nada al layout cuando está cerrado). La causa real es la sección `id=\"como-funciona\"` (`views/Landing.tsx`): sus pasos usan `initial={{ opacity: 0, x: i % 2 !== 0 ? 140 : -140 }}` como estado oculto (UX-48) y, desde que UX-51 (esta misma sesión) cambió `viewport={{ once: true }}` a `once: false` para hacer el reveal reversible, ese estado transformado fuera de pantalla se repite constantemente al scrollear (no solo una vez al principio). Esa `<section>` no tiene ningún contenedor con `overflow-hidden`/`overflow-x-hidden` (a diferencia del wrapper compartido del hero+TrustMarquee, que sí lo tiene, `views/Landing.tsx` línea ~387) — el navegador reserva espacio scrolleable horizontal para esos elementos transformados fuera de la vista, generando el overflow en mobile.",
+      "acceptance_criteria": [
+        "La `<section id=\"como-funciona\">` (o un wrapper adecuado dentro de ella) gana contención horizontal (`overflow-x-hidden` o equivalente) para que los estados `x: ±140px` de los pasos no generen scroll horizontal de página",
+        "El reveal reversible de UX-51 (aparecer/desaparecer al scrollear en ambas direcciones) sigue funcionando visualmente igual — la contención es solo para el overflow, no para ocultar el reveal en su rango normal de movimiento",
+        "Se verifica (leyendo el resto del archivo) si hay otras secciones fuera del wrapper `overflow-hidden` del hero (Features/Stats/CTA/footer) con transforms horizontales similares que puedan tener el mismo problema latente — si se encuentra alguna, aplicar el mismo fix; si no, dejarlo documentado en la bitácora",
+        "No se modifica ninguna otra sección de Landing.tsx más allá de la contención de overflow necesaria",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-62",
+      "name": "Landing pública — CTA final: fix del botón 'Iniciar sesión' desalineado (falta display:flex en un <a>)",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario detectó (inspeccionando el DOM) que el botón 'Iniciar sesión' del CTA final queda corrido hacia arriba y se sale de su contenedor, aunque el `div` padre está bien posicionado. Causa confirmada por el leader: ese `<Link to=\"/login\">` (renderiza un `<a>`) es el ÚNICO de los 2 botones que nunca tuvo `flex items-center justify-center` en su `className` — viene así desde antes de esta sesión (UX-45), porque al no tener ícono nadie lo notó necesario. Un `<a>` sin `display` explícito es `inline` por defecto; el padding vertical (`py-3.5`) de un elemento inline se pinta visualmente fuera de la caja de línea en vez de expandir su alto real, lo que lo hace parecer corrido/más arriba que su hermano 'Crear cuenta gratis' (que sí tiene `flex items-center justify-center gap-2` por el ícono). El bug era preexistente pero se volvió mucho más visible después de UX-59 (botones siempre en fila, sin `w-full`, más cerca uno del otro).",
+      "acceptance_criteria": [
+        "El `<Link to=\"/login\">` ('Iniciar sesión') del CTA final agrega `flex items-center justify-center` a su `className` (mismo patrón que 'Crear cuenta gratis'), quedando ambos botones perfectamente alineados verticalmente dentro de su fila",
+        "No cambia ningún otro estilo (colores, borde, padding, texto) de ese botón",
+        "No se modifica ninguna otra sección de Landing.tsx",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-63",
+      "name": "Landing pública — hero: extrusión 3D real del logo siguiendo la silueta exacta del SVG (ogl + earcut)",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario pidió más profundidad/grosor en el eje Z del logo 3D del hero (`HeroLogo3D.tsx`, UX-60). Un primer intento con geometría tipo caja genérica se vio 'extremadamente mal' y se revirtió. El usuario subió `apps/client/public/media/shear-favicon.svg` (path vectorial real del logo, viewBox 0 0 489 483, 3 paths de color) para que la extrusión siga la silueta EXACTA del logo en vez de una caja genérica. Decisión ya tomada y aprobada explícitamente con el usuario: usar la silueta exacta (no una aproximación), lo que requiere UNA dependencia nueva: `earcut` (triangulación de polígonos 2D, ~3kB, cero dependencias transitivas, estándar de la industria para este tipo de trabajo — librería ya evaluada y aprobada por el usuario, no requiere volver a preguntar). El parseo del path SVG (tokenización de comandos M/L/C/Z, aplanado de curvas Bézier cúbicas) se escribe a mano, sin librería adicional — el `d` del path 1 del SVG solo usa M/C/Z, confirmar con el archivo real antes de asumir que no hay otros comandos.",
+      "acceptance_criteria": [
+        "Se agrega `earcut` como dependencia de `apps/client` (única dependencia nueva permitida para esta feature) y se usa para triangular los contornos 2D extraídos del SVG",
+        "El componente parsea el/los `d` del/de los `<path>` de `apps/client/public/media/shear-favicon.svg`, separa subpaths por cada comando `M` (el path principal tiene 4 subpaths, ej. `...ZM51.8 223.08C...` indica un nuevo subpath), y aplana cada curva `C` (cúbica) en una polilínea (subdivisión suficiente para verse suave a la escala del hero, ej. 12-16 segmentos por curva)",
+        "Los subpaths se clasifican correctamente: uno que esté geométricamente contenido dentro de otro (test punto-en-polígono sobre su centroide) se pasa a `earcut` como hueco (`holes`) de su contenedor; los que NO están contenidos en ningún otro se triangulan como islas independientes — no se asume que todos los subpaths son huecos ni que todos son islas",
+        "El resultado final tiene profundidad real perceptible en Z (no un plano): caras frontal y trasera trianguladas seguiendo la silueta exacta (no un rectángulo), más paredes laterales (quads) conectando cada arista del contorno (exterior y de cada hueco) entre la cara frontal y la trasera",
+        "Las caras frontal/trasera muestran la textura real de `/shear-favicon.png` (mapeo UV lineal desde el espacio de coordenadas del SVG, con flip de Y ya que SVG usa Y hacia abajo); las paredes laterales usan un color sólido/sombreado (no la textura) para leerse como el 'canto' del objeto",
+        "Rotación continua sutil + sombreado (mismo espíritu que la versión anterior de `HeroLogo3D`), respeta `prefers-reduced-motion` con frame estático, cleanup completo de `ogl` en 4 pasos — todo esto NO se pierde respecto a la versión actual aprobada",
+        "Cero dependencias de three.js/@react-three/*/gsap — solo `ogl` (ya permitido) + `earcut` (nueva, aprobada)",
+        "docs/design.md §13.1 y/o la sección de dependencias correspondiente documenta la nueva dependencia `earcut` y su alcance (exclusiva de `HeroLogo3D.tsx`)",
+        "Si en cualquier punto el resultado visual es claramente peor que la versión de plano simple actual (juicio del propio implementer al mirar el build/capturas si puede, o documentando incertidumbre en la bitácora), se debe dejar documentado explícitamente en `progress/implements/impl_UX-63.md` en vez de forzar un merge de algo dudoso — el leader/usuario deciden si iterar o revertir, igual que pasó con el intento de caja en UX-60",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-64",
+      "name": "Landing pública — logo 3D: reducir profundidad Z y usar los 4 paths del SVG (faltan partes del ícono)",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario probó UX-63 en su navegador y reportó 2 problemas: (1) la profundidad en Z (`EXTRUDE_DEPTH = 0.22` en `HeroLogo3D.tsx`) se ve muy profunda/exagerada; (2) 'falta el ícono completo, faltan algunas cosas' — `HeroLogo3D.tsx` construye la extrusión leyendo SOLO el primer `<path>` del SVG (`doc.querySelector('path')`, el de `fill=\"#e49eab\"`), pero `apps/client/public/media/shear-favicon.svg` tiene 4 `<path>` con distinto color, y los otros 3 (`#979188`, `#1a1815`, `#857270`) contienen geometría propia que NO está contenida dentro de la silueta del primer path (parte del diseño se extiende por fuera de esa silueta) — esa geometría queda totalmente fuera del mesh 3D (aunque sí esté 'pintada' en la textura PNG, sin geometría ahí no hay superficie que la muestre).",
+      "acceptance_criteria": [
+        "`EXTRUDE_DEPTH` se reduce notoriamente (criterio del implementer, ej. a la mitad o menos del valor actual 0.22) — documentar el valor final elegido y el razonamiento",
+        "`buildExtrudedLogoGeometry` (o el punto de llamada en `HeroLogo3D.tsx`) toma los `d` de los 4 `<path>` del SVG (no solo el primero) y los combina como fuente conjunta de subpaths antes de clasificar isla/hueco y triangular — la silueta 3D final debe cubrir la extensión completa del ícono, no solo la del primer path",
+        "Si combinar los 4 paths introduce solapamientos entre contornos de distinto path (no perfectamente anidados uno dentro del otro), se documenta en la bitácora cómo se resolvió (ej. cada path se tramita con su propia pasada de clasificación isla/hueco y luego se concatena la geometría resultante, en vez de forzar una única clasificación global cruzada entre paths — usar criterio, no hace falta una unión booleana matemáticamente perfecta)",
+        "El mapeo UV (textura del logo) sigue siendo consistente entre todas las partes combinadas — no debe haber texturas desalineadas entre la parte que venía del path 1 y las partes nuevas de los paths 2-4",
+        "Se mantiene todo lo demás de UX-60/63 (rotación continua, sombreado, prefers-reduced-motion, cleanup de 4 pasos, cero dependencias nuevas más allá de `earcut` ya aprobado)",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-65",
+      "name": "Landing pública — hero: cambiar el tono del wash de Silk (accent-rose puede competir con el logo/texto)",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "El usuario planteó que el color de fondo del hero puede generar conflictos de legibilidad/contraste con el logo 3D y el texto, y pidió una combinación de color distinta a la actual (manteniendo el estilo general intacto, solo el color). El 'fondo' relevante es el tono del shader `Silk` (`SILK_COLOR` en `views/Landing.tsx`, hoy `accent-rose` #D98BA4) que se monta como wash decorativo detrás del hero — NO se toca `--bg`/`bg-bg` (fondo base de toda la web) ni ningún otro token. Decisión ya tomada con el usuario (leader propuso, usuario no objetó el criterio): cambiar `SILK_COLOR` de `accent-rose` (#D98BA4, familia rosa — la misma familia cálida que domina la paleta del logo: rosa/negro/marrón) a `sage` (#8C9178, docs/design.md §2.3), un tono de marca ya usado en otras partes de la Landing (rotación de íconos/chips) pero de una familia de color distinta a la del logo, para que el logo se lea con más contraste/separación en vez de mezclarse con el wash de fondo.",
+      "acceptance_criteria": [
+        "`SILK_COLOR` en `views/Landing.tsx` cambia de `'#D98BA4'` (accent-rose) a `'#8C9178'` (sage, docs/design.md §2.3) — actualizar también el comentario que documenta esa constante",
+        "No se modifica ningún otro prop de `<Silk />` (scale, noiseIntensity, rotation, speed) ni `opacity-[0.34]`/`mixBlendMode` del wrapper",
+        "No se toca `--bg`/`bg-bg` ni ningún otro token de color de la Landing fuera de esta constante",
+        "No se modifica ninguna otra sección de Landing.tsx",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
       "id": "EP-18",
       "name": "Reporte de actividad del negocio",
       "module": "Reports",

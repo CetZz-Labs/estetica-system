@@ -13,7 +13,7 @@ import {
     FiShield, FiSmartphone
 } from 'react-icons/fi';
 import {
-    PiUsersThreeDuotone, PiTrendUpDuotone, PiClockDuotone, PiStackDuotone, PiChartBarDuotone,
+    PiTrendUpDuotone, PiClockDuotone, PiStackDuotone, PiChartBarDuotone,
 } from 'react-icons/pi';
 import type { IconType } from 'react-icons';
 import AnimatedStatIcon from '../components/landing/StatIcons';
@@ -23,6 +23,7 @@ import DotField from '../components/landing/DotField';
 import LogoLoop from '../components/landing/LogoLoop';
 import { BentoSpotlight, MagicBentoCard } from '../components/landing/MagicBento';
 import GradualBlur from '../components/landing/GradualBlur';
+import HeroLogo3D from '../components/landing/HeroLogo3D';
 
 // Variant de reveal reutilizada en Stats (§13.1) y ahora también en Features (ver
 // `featureCardReveal` — UX-45-fix, punto 1). Función (no objeto fijo) para que cada card de
@@ -79,11 +80,14 @@ const marqueeIconColors = ['text-accent', 'text-sage', 'text-gold', 'text-wine']
 
 // Fondos animados Silk/DotField (UX-46, ver components/landing/Silk.tsx y DotField.tsx —
 // DotField reemplazó a ShapeGrid en la ronda de fix UX-46-fix, 2026-07-27).
-// SILK_COLOR: accent-rose (#D98BA4, docs/design.md §2.3) — no wine, que ya está reservado como
-// "único bloque sólido por vista" en el CTA final (§1.3/§7.5); el shader sale con alfa completo,
-// por eso el wrapper que lo monta en el hero lleva opacidad + mix-blend-mode multiply (mismo
-// idiom ya aprobado en §13.1/UX-39 para los blobs).
-const SILK_COLOR = '#D98BA4';
+// SILK_COLOR: sage (#8C9178, docs/design.md §2.3) — UX-65: el tono accent-rose original
+// competía visualmente con el logo 3D del hero (paleta rosa/negro/marrón) y con el texto; sage
+// es una familia de color distinta, ya usada como token de marca en otras partes de la Landing
+// (rotación de íconos/chips), que da más contraste/separación al logo sin salirse de la paleta
+// del sistema de diseño. El shader sale con alfa completo, por eso el wrapper que lo monta en el
+// hero lleva opacidad + mix-blend-mode multiply (mismo idiom ya aprobado en §13.1/UX-39 para los
+// blobs).
+const SILK_COLOR = '#8C9178';
 // DOTFIELD_DOT_COLOR: wine al 18% de opacidad — usado en AMBOS extremos del degradé interno de
 // DotField (`gradientFrom`/`gradientTo`, ver JSX de montaje más abajo). UX-46-fix: el componente
 // original de react-bits arma sus puntos con un `ctx.createLinearGradient` de 2 tonos distintos
@@ -144,18 +148,6 @@ const heroTitleWord = (prefersReducedMotion: boolean): Variants => (
             visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
         }
 );
-
-// Mini tarjetas de estadística que reemplazan el HeroMockup (mismo copy que ya existía en
-// los badges flotantes/Stats, sin inventar datos nuevos del producto).
-// Íconos de `react-icons/pi` (Phosphor Duotone) con loop perpetuo (UX-45-fix2, punto 1) en vez
-// de los SVG a medida de la ronda anterior — alcance acotado a estas 3 tarjetas del hero y a
-// Stats/"Impacto" más abajo; Funcionalidades no se toca (sigue con react-icons/fi). Wrapper de
-// animación reutilizable en `components/landing/StatIcons.tsx` (`AnimatedStatIcon`).
-const heroStatCards: { icon: IconType; value: string; label: string; tint: typeof sectionTints[number]; animation: StatIconAnimation }[] = [
-    { icon: PiUsersThreeDuotone, value: '128', label: 'Clientes activos', tint: sectionTints[0], animation: 'pulse' },
-    { icon: PiTrendUpDuotone, value: '+40%', label: 'Más eficiencia', tint: sectionTints[1], animation: 'float' },
-    { icon: PiClockDuotone, value: '5 min', label: 'Setup inicial', tint: sectionTints[2], animation: 'rotate' },
-];
 
 const features = [
     {
@@ -484,24 +476,13 @@ export default function Landing() {
                                 </div>
                             </div>
 
-                            <div className="relative">
-                                <div className="relative mx-auto max-w-sm space-y-5 py-4">
-                                    {heroStatCards.map((card, i) => (
-                                        <TiltCard
-                                            key={card.label}
-                                            prefersReducedMotion={!!prefersReducedMotion}
-                                            className={`bg-surface/60 border border-border rounded-card p-6 sm:p-8 flex items-center gap-4 ${i === 1 ? 'ml-6 sm:ml-14' : ''} ${i === 2 ? 'mr-4 sm:mr-8' : ''}`}
-                                        >
-                                            <div className={`w-16 h-16 shrink-0 rounded-card ${card.tint.bg} flex items-center justify-center`}>
-                                                <AnimatedStatIcon icon={card.icon} animation={card.animation} size={32} className={card.tint.text} />
-                                            </div>
-                                            <div>
-                                                <p className="font-serif text-3xl font-semibold text-text leading-none">{card.value}</p>
-                                                <p className="text-sm text-text-2 mt-1.5">{card.label}</p>
-                                            </div>
-                                        </TiltCard>
-                                    ))}
-                                </div>
+                            {/* Logo 3D (UX-60): reemplaza las 3 tarjetas de stats que ocupaban
+                                esta columna — render `ogl` real (perspectiva de cámara + Mesh
+                                rotando), no un tilt CSS. Alto explícito para conservar
+                                aproximadamente la misma proporción que ocupaban las 3 cards en el
+                                grid `lg:grid-cols-2` del hero. */}
+                            <div className="relative h-80 sm:h-96 lg:h-[28rem]">
+                                <HeroLogo3D prefersReducedMotion={!!prefersReducedMotion} />
                             </div>
                         </div>
                     </div>
@@ -681,7 +662,15 @@ export default function Landing() {
             </section>
 
             {/* ── HOW IT WORKS ── */}
-            <section id="como-funciona" className="py-24 sm:py-32 relative z-10 scroll-mt-20">
+            {/* UX-61: `overflow-x-hidden` (mismo criterio que el wrapper hero+TrustMarquee, que
+                usa `overflow-hidden` a secas) contiene el desborde horizontal generado por los
+                estados `x: ±140px` de los pasos de abajo — desde que UX-51 volvió el reveal
+                reversible (`viewport={{ once: false }}`), ese offset fuera de pantalla se repite
+                en cada scroll (no solo una vez), y sin contención el navegador reserva scroll
+                horizontal de página extra en mobile. Solo `overflow-x` (no `overflow-hidden` a
+                secas) para no recortar accidentalmente el reveal vertical/scale del círculo de
+                número (línea ~714), que no necesita contención. */}
+            <section id="como-funciona" className="py-24 sm:py-32 relative z-10 scroll-mt-20 overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-2xl mx-auto mb-20">
                         <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-4">
@@ -740,9 +729,10 @@ export default function Landing() {
             {/* ── CTA final — único bloque wine sólido de la página (§1.3/§7.5) ── */}
             <section className="relative z-10 py-20 sm:py-28">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    {/* Tilt 3D al hover (UX-45-fix2, punto 4): reutiliza el mismo componente
-                        `TiltCard` de las tarjetas de estadística del hero (no se reimplementa
-                        `rotateX`/`rotateY` con `useSpring`). `TiltCard` envuelve el bloque
+                    {/* Tilt 3D al hover (UX-45-fix2, punto 4): reutiliza el componente `TiltCard`
+                        (transform CSS con `useSpring`, sin relación con el render `ogl` real de
+                        `HeroLogo3D` que reemplazó las tarjetas de stats del hero en UX-60).
+                        `TiltCard` envuelve el bloque
                         wine — no lleva clases propias (`className` por defecto vacío) para no
                         duplicar `overflow-hidden`/`rounded-card`/`bg-wine`, que siguen viviendo
                         únicamente en el `motion.div` interno (el mismo que ya maneja el reveal
@@ -778,7 +768,7 @@ export default function Landing() {
                                     <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="inline-block w-auto">
                                         <Link
                                             to="/login"
-                                            className="border border-white/30 hover:bg-white/10 text-white px-8 py-3.5 rounded-ctrl text-sm font-semibold transition-colors no-underline"
+                                            className="border border-white/30 hover:bg-white/10 text-white px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center transition-colors no-underline"
                                         >
                                             Iniciar sesión
                                         </Link>
