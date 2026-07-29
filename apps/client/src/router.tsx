@@ -17,6 +17,7 @@ import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
 import Disponibilidad from "./views/Disponibilidad";
 import Landing from "./views/Landing";
+import Guia from "./views/Guia";
 import AceptarInvitacion from "./views/AceptarInvitacion";
 import NotFound from "./views/NotFound";
 import { getMe } from './api/adminApi';
@@ -52,6 +53,7 @@ export default function Router() {
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/guia" element={<Guia />} />
                 <Route path="/login/*" element={<Login />} />
                 <Route path="/registro/completar" element={<CompletarRegistro />} />
                 <Route path="/registro/*" element={<Register />} />

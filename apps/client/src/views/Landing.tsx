@@ -22,6 +22,7 @@ import Silk from '../components/landing/Silk';
 import DotField from '../components/landing/DotField';
 import LogoLoop from '../components/landing/LogoLoop';
 import { BentoSpotlight, MagicBentoCard } from '../components/landing/MagicBento';
+import GradualBlur from '../components/landing/GradualBlur';
 
 // Variant de reveal reutilizada en Stats (§13.1) y ahora también en Features (ver
 // `featureCardReveal` — UX-45-fix, punto 1). Función (no objeto fijo) para que cada card de
@@ -59,17 +60,22 @@ const featureCardReveal = (i: number, prefersReducedMotion: boolean) => ({
 });
 
 // Franja de confianza tipo cinta (UX-45-B): las 6 features reales de la app (mismo copy que
-// `features` abajo, en una sola palabra) con punto de color sólido rotando entre los 4 tokens
-// de marca — mismo patrón de punto de color que usa la app en nav/agenda/servicios (§4/§7.1 de
-// design.md), no el tinte de fondo usado para los íconos de las cards.
-const marqueeWords = ['Clientes', 'Servicios', 'Inventario', 'Turnos', 'Visitas', 'Dashboard'];
-const marqueeDotColors = ['bg-accent', 'bg-sage', 'bg-gold', 'bg-wine'];
-
-// Textura de puntos del CTA final (UX-45-D): SVG de puntos repetido vía `background-image`, no
-// un degradé — no cae bajo la prohibición de `linear-gradient`/`radial-gradient`/
-// `conic-gradient`/`bg-gradient-*` de §13.1 (no codifica una transición de color). Puntos blancos
-// a baja opacidad, superpuestos sobre el bloque `bg-wine`.
-const ctaDotPatternUrl = 'url("data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'2\' cy=\'2\' r=\'1.4\' fill=\'white\' fill-opacity=\'0.6\'/%3E%3C/svg%3E")';
+// `features` abajo, en una sola palabra). UX-57: el punto de color liso se reemplaza por el
+// mismo ícono `react-icons/fi` que ya usa cada funcionalidad en la sección Funcionalidades/
+// `features` (mismo orden/concepto: Clientes→FiUsers, Servicios→FiScissors,
+// Inventario→FiBox, Turnos→FiCalendar, Visitas→FiCheckCircle, Dashboard→FiActivity), sin
+// importar íconos nuevos. El color del ícono conserva la misma rotación de 4 tonos de marca que
+// antes tenían los puntos, ahora como variante `text-*` (no `bg-*`, ya que no hay `<span>` de
+// fondo sólido sino un glyph de ícono).
+const marqueeWords: { word: string; icon: IconType }[] = [
+    { word: 'Clientes', icon: FiUsers },
+    { word: 'Servicios', icon: FiScissors },
+    { word: 'Inventario', icon: FiBox },
+    { word: 'Turnos', icon: FiCalendar },
+    { word: 'Visitas', icon: FiCheckCircle },
+    { word: 'Dashboard', icon: FiActivity },
+];
+const marqueeIconColors = ['text-accent', 'text-sage', 'text-gold', 'text-wine'];
 
 // Fondos animados Silk/DotField (UX-46, ver components/landing/Silk.tsx y DotField.tsx —
 // DotField reemplazó a ShapeGrid en la ronda de fix UX-46-fix, 2026-07-27).
@@ -88,10 +94,15 @@ const SILK_COLOR = '#D98BA4';
 // feedback del usuario tras probar en navegador real: la grilla era demasiado sutil para
 // percibirse en reposo, incluso sin el bug de coordenadas del cursor (ver DotField.tsx).
 const DOTFIELD_DOT_COLOR = 'rgba(107, 52, 68, 0.18)';
-// DOTFIELD_GLOW_COLOR: wine sólido — el glow es un `radialGradient` de UN color hacia
-// transparente (fade radial, no transición entre 2 tonos), mismo idiom ya aprobado en
-// docs/design.md §13.1 (UX-39) para blobs con blur/opacidad. Esto SÍ está permitido.
-const DOTFIELD_GLOW_COLOR = '#6B3444';
+// DOTFIELD_GLOW_COLOR: accent-rose sólido (#D98BA4, docs/design.md §2.3) — el glow es un
+// `radialGradient` de UN color hacia alfa 0 (fade radial, no transición entre 2 tonos), mismo
+// idiom ya aprobado en docs/design.md §13.1 (UX-39) para blobs con blur/opacidad. Esto SÍ está
+// permitido. Fix de UX-49: antes era wine (#6B3444, el tono más oscuro de la paleta), que
+// combinado con el techo de opacidad sin acotar saturaba el glow a un disco negro/opaco en
+// movimientos rápidos del mouse — accent-rose es un tono claro de la misma familia de marca, más
+// coherente con un halo suave (ver también el fix de interpolación y el techo `glowMaxOpacity`
+// en DotField.tsx).
+const DOTFIELD_GLOW_COLOR = '#D98BA4';
 
 // MAGIC_BENTO_GLOW_COLOR (UX-47): `accent` (#B76E84, docs/design.md §2.3) en formato "R, G, B"
 // — así lo consume el CSS de `components/landing/MagicBento.tsx` (`rgba(${glowColor}, ...)`,
@@ -218,9 +229,10 @@ export default function Landing() {
 
     // Fondo del hero (§13.1, UX-45/UX-46): los `HeroBlob` que ocupaban el hero se retiraron en
     // UX-46 y se reemplazaron por `<Silk />` (ver JSX más abajo, components/landing/Silk.tsx) —
-    // `HeroBlob` sigue existiendo como componente y se sigue usando en el CTA final. El `<div>`
-    // wrapper compartido que envuelve `<section>` del hero + `<TrustMarquee />` (UX-45-fix2,
-    // punto 2) se mantiene sin cambios estructurales.
+    // `HeroBlob` también ocupaba la card del CTA final hasta UX-59 (se eliminó ahí por
+    // legibilidad y, sin consumidores restantes en el archivo, se retiró el componente entero
+    // como código muerto). El `<div>` wrapper compartido que envuelve `<section>` del hero +
+    // `<TrustMarquee />` (UX-45-fix2, punto 2) se mantiene sin cambios estructurales.
 
     // Sección de Funcionalidades (UX-47): ref propio para acotar `BentoSpotlight` (spotlight
     // global + glow de borde) a esta sección — no tiene ningún `return` condicional por delante
@@ -243,9 +255,13 @@ export default function Landing() {
         return <Navigate to="/dashboard" replace />;
     }
 
+    // UX-50: 'Guía' apunta a la ruta `/guia` (no un ancla `#...` de esta misma página) — el
+    // render de abajo distingue por prefijo ('/' vs '#') para usar <Link> de react-router en vez
+    // de <a> y evitar un full page reload al navegar a la guía.
     const navLinks = [
         { label: 'Funcionalidades', href: '#funcionalidades' },
         { label: 'Cómo funciona', href: '#como-funciona' },
+        { label: 'Guía', href: '/guia' },
     ];
 
     return (
@@ -268,13 +284,23 @@ export default function Landing() {
 
                     <div className="hidden md:flex items-center gap-1">
                         {navLinks.map(link => (
-                            <a
-                                key={link.href}
-                                href={link.href}
-                                className="px-4 py-2 text-sm font-medium text-text-3 hover:text-text hover:bg-hover-soft rounded-ctrl transition-colors no-underline"
-                            >
-                                {link.label}
-                            </a>
+                            link.href.startsWith('/') ? (
+                                <Link
+                                    key={link.href}
+                                    to={link.href}
+                                    className="px-4 py-2 text-sm font-medium text-text-3 hover:text-text hover:bg-hover-soft rounded-ctrl transition-colors no-underline"
+                                >
+                                    {link.label}
+                                </Link>
+                            ) : (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    className="px-4 py-2 text-sm font-medium text-text-3 hover:text-text hover:bg-hover-soft rounded-ctrl transition-colors no-underline"
+                                >
+                                    {link.label}
+                                </a>
+                            )
                         ))}
                     </div>
 
@@ -317,11 +343,19 @@ export default function Landing() {
                         </div>
                         <nav className="flex flex-col gap-4">
                             {navLinks.map(link => (
-                                <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
-                                    className="text-sm font-medium text-text-3 hover:text-text transition-colors py-2 no-underline"
-                                >
-                                    {link.label}
-                                </a>
+                                link.href.startsWith('/') ? (
+                                    <Link key={link.href} to={link.href} onClick={() => setMobileMenuOpen(false)}
+                                        className="text-sm font-medium text-text-3 hover:text-text transition-colors py-2 no-underline"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ) : (
+                                    <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
+                                        className="text-sm font-medium text-text-3 hover:text-text transition-colors py-2 no-underline"
+                                    >
+                                        {link.label}
+                                    </a>
+                                )
                             ))}
                             <hr className="border-border my-4" />
                             <Link to="/login" onClick={() => setMobileMenuOpen(false)}
@@ -353,10 +387,11 @@ export default function Landing() {
             <div className="relative z-10 overflow-hidden bg-bg">
                 {/* ── HERO ── */}
                 <section className="relative z-10 pt-16 sm:pt-20 pb-16 sm:pb-24">
-                {/* Fondo Silk del hero (UX-46) — ver components/landing/Silk.tsx. Reemplaza a
+                    {/* Fondo Silk del hero (UX-46) — ver components/landing/Silk.tsx. Reemplaza a
                     los 6 `HeroBlob` que vivían acá antes (retirados para no apilar dos sistemas
                     de fondo animado en la misma sección, docs/design.md §1.3: máximo 1-2 fondos
-                    por vista); `HeroBlob` sigue existiendo y usándose en el CTA final más abajo.
+                    por vista); `HeroBlob` se eliminó por completo del archivo en UX-59 (su único
+                    consumidor restante, la card del CTA final, dejó de montarlo por legibilidad).
                     Decorativo puro, confinado a este `section` (no se extiende a TrustMarquee):
                     `aria-hidden` + `pointer-events-none`, opacidad + `mix-blend-mode: multiply`
                     porque el shader sale con alfa completo (sin esa opacidad competiría con el
@@ -370,106 +405,106 @@ export default function Landing() {
                     que el ruido/olas se note también como textura, no solo como color más fuerte.
                     Verificado: el texto del hero (`text` #3E2A33, muy oscuro) sigue perfectamente
                     legible sobre `bg-bg` (#FAF6F4) con este nivel de mezcla. */}
-                <div
-                    aria-hidden="true"
-                    className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-[0.34]"
-                    style={{ mixBlendMode: 'multiply' }}
-                >
-                    <Silk
-                        color={SILK_COLOR}
-                        speed={7}
-                        scale={1}
-                        noiseIntensity={1.7}
-                        rotation={0}
-                        prefersReducedMotion={!!prefersReducedMotion}
-                    />
-                </div>
-                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-                        <div className="text-center lg:text-left">
-                            <div className="mb-6">
-                                <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest">
-                                    CRM para centros de estética
-                                </span>
+                    <div
+                        aria-hidden="true"
+                        className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-[0.34]"
+                        style={{ mixBlendMode: 'multiply' }}
+                    >
+                        <Silk
+                            color={SILK_COLOR}
+                            speed={22}
+                            scale={1}
+                            noiseIntensity={1.7}
+                            rotation={0}
+                            prefersReducedMotion={!!prefersReducedMotion}
+                        />
+                    </div>
+                    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                            <div className="text-center lg:text-left">
+                                <div className="mb-6">
+                                    <span className="inline-flex items-center gap-2 bg-rose-bg text-accent rounded-pill px-4 py-1.5 text-xs font-semibold uppercase tracking-widest">
+                                        CRM para centros de estética
+                                    </span>
+                                </div>
+
+                                <motion.h1
+                                    className="text-4xl sm:text-5xl lg:text-6xl font-serif text-text leading-[1.1]"
+                                    initial="hidden"
+                                    animate="visible"
+                                    variants={heroTitleContainer(!!prefersReducedMotion)}
+                                >
+                                    {heroTitleWords.map((word, i) => (
+                                        <motion.span
+                                            key={`${word.text}-${i}`}
+                                            className="inline-block"
+                                            variants={heroTitleWord(!!prefersReducedMotion)}
+                                        >
+                                            {word.accent ? (
+                                                <span className="relative inline-block pb-3">
+                                                    <span className="text-accent">{word.text}</span>
+                                                    <svg className="absolute bottom-0 left-0 w-full h-4 text-dotted" viewBox="0 0 240 16" preserveAspectRatio="none" overflow="visible">
+                                                        <path d="M4 8 Q 32 2, 60 8 T 120 8 T 180 8 T 236 8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </span>
+                                            ) : (
+                                                word.text
+                                            )}
+                                            {i < heroTitleWords.length - 1 ? ' ' : ''}
+                                        </motion.span>
+                                    ))}
+                                </motion.h1>
+
+                                <p className="mt-6 text-base sm:text-lg text-text-2 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                                    Gestiona clientes, servicios, inventario y turnos en un solo lugar.
+                                    Ahorra horas de trabajo administrativo cada semana y haz crecer tu negocio con datos claros.
+                                </p>
+
+                                <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center lg:justify-start">
+                                    <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
+                                        <Link to="/registro"
+                                            className="bg-accent hover:opacity-90 text-white px-6 sm:px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity no-underline"
+                                        >
+                                            Prueba gratis
+                                            <FiArrowRight size={16} />
+                                        </Link>
+                                    </Magnetic>
+                                    <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
+                                        <a href="#funcionalidades"
+                                            className="bg-surface border border-[var(--dotted)] hover:bg-hover-soft text-wine px-6 sm:px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-colors no-underline"
+                                        >
+                                            Ver funcionalidades
+                                        </a>
+                                    </Magnetic>
+                                </div>
+
+                                <div className="flex items-center gap-6 mt-8 justify-center lg:justify-start text-xs text-muted">
+                                    <span className="flex items-center gap-1.5"><FiShield size={14} /> Sin tarjeta</span>
+                                    <span className="flex items-center gap-1.5"><FiSmartphone size={14} /> Multi-dispositivo</span>
+                                </div>
                             </div>
 
-                            <motion.h1
-                                className="text-4xl sm:text-5xl lg:text-6xl font-serif text-text leading-[1.1]"
-                                initial="hidden"
-                                animate="visible"
-                                variants={heroTitleContainer(!!prefersReducedMotion)}
-                            >
-                                {heroTitleWords.map((word, i) => (
-                                    <motion.span
-                                        key={`${word.text}-${i}`}
-                                        className="inline-block"
-                                        variants={heroTitleWord(!!prefersReducedMotion)}
-                                    >
-                                        {word.accent ? (
-                                            <span className="relative inline-block pb-3">
-                                                <span className="text-accent">{word.text}</span>
-                                                <svg className="absolute bottom-0 left-0 w-full h-4 text-dotted" viewBox="0 0 240 16" preserveAspectRatio="none" overflow="visible">
-                                                    <path d="M4 8 Q 32 2, 60 8 T 120 8 T 180 8 T 236 8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            </span>
-                                        ) : (
-                                            word.text
-                                        )}
-                                        {i < heroTitleWords.length - 1 ? ' ' : ''}
-                                    </motion.span>
-                                ))}
-                            </motion.h1>
-
-                            <p className="mt-6 text-base sm:text-lg text-text-2 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                                Gestiona clientes, servicios, inventario y turnos en un solo lugar.
-                                Ahorra horas de trabajo administrativo cada semana y haz crecer tu negocio con datos claros.
-                            </p>
-
-                            <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center lg:justify-start">
-                                <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
-                                    <Link to="/registro"
-                                        className="bg-accent hover:opacity-90 text-white px-6 sm:px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity no-underline"
-                                    >
-                                        Prueba gratis
-                                        <FiArrowRight size={16} />
-                                    </Link>
-                                </Magnetic>
-                                <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
-                                    <a href="#funcionalidades"
-                                        className="bg-surface border border-[var(--dotted)] hover:bg-hover-soft text-wine px-6 sm:px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-colors no-underline"
-                                    >
-                                        Ver funcionalidades
-                                    </a>
-                                </Magnetic>
-                            </div>
-
-                            <div className="flex items-center gap-6 mt-8 justify-center lg:justify-start text-xs text-muted">
-                                <span className="flex items-center gap-1.5"><FiShield size={14} /> Sin tarjeta</span>
-                                <span className="flex items-center gap-1.5"><FiSmartphone size={14} /> Multi-dispositivo</span>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="relative mx-auto max-w-sm space-y-5 py-4">
-                                {heroStatCards.map((card, i) => (
-                                    <TiltCard
-                                        key={card.label}
-                                        prefersReducedMotion={!!prefersReducedMotion}
-                                        className={`bg-surface border border-border rounded-card p-6 sm:p-8 flex items-center gap-4 ${i === 1 ? 'ml-6 sm:ml-14' : ''} ${i === 2 ? 'mr-4 sm:mr-8' : ''}`}
-                                    >
-                                        <div className={`w-16 h-16 shrink-0 rounded-card ${card.tint.bg} flex items-center justify-center`}>
-                                            <AnimatedStatIcon icon={card.icon} animation={card.animation} size={32} className={card.tint.text} />
-                                        </div>
-                                        <div>
-                                            <p className="font-serif text-3xl font-semibold text-text leading-none">{card.value}</p>
-                                            <p className="text-sm text-text-2 mt-1.5">{card.label}</p>
-                                        </div>
-                                    </TiltCard>
-                                ))}
+                            <div className="relative">
+                                <div className="relative mx-auto max-w-sm space-y-5 py-4">
+                                    {heroStatCards.map((card, i) => (
+                                        <TiltCard
+                                            key={card.label}
+                                            prefersReducedMotion={!!prefersReducedMotion}
+                                            className={`bg-surface/60 border border-border rounded-card p-6 sm:p-8 flex items-center gap-4 ${i === 1 ? 'ml-6 sm:ml-14' : ''} ${i === 2 ? 'mr-4 sm:mr-8' : ''}`}
+                                        >
+                                            <div className={`w-16 h-16 shrink-0 rounded-card ${card.tint.bg} flex items-center justify-center`}>
+                                                <AnimatedStatIcon icon={card.icon} animation={card.animation} size={32} className={card.tint.text} />
+                                            </div>
+                                            <div>
+                                                <p className="font-serif text-3xl font-semibold text-text leading-none">{card.value}</p>
+                                                <p className="text-sm text-text-2 mt-1.5">{card.label}</p>
+                                            </div>
+                                        </TiltCard>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 </section>
 
                 {/* ── FRANJA DE CONFIANZA (cinta/marquee) ── */}
@@ -488,13 +523,13 @@ export default function Landing() {
                 cero riesgo de bloquear clicks reales sobre el contenido de las secciones. */}
             <div aria-hidden="true" className="fixed inset-0 z-0 pointer-events-none">
                 <DotField
-                    dotRadius={1.5}
-                    dotSpacing={14}
+                    dotRadius={2.8}
+                    dotSpacing={20}
                     cursorRadius={300}
-                    cursorForce={0.1}
+                    cursorForce={0.5}
                     bulgeOnly
-                    bulgeStrength={10}
-                    glowRadius={50}
+                    bulgeStrength={40}
+                    glowRadius={60}
                     sparkle={false}
                     waveAmplitude={0}
                     gradientFrom={DOTFIELD_DOT_COLOR}
@@ -550,7 +585,7 @@ export default function Landing() {
                                 // se reenvían intactas, ver components/landing/MagicBento.tsx.
                                 <MagicBentoCard
                                     key={feat.title}
-                                    className={`bg-surface border border-border rounded-card p-6 sm:p-8 flex flex-col ${isBento ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:justify-between' : ''}`}
+                                    className={`bg-surface/60 border border-border rounded-card p-6 sm:p-8 flex flex-col ${isBento ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:justify-between' : ''}`}
                                     initial={cardMotion.initial}
                                     whileInView={cardMotion.whileInView}
                                     viewport={{ once: true, amount: 0.3 }}
@@ -587,6 +622,16 @@ export default function Landing() {
                                 </MagicBentoCard>
                             );
                         })}
+                    </div>
+
+                    {/* Link a la guía completa (UX-50) */}
+                    <div className="mt-12 sm:mt-16 text-center">
+                        <Link
+                            to="/guia"
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity no-underline"
+                        >
+                            Ver la guía completa <FiArrowRight size={14} />
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -656,7 +701,7 @@ export default function Landing() {
                                     className={`relative z-10 flex flex-col sm:flex-row items-center gap-8 sm:gap-16 ${i % 2 !== 0 ? 'sm:flex-row-reverse' : ''}`}
                                     initial={prefersReducedMotion ? false : { opacity: 0, x: i % 2 !== 0 ? 140 : -140 }}
                                     whileInView={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
-                                    viewport={{ once: true, amount: 0.4 }}
+                                    viewport={{ once: false, amount: 0.4 }}
                                     transition={{ type: 'spring', bounce: 0.4, duration: 0.8 }}
                                 >
                                     {/* Step number - círculo que se ilumina al cruzar el centro
@@ -670,7 +715,7 @@ export default function Landing() {
                                             className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full ${tint.bg} flex items-center justify-center`}
                                             initial={prefersReducedMotion ? false : { opacity: 0.45, scale: 0.82 }}
                                             whileInView={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
-                                            viewport={{ once: true, margin: '-50% 0px -50% 0px' }}
+                                            viewport={{ once: false, margin: '-50% 0px -50% 0px' }}
                                             transition={{ duration: 0.5, ease: 'easeOut' }}
                                         >
                                             <span className={`text-4xl sm:text-5xl font-serif font-bold ${tint.text}`}>{step.number}</span>
@@ -714,59 +759,53 @@ export default function Landing() {
                             viewport={{ once: true, amount: 0.4 }}
                             transition={{ duration: 0.6, ease: 'easeOut' }}
                         >
-                        {/* Textura de puntos (no gradiente, UX-45-D): SVG repetido a baja opacidad. */}
-                        <div
-                            aria-hidden="true"
-                            className="absolute inset-0 pointer-events-none opacity-[0.08]"
-                            style={{ backgroundImage: ctaDotPatternUrl, backgroundSize: '24px 24px' }}
-                        />
-
-                        {/* Forma con blur "del mismo tono wine pero más clara" detrás del texto
-                            (UX-45-D): reutiliza `HeroBlob` (mismo componente/técnica del hero,
-                            §13.1/UX-39) con `bg-white` + blend `soft-light` — aclara localmente
-                            el wine subyacente en vez de introducir un color plano nuevo. Centrado
-                            con margen negativo (no `translate-x`). Sin `parallaxY` (retirado de
-                            `HeroBlob` en UX-45-fix2 punto 2) — el drift+opacidad+escala infinito
-                            del blob sigue intacto, solo estático respecto al scroll. */}
-                        <HeroBlob
-                            positionClassName="w-72 h-72 sm:w-96 sm:h-96 -top-10 left-1/2 -ml-36 sm:-ml-48"
-                            colorClassName="bg-white"
-                            blendMode="soft-light"
-                            opacityRange={[0.28, 0.55]}
-                            driftX={[0, 24]}
-                            driftY={[0, 18]}
-                            duration={12}
-                            delay={0.5}
-                            prefersReducedMotion={!!prefersReducedMotion}
-                        />
-
-                        <div className="relative z-10">
-                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-white leading-tight">
-                                ¿Listo para simplificar tu gestión?
-                            </h2>
-                            <p className="text-base sm:text-lg mt-4 max-w-lg mx-auto" style={{ color: 'var(--color-accent-tint)' }}>
-                                Únete a los centros de estética que ya confían en Shear para administrar su negocio.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
-                                <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
-                                    <Link
-                                        to="/registro"
-                                        className="bg-white hover:opacity-90 text-wine px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity no-underline"
-                                    >
-                                        Crear cuenta gratis <FiArrowRight size={16} />
-                                    </Link>
-                                </Magnetic>
-                                <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="block sm:inline-block w-full sm:w-auto">
-                                    <Link
-                                        to="/login"
-                                        className="border border-white/30 hover:bg-white/10 text-white px-8 py-3.5 rounded-ctrl text-sm font-semibold transition-colors no-underline"
-                                    >
-                                        Iniciar sesión
-                                    </Link>
-                                </Magnetic>
+                            <div className="relative z-10">
+                                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-white leading-tight">
+                                    ¿Listo para simplificar tu gestión?
+                                </h2>
+                                <p className="text-base sm:text-lg mt-4 max-w-lg mx-auto" style={{ color: 'var(--color-accent-tint)' }}>
+                                    Únete a los centros de estética que ya confían en Shear para administrar su negocio.
+                                </p>
+                                <div className="flex flex-row flex-wrap gap-3 justify-center mt-8">
+                                    <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="inline-block w-auto">
+                                        <Link
+                                            to="/registro"
+                                            className="bg-white hover:opacity-90 text-wine px-8 py-3.5 rounded-ctrl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity no-underline border border-transparent"
+                                        >
+                                            Crear cuenta gratis <FiArrowRight size={16} />
+                                        </Link>
+                                    </Magnetic>
+                                    <Magnetic prefersReducedMotion={!!prefersReducedMotion} className="inline-block w-auto">
+                                        <Link
+                                            to="/login"
+                                            className="border border-white/30 hover:bg-white/10 text-white px-8 py-3.5 rounded-ctrl text-sm font-semibold transition-colors no-underline"
+                                        >
+                                            Iniciar sesión
+                                        </Link>
+                                    </Magnetic>
+                                </div>
+                                <p className="text-xs mt-4" style={{ color: 'var(--color-accent-tint)' }}>Sin compromiso. Sin tarjeta de crédito.</p>
                             </div>
-                            <p className="text-xs mt-4" style={{ color: 'var(--color-accent-tint)' }}>Sin compromiso. Sin tarjeta de crédito.</p>
-                        </div>
+
+                            {/* GradualBlur (UX-53) — ver components/landing/GradualBlur.tsx. Suaviza el
+                            borde inferior de la card hacia el footer. Montado DESPUÉS del contenido pero
+                            sin z-index propio (queda en el nivel "auto" de este stacking context), así
+                            que pinta por debajo del `<div className="relative z-10">` de arriba — no tapa
+                            texto ni botones. `height="4rem"`: se acota al orden de magnitud del padding
+                            inferior real de la card (`p-8`/`sm:p-12`/`lg:p-16` = 2–4rem) en vez del
+                            `6rem` del ejemplo genérico del usuario — con 6rem el efecto alcanzaba a pisar
+                            la última línea de texto ("Sin compromiso..."), que solo tiene `mt-4` de
+                            separación respecto a los botones. */}
+                            <GradualBlur
+                                target="parent"
+                                position="bottom"
+                                height="4rem"
+                                strength={1.5}
+                                divCount={5}
+                                curve="bezier"
+                                exponential
+                                opacity={0.9}
+                            />
                         </motion.div>
                     </TiltCard>
                 </div>
@@ -809,7 +848,8 @@ interface TrustMarqueeProps {
 
 interface MarqueeItem {
     word: string;
-    dotColor: string;
+    icon: IconType;
+    iconColor: string;
 }
 
 /**
@@ -835,17 +875,21 @@ interface MarqueeItem {
  * z-10` explícito para apilarse por encima de los blobs (`z-0`) del wrapper padre.
  */
 function TrustMarquee({ prefersReducedMotion }: TrustMarqueeProps) {
-    const items: MarqueeItem[] = marqueeWords.map((word, i) => ({
+    const items: MarqueeItem[] = marqueeWords.map(({ word, icon }, i) => ({
         word,
-        dotColor: marqueeDotColors[i % marqueeDotColors.length],
+        icon,
+        iconColor: marqueeIconColors[i % marqueeIconColors.length],
     }));
 
-    const renderItem = (item: MarqueeItem) => (
-        <span className="flex items-center gap-3 px-6 sm:px-10">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${item.dotColor}`} />
-            <span className="text-sm sm:text-base font-serif text-text-2 whitespace-nowrap">{item.word}</span>
-        </span>
-    );
+    const renderItem = (item: MarqueeItem) => {
+        const Icon = item.icon;
+        return (
+            <span className="flex items-center gap-3 px-6 sm:px-10">
+                <Icon size={16} className={`shrink-0 ${item.iconColor}`} />
+                <span className="text-sm sm:text-base font-serif text-text-2 whitespace-nowrap">{item.word}</span>
+            </span>
+        );
+    };
 
     return (
         <div aria-hidden="true" className="relative z-10 py-5 sm:py-6 border-y border-border bg-surface/90">
@@ -911,7 +955,7 @@ function AnimatedStat({ value, suffix, label, sublabel, icon, iconAnimation, ico
 
     return (
         <motion.div
-            className="bg-surface border border-border rounded-card p-6 text-center"
+            className="bg-surface/60 border border-border rounded-card p-6 text-center"
             variants={fadeSlideUpShort(prefersReducedMotion)}
             onViewportEnter={handleViewportEnter}
             viewport={{ once: true, amount: 0.5 }}
@@ -931,65 +975,6 @@ function AnimatedStat({ value, suffix, label, sublabel, icon, iconAnimation, ico
                 />
             </div>
         </motion.div>
-    );
-}
-
-interface HeroBlobProps {
-    positionClassName: string;
-    colorClassName: string;
-    driftX: number[];
-    driftY: number[];
-    duration: number;
-    delay: number;
-    prefersReducedMotion: boolean;
-    blendMode?: 'multiply' | 'soft-light' | 'overlay';
-    /** Rango [min, max] de opacidad recorrido en loop (UX-45-fix2, punto 2) — reemplaza el viejo
-     * `opacityClassName` fijo. El valor de reposo (`prefersReducedMotion`) es el punto medio del
-     * rango, aplicado como `style.opacity` inline en vez de una clase Tailwind estática. */
-    opacityRange?: [number, number];
-    /** Rango [min, max] de escala recorrido en el mismo loop — nuevo en UX-45-fix2 (antes el
-     * único movimiento era drift de posición). */
-    scaleRange?: [number, number];
-}
-
-/**
- * Blob decorativo de fondo (§13.1/UX-39, UX-45): forma sólida con blur + mix-blend. UX-45-fix2
- * (punto 2) retira el parallax de scroll que tenía antes (`parallaxY`/`style={{ y: parallaxY }}`
- * en un wrapper separado): confirmado explícitamente con el usuario, los blobs quedan estáticos
- * en su posición de fondo, sin desplazarse al hacer scroll. A cambio, el loop infinito de drift
- * de posición (`x`/`y`) ahora se acompaña de variación de **opacidad** y de **escala** en el
- * mismo `animate`/`transition` (mismo `duration`/`delay`/`repeat: Infinity`/`repeatType:
- * 'mirror'` que ya tenía el drift), bastante más dramático que el drift-solo de la ronda
- * anterior. Al no requerir ya un wrapper separado para el parallax, el componente se simplifica
- * a un único `motion.div` (antes eran dos: un wrapper con `style.y` + un hijo con el drift).
- * Reutilizado tal cual en el hero (blend `multiply` por defecto, tokens sólidos de marca) y en
- * el CTA final (UX-45-D: `bg-white` + blend `soft-light` sobre `bg-wine`, para lograr una forma
- * "del mismo tono wine pero más clara" sin introducir un token nuevo). `blendMode`/
- * `opacityRange`/`scaleRange` son opcionales con valores por defecto equivalentes a los que ya
- * usaban los 3 blobs originales del hero.
- */
-function HeroBlob({
-    positionClassName, colorClassName, driftX, driftY, duration, delay,
-    prefersReducedMotion, blendMode = 'multiply', opacityRange = [0.18, 0.42], scaleRange = [0.85, 1.15],
-}: HeroBlobProps) {
-    const restOpacity = (opacityRange[0] + opacityRange[1]) / 2;
-
-    return (
-        <div
-            aria-hidden="true"
-            className={`absolute z-0 pointer-events-none ${positionClassName}`}
-        >
-            <motion.div
-                className={`w-full h-full rounded-full blur-3xl ${colorClassName}`}
-                style={{ mixBlendMode: blendMode, opacity: prefersReducedMotion ? restOpacity : undefined }}
-                animate={prefersReducedMotion ? undefined : {
-                    x: driftX, y: driftY, opacity: opacityRange, scale: scaleRange,
-                }}
-                transition={prefersReducedMotion ? undefined : {
-                    duration, delay, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut',
-                }}
-            />
-        </div>
     );
 }
 

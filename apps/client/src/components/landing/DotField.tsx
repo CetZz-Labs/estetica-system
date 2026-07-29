@@ -40,6 +40,7 @@ interface DynamicProps {
     waveAmplitude: number;
     gradientFrom: string;
     gradientTo: string;
+    glowMaxOpacity: number;
 }
 
 interface Props {
@@ -59,6 +60,11 @@ interface Props {
     gradientTo?: string;
     /** Color sólido del glow radial que sigue al cursor (fade de UN tono hacia transparente). */
     glowColor?: string;
+    /** Techo de opacidad del glow (UX-49): acota `glowOpacity.current` aunque `engagement.current`
+     * (impulsado por la velocidad del mouse) llegue a 1 — evita que movimientos rápidos saturen
+     * el glow a un disco sólido/oscuro. El glow sigue respondiendo a la velocidad del cursor
+     * (más rápido = más visible), solo con un techo distinto de 1. */
+    glowMaxOpacity?: number;
     /** Recibido como prop desde `Landing.tsx` (ya calculado con `useReducedMotion()`) — DotField
      * no invoca el hook internamente, mismo patrón que `Silk`/`ShapeGrid`. Con reduced-motion se
      * crea igual el canvas y se dibuja un único frame estático, sin loop de `requestAnimationFrame`
@@ -93,6 +99,7 @@ export default function DotField({
     gradientFrom = 'rgba(107, 52, 68, 0.10)',
     gradientTo = 'rgba(107, 52, 68, 0.10)',
     glowColor = '#6B3444',
+    glowMaxOpacity = 0.22,
     prefersReducedMotion = false,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -104,7 +111,7 @@ export default function DotField({
     const glowOpacity = useRef<number>(0);
     const engagement = useRef<number>(0);
     const propsRef = useRef<DynamicProps>({
-        dotRadius, dotSpacing, cursorRadius, cursorForce, bulgeOnly, bulgeStrength, sparkle, waveAmplitude, gradientFrom, gradientTo,
+        dotRadius, dotSpacing, cursorRadius, cursorForce, bulgeOnly, bulgeStrength, sparkle, waveAmplitude, gradientFrom, gradientTo, glowMaxOpacity,
     });
     // Sincroniza el ref en un efecto (no durante el render) — leer/escribir `.current` en el
     // cuerpo del componente viola la regla de pureza de render de React (flaggeada por el
@@ -112,7 +119,7 @@ export default function DotField({
     // siempre antes que el efecto de setup de más abajo (declarado después en el árbol).
     useEffect(() => {
         propsRef.current = {
-            dotRadius, dotSpacing, cursorRadius, cursorForce, bulgeOnly, bulgeStrength, sparkle, waveAmplitude, gradientFrom, gradientTo,
+            dotRadius, dotSpacing, cursorRadius, cursorForce, bulgeOnly, bulgeStrength, sparkle, waveAmplitude, gradientFrom, gradientTo, glowMaxOpacity,
         };
     });
     // `useId()` en vez de `Math.random()` (impuro, prohibido durante el render por la misma regla
@@ -223,7 +230,11 @@ export default function DotField({
             }
             const eng = engagement.current;
 
-            glowOpacity.current += (eng - glowOpacity.current) * 0.08;
+            // UX-49: techo de opacidad (`p.glowMaxOpacity`, default 0.22) en vez de dejar que
+            // `eng` (hasta 1 con velocidad de mouse alta) empuje `glowOpacity.current` a un valor
+            // cercano a la opacidad plena — eso saturaba el glow a un disco sólido/oscuro. Sigue
+            // respondiendo a la velocidad del cursor (más rápido = más visible), solo con techo.
+            glowOpacity.current += (eng * p.glowMaxOpacity - glowOpacity.current) * 0.08;
 
             if (glowEl) {
                 glowEl.setAttribute('cx', String(m.x));
@@ -336,9 +347,17 @@ export default function DotField({
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
             <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
                 <defs>
+                    {/* UX-49: los 3 stops usan el MISMO `glowColor` — solo varía `stopOpacity`.
+                        `stopColor="transparent"` (bug original) es negro con alfa 0 en SVG, así
+                        que el degradado interpolaba hacia negro en el borde en vez de "hacia la
+                        nada". Al fijar el color y solo bajar la opacidad, el gradiente muere en
+                        el propio tono (nunca en negro). Stop intermedio en 45% a 0.35 de opacidad
+                        (valor elegido para una caída perceptualmente suave, ni un salto brusco
+                        del 100% al 0% en un solo tramo ni una cola demasiado larga). */}
                     <radialGradient id={glowId}>
-                        <stop offset="0%" stopColor={glowColor} />
-                        <stop offset="100%" stopColor="transparent" />
+                        <stop offset="0%" stopColor={glowColor} stopOpacity="1" />
+                        <stop offset="45%" stopColor={glowColor} stopOpacity="0.35" />
+                        <stop offset="100%" stopColor={glowColor} stopOpacity="0" />
                     </radialGradient>
                 </defs>
                 <circle ref={glowRef} cx={-9999} cy={-9999} r={glowRadius} fill={`url(#${glowId})`} style={{ opacity: 0, willChange: 'opacity' }} />

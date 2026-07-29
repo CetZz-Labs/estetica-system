@@ -571,4 +571,16 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ---
 
+## P16 — Gotcha: un `position: sticky` dentro de una columna de CSS Grid necesita altura explícita en TODOS los ancestros hasta el grid item, no solo en el grid item
+
+> **Origen:** UX-54 (índice de módulos de `/guia` no quedaba sticky, 2026-07-28/29).
+
+**Causa:** en un grid de 2 columnas (ej. `grid-cols-[240px_minmax(0,1fr)]`) con una sola fila, `align-items: stretch` (default de CSS Grid) SÍ estira el grid item corto (la columna del índice) para igualar la altura de la columna larga (el contenido) — pero esa altura estirada **no se propaga automáticamente** a los descendientes en bloque dentro de ese grid item. Un `<nav>`/`<div>` intermedio sin `h-full` sigue calculando su altura por contenido propio (`height: auto`), quedando mucho más corto que el grid item que lo contiene. Como el *containing block* de un elemento `position: sticky` es su ancestro en bloque más cercano (no necesariamente el grid item), si ese ancestro intermedio es corto, el elemento sticky no tiene ningún recorrido vertical dentro del cual "pegarse" — se desplaza junto con su contenedor corto y desaparece apenas ese bloque corto sale del viewport, en vez de quedar fijo mientras se scrollea el resto de la columna.
+
+**Mandato:** cuando se ponga `sticky` a un elemento dentro de una celda de grid que se espera sea alta (ej. un índice/sidebar junto a una columna de contenido largo), agregar `h-full` (o el equivalente del breakpoint correspondiente, ej. `lg:h-full`) a **cada** contenedor de bloque intermedio entre el grid item y el elemento sticky — no alcanza con que el grid item se estire solo.
+
+**Gotcha:** no produce ningún error de build/lint ni warning visual obvio en el código — el layout se ve "casi bien" en el primer viewport (el sticky arranca en su posición correcta) y el bug solo se nota scrolleando lo suficiente como para que el contenedor corto salga de pantalla. Fix de una sola clase (`GuideIndex.tsx`, agregar `lg:h-full` al `<nav>`), pero fácil de pasar por alto sin mirarlo en el navegador real.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

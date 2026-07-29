@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de uso — Maison CRM</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --text-soft: #666666;
+    --text-muted: #999999;
+    --border: #e8e5e0;
+    --accent: #1a1a1a;
+    --highlight: #f0ebe4;
+    --alert: #c94040;
+    --success: #4a7c59;
+  }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    font-family: 'Georgia', serif;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: -0.5px;
+  }
+
+  .brand-subtitle {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .header-nav {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 13px;
+    color: var(--text-soft);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .hero {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 40px 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-eyebrow {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 {
+    font-size: 52px;
+    font-weight: normal;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin-bottom: 24px;
+  }
+
+  .hero p {
+    font-size: 18px;
+    color: var(--text-soft);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .toc {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc-title {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .toc-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 40px;
+  }
+
+  .toc-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc-list a {
+    text-decoration: none;
+    color: var(--text);
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    transition: color 0.2s;
+  }
+
+  .toc-list a:hover {
+    color: var(--text-soft);
+  }
+
+  .toc-num {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  .module {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .module:last-of-type {
+    border-bottom: none;
+  }
+
+  .module-header {
+    margin-bottom: 48px;
+  }
+
+  .module-number {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .module h2 {
+    font-size: 40px;
+    font-weight: normal;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin-bottom: 20px;
+  }
+
+  .module-intro {
+    font-size: 17px;
+    color: var(--text-soft);
+    line-height: 1.7;
+    max-width: 700px;
+  }
+
+  .step {
+    margin: 48px 0;
+    padding-left: 0;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+
+  .step-num {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    min-width: 60px;
+  }
+
+  .step h3 {
+    font-size: 24px;
+    font-weight: normal;
+    letter-spacing: -0.3px;
+  }
+
+  .step-body {
+    padding-left: 80px;
+  }
+
+  .step-body p {
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.75;
+  }
+
+  .step-body p.soft {
+    color: var(--text-soft);
+    font-size: 15px;
+  }
+
+  .step-body ul {
+    margin: 16px 0 16px 20px;
+  }
+
+  .step-body li {
+    margin-bottom: 8px;
+    font-size: 15px;
+    color: var(--text-soft);
+    line-height: 1.7;
+  }
+
+  .image-placeholder {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 80px 40px;
+    text-align: center;
+    margin: 24px 0;
+    color: var(--text-muted);
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .image-placeholder .icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+    opacity: 0.4;
+  }
+
+  .callout {
+    background: var(--highlight);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .callout strong {
+    display: block;
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: normal;
+  }
+
+  .callout.alert {
+    background: #fdf2f2;
+    border-left-color: var(--alert);
+  }
+
+  .divider {
+    text-align: center;
+    margin: 40px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: 8px;
+  }
+
+  .footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 60px 40px;
+    text-align: center;
+  }
+
+  .footer-content {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .footer p {
+    color: var(--text-soft);
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .footer .brand-mini {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .hero {
+      padding: 60px 24px 40px;
+    }
+    .hero h1 {
+      font-size: 36px;
+    }
+    .hero p {
+      font-size: 16px;
+    }
+    .toc, .module {
+      padding: 40px 24px;
+    }
+    .toc-list {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .module h2 {
+      font-size: 30px;
+    }
+    .step-header {
+      flex-direction: column;
+      gap: 6px;
+    }
+    .step-body {
+      padding-left: 0;
+    }
+    .header-content {
+      padding: 0 24px;
+    }
+    .header-nav {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <div>
+      <div class="brand">Maison</div>
+      <div class="brand-subtitle">Estudio · CRM</div>
+    </div>
+    <div class="header-nav">Guía de uso</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-eyebrow">Guía Paso a Paso</div>
+  <h1>Todo lo que necesitás<br>para usar Maison</h1>
+  <p>Una guía completa por cada módulo del sistema. Aprendé a gestionar tu estética, cargar clientes, registrar visitas, controlar tu inventario y organizar los turnos, paso a paso.</p>
+</section>
+
+<nav class="toc">
+  <div class="toc-title">Índice</div>
+  <ul class="toc-list">
+    <li><a href="#modulo-1"><span>Inicio de sesión</span><span class="toc-num">01</span></a></li>
+    <li><a href="#modulo-2"><span>Panel principal</span><span class="toc-num">02</span></a></li>
+    <li><a href="#modulo-3"><span>Clientes</span><span class="toc-num">03</span></a></li>
+    <li><a href="#modulo-4"><span>Servicios</span><span class="toc-num">04</span></a></li>
+    <li><a href="#modulo-5"><span>Inventario</span><span class="toc-num">05</span></a></li>
+    <li><a href="#modulo-6"><span>Registro de visitas</span><span class="toc-num">06</span></a></li>
+    <li><a href="#modulo-7"><span>Turnos</span><span class="toc-num">07</span></a></li>
+    <li><a href="#modulo-8"><span>Profesionales</span><span class="toc-num">08</span></a></li>
+  </ul>
+</nav>
+
+<!-- MÓDULO 1: INICIO DE SESIÓN -->
+<section class="module" id="modulo-1">
+  <div class="module-header">
+    <div class="module-number">Módulo 01</div>
+    <h2>Inicio de sesión</h2>
+    <p class="module-intro">El primer paso para acceder al sistema. Ingresá con las credenciales que te generamos al momento de contratar Maison.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Ingresá tu email y contraseña</h3>
+    </div>
+    <div class="step-body">
+      <p>Accedé a la pantalla de inicio de sesión desde el navegador. Vas a ver dos campos para completar: tu correo electrónico y la contraseña que se te asignó al momento del alta.</p>
+      <p class="soft">Si te olvidaste tu contraseña, escribinos y te ayudamos a recuperarla.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Pantalla de login
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Opción alternativa: ingresar con Google</h3>
+    </div>
+    <div class="step-body">
+      <p>Si preferís, podés iniciar sesión con tu cuenta de Google en lugar de escribir usuario y contraseña. Es más rápido y no tenés que recordar nada.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Login con Google
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Buena práctica</strong>
+    El navegador puede recordar tus credenciales para que la próxima vez ingreses con un solo click. Aceptá esa opción si usás una computadora de confianza.
+  </div>
+</section>
+
+<!-- MÓDULO 2: PANEL PRINCIPAL -->
+<section class="module" id="modulo-2">
+  <div class="module-header">
+    <div class="module-number">Módulo 02</div>
+    <h2>Panel principal</h2>
+    <p class="module-intro">Es el centro de operaciones de tu estética. Al ingresar al sistema, esta es la primera pantalla que vas a ver, con toda la información clave en un solo lugar.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Métricas rápidas del negocio</h3>
+    </div>
+    <div class="step-body">
+      <p>En la parte superior encontrás tres tarjetas con los números más importantes del momento:</p>
+      <ul>
+        <li>Total de clientes registrados</li>
+        <li>Servicios realizados hasta la fecha</li>
+        <li>Cantidad de próximos retoques programados</li>
+      </ul>
+      <p>Te dan un vistazo rápido del estado general de tu negocio sin tener que navegar a ninguna sección.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Tarjetas de métricas
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Panel de próximos retoques</h3>
+    </div>
+    <div class="step-body">
+      <p>En el bloque de la izquierda vas a ver una lista con los clientes que tienen un retoque programado, ordenados por fecha.</p>
+      <p>A medida que se acerca la fecha del retoque, el registro cambia automáticamente a color rojo como alerta visual. Así no se te escapa ningún cliente que deba volver.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Panel de próximos retoques
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Marcar un retoque como completado</h3>
+    </div>
+    <div class="step-body">
+      <p>Cuando el cliente viene a hacerse el retoque, tocá el ícono de check verde al lado de su nombre. Eso abre el flujo para registrar la nueva visita con los datos precargados.</p>
+      <p>Automáticamente, el sistema calcula la fecha del siguiente retoque y la agrega al panel.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Botón de check para completar retoque
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Próximos turnos</h3>
+    </div>
+    <div class="step-body">
+      <p>En el bloque de la derecha aparecen los próximos turnos agendados en tu estética, ordenados por fecha. Podés ver rápidamente quién viene hoy, mañana y en los próximos días.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Panel de próximos turnos
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 05</span>
+      <h3>Últimos movimientos</h3>
+    </div>
+    <div class="step-body">
+      <p>En la parte inferior encontrás un historial cronológico de las últimas visitas registradas. Sirve como auditoría rápida de lo que se estuvo trabajando en la estética.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Últimos movimientos
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MÓDULO 3: CLIENTES -->
+<section class="module" id="modulo-3">
+  <div class="module-header">
+    <div class="module-number">Módulo 03</div>
+    <h2>Clientes</h2>
+    <p class="module-intro">El corazón de tu estética. Acá se guarda toda la información de las personas que atendés: sus datos, notas médicas y el historial completo de todas las visitas.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Ver el listado de clientes</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el menú lateral, hacé click en "Clientes". Vas a ver el listado completo con todos los clientes cargados en el sistema.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Listado de clientes
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Buscar un cliente</h3>
+    </div>
+    <div class="step-body">
+      <p>Usá la barra de búsqueda en la parte superior para filtrar por nombre, apellido o teléfono. La búsqueda es dinámica: los resultados aparecen a medida que vas escribiendo.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Buscador de clientes
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Ver el perfil de un cliente</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en "Ver Perfil" para acceder a la ficha completa del cliente. Ahí encontrás sus datos personales, notas médicas y todo el historial de servicios que se le realizaron.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Perfil del cliente
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Editar los datos de un cliente</h3>
+    </div>
+    <div class="step-body">
+      <p>Si necesitás actualizar información, hacé click en "Editar Cliente". Podés modificar sus datos de contacto, agregar notas médicas o cambiar cualquier campo.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Editar cliente
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 05</span>
+      <h3>Agregar un cliente nuevo</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el listado, hacé click en el botón para agregar un nuevo cliente. Completá los campos con los datos correspondientes (nombre, apellido, teléfono, notas médicas si corresponde) y guardá.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Formulario nuevo cliente
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Consejo</strong>
+    Aprovechá el campo de notas médicas para registrar alergias, sensibilidades o cualquier consideración especial. Te va a evitar problemas y te va a hacer sentir que conocés a cada cliente en detalle.
+  </div>
+</section>
+
+<!-- MÓDULO 4: SERVICIOS -->
+<section class="module" id="modulo-4">
+  <div class="module-header">
+    <div class="module-number">Módulo 04</div>
+    <h2>Servicios</h2>
+    <p class="module-intro">Configurá todos los servicios que ofrece tu estética. La clave está en definir los días de retoque de cada uno, porque el sistema los usa para calcular automáticamente cuándo debe volver cada cliente.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Ver el catálogo de servicios</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el menú lateral, entrá a "Servicios". Vas a ver todos los servicios que ofrece tu estética en formato de tarjetas: color, corte, alisado, decoloración, y todos los que hayas cargado.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Catálogo de servicios
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Editar un servicio</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en el servicio que querés modificar. Podés cambiar su nombre o ajustar la cantidad de días configurada como intervalo de retoque.</p>
+      <p>Por ejemplo, si tu Balayage antes tenía retoque cada 60 días pero ahora querés que sean 45, editás ese campo y el sistema empieza a calcular las próximas alertas con el nuevo valor.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Editar servicio
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Agregar un servicio nuevo</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en el botón para crear un servicio nuevo. Ingresá el nombre y los días de retoque que corresponden. Una vez guardado, ya podés asignarlo a las visitas.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Nuevo servicio
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Por qué importan los días de retoque</strong>
+    Es la funcionalidad estrella del sistema. Configurando bien los días de cada servicio, Maison te avisa automáticamente qué clientes tienen que volver y cuándo. Nunca más se te va a escapar un retoque.
+  </div>
+</section>
+
+<!-- MÓDULO 5: INVENTARIO -->
+<section class="module" id="modulo-5">
+  <div class="module-header">
+    <div class="module-number">Módulo 05</div>
+    <h2>Inventario</h2>
+    <p class="module-intro">Llevá el control preciso de todos los productos de tu estética. Sabé en todo momento qué hay disponible, qué se está por acabar y qué ya no queda.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Resumen general de inventario</h3>
+    </div>
+    <div class="step-body">
+      <p>Al entrar a la sección de Inventario, lo primero que ves son tres indicadores clave:</p>
+      <ul>
+        <li>Total de productos registrados</li>
+        <li>Cantidad de productos con stock bajo</li>
+        <li>Cantidad de productos sin stock</li>
+      </ul>
+      <p>Debajo se despliega la lista completa con todos los productos y sus detalles.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Resumen de inventario
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Cargar productos manualmente</h3>
+    </div>
+    <div class="step-body">
+      <p>Para agregar un producto nuevo, hacé click en el botón correspondiente. Completá los detalles: nombre, marca, descripción y stock inicial. Guardá y el producto queda disponible para ser usado en las visitas.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Nuevo producto manual
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Carga masiva desde Excel</h3>
+    </div>
+    <div class="step-body">
+      <p>Si tenés muchos productos que cargar, no hace falta hacerlo uno por uno. Usá la opción de carga masiva: arrastrás un archivo Excel o CSV con todos los productos y el sistema los importa automáticamente.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Carga masiva
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Ajustar el stock de un producto</h3>
+    </div>
+    <div class="step-body">
+      <p>Cuando compraste más producto o cuando algo se venció, se rompió o se perdió, ajustás el stock desde la ficha del producto.</p>
+      <p>Elegís si es un ingreso (compra, reposición) o un egreso (pérdida, vencimiento, merma). Opcionalmente indicás un motivo (por ejemplo, "vencimiento" o "producto dañado") y el sistema te muestra cuánto stock va a quedar después de confirmar.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Ajuste de stock
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 05</span>
+      <h3>Editar los detalles de un producto</h3>
+    </div>
+    <div class="step-body">
+      <p>También podés modificar cualquier dato del producto (nombre, marca, descripción) en cualquier momento desde la vista de edición.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Editar producto
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Trazabilidad total</strong>
+    Al indicar un motivo cada vez que ajustás stock, mantenés un registro contable claro de todo lo que entra y sale de tu estética. Es información valiosa a la hora de entender costos reales.
+  </div>
+</section>
+
+<!-- MÓDULO 6: REGISTRO DE VISITAS -->
+<section class="module" id="modulo-6">
+  <div class="module-header">
+    <div class="module-number">Módulo 06</div>
+    <h2>Registro de visitas</h2>
+    <p class="module-intro">Es el momento donde se conecta todo: el cliente, el servicio que se realizó, los productos que se usaron y el próximo retoque programado. Todo en un solo flujo.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Iniciar el registro de una nueva visita</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el panel principal (o desde el perfil de un cliente), hacé click en el botón "Nueva Visita". Se abre el formulario de registro.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Botón Nueva Visita
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Seleccionar el cliente y el servicio</h3>
+    </div>
+    <div class="step-body">
+      <p>Elegí el cliente que estás atendiendo desde el buscador y seleccioná el servicio realizado (por ejemplo, "Color" o "Balayage").</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Seleccionar cliente y servicio
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Fecha del servicio y del próximo retoque</h3>
+    </div>
+    <div class="step-body">
+      <p>Ingresá la fecha en que se realizó la visita. El sistema calcula automáticamente cuándo será el próximo retoque, basándose en los días configurados para ese servicio.</p>
+      <p>Si por algún motivo querés modificar esa fecha manualmente, podés hacerlo.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Fecha de visita y próximo retoque
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Registrar los insumos consumidos</h3>
+    </div>
+    <div class="step-body">
+      <p>Agregá los productos que usaste durante la visita, con su cantidad exacta. Al guardar la visita, el sistema descuenta automáticamente esos productos del inventario.</p>
+      <p>Así siempre tenés el stock actualizado sin tener que hacer nada aparte.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Registro de insumos
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 05</span>
+      <h3>Comentarios y notas técnicas</h3>
+    </div>
+    <div class="step-body">
+      <p>Si es una coloración, alisado o cualquier servicio con fórmula específica, dejá una nota técnica con los detalles. La próxima vez que ese cliente vuelva, vas a poder consultar exactamente qué le hiciste.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Notas técnicas
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 06</span>
+      <h3>Guardar y confirmar la visita</h3>
+    </div>
+    <div class="step-body">
+      <p>Al guardar, la visita queda registrada en el historial del cliente y en el historial general del negocio. El próximo retoque se agrega automáticamente al panel de alertas del dashboard.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Confirmación de visita guardada
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Adiós al cuaderno</strong>
+    Con esto reemplazás todo lo que antes anotabas a mano: qué le hiciste a cada cliente, con qué productos, en qué fecha y cuándo tiene que volver. Todo queda registrado y accesible en segundos.
+  </div>
+</section>
+
+<!-- MÓDULO 7: TURNOS -->
+<section class="module" id="modulo-7">
+  <div class="module-header">
+    <div class="module-number">Módulo 07</div>
+    <h2>Turnos</h2>
+    <p class="module-intro">Organizá la agenda de tu estética. Creá, gestioná y visualizá los turnos por profesional en un calendario claro y ordenado.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Ver el calendario de turnos</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el menú lateral, entrá a "Turnos". Vas a ver un calendario con todos los turnos agendados, con vistas por día y por semana para elegir según lo que necesites.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Calendario de turnos
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Crear un turno nuevo</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en el horario o en el botón para agregar un turno. Seleccioná el cliente, el servicio, la profesional que va a atender, la fecha y la hora de inicio.</p>
+      <p>El sistema calcula la duración basándose en el servicio elegido.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Crear nuevo turno
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Disponibilidad por profesional</h3>
+    </div>
+    <div class="step-body">
+      <p>Si en tu estética hay varias profesionales trabajando en simultáneo, no hay problema: dos o tres profesionales pueden tener turnos a la misma hora. El sistema valida la superposición por profesional, no de forma general para todo el negocio.</p>
+      <p>Es decir: si Sofía tiene un turno a las 15:00, Lucía y María pueden atender también a las 15:00 sin conflicto.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Vista multi-profesional
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Editar o cancelar un turno</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en cualquier turno del calendario para ver su detalle. Podés modificar la fecha, hora, cliente o servicio, o cancelarlo si es necesario.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Editar turno
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 05</span>
+      <h3>Convertir un turno en visita</h3>
+    </div>
+    <div class="step-body">
+      <p>Cuando el cliente llegó y se le hizo el servicio, marcá el turno como completado. El sistema abre el flujo de registro de visita con los datos ya cargados: cliente, servicio, fecha y profesional. Solo tenés que agregar los insumos usados y las notas técnicas.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Turno completado a visita
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Todo conectado</strong>
+    El turno, la visita y el próximo retoque forman un ciclo automático. Agendás una vez, confirmás cuando pasa, y el sistema se encarga de recordarte cuándo tiene que volver el cliente.
+  </div>
+</section>
+
+<!-- MÓDULO 8: PROFESIONALES -->
+<section class="module" id="modulo-8">
+  <div class="module-header">
+    <div class="module-number">Módulo 08</div>
+    <h2>Profesionales</h2>
+    <p class="module-intro">Registrá a las profesionales que atienden en tu estética. Cada una tiene su propio perfil, con nombre y color identificador, para que puedas asignarles turnos y visitas fácilmente.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 01</span>
+      <h3>Ver el listado de profesionales</h3>
+    </div>
+    <div class="step-body">
+      <p>Desde el menú lateral, entrá a "Profesionales". Vas a ver a todas las personas que atienden en tu estética.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Listado de profesionales
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 02</span>
+      <h3>Agregar una profesional nueva</h3>
+    </div>
+    <div class="step-body">
+      <p>Hacé click en el botón para agregar una nueva profesional. Ingresá su nombre y elegí un color identificador. Ese color se va a mostrar en el calendario cada vez que tenga un turno asignado.</p>
+      <p>No necesita tener su propio usuario ni contraseña. Es simplemente un perfil interno para poder organizar los turnos y las visitas.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Nueva profesional
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 03</span>
+      <h3>Asignar profesionales a visitas y turnos</h3>
+    </div>
+    <div class="step-body">
+      <p>Cada vez que crees un turno o registres una visita, vas a poder elegir cuál profesional está atendiendo. Así queda registrado en el historial quién hizo cada servicio.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Selección de profesional
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Paso 04</span>
+      <h3>Desactivar una profesional</h3>
+    </div>
+    <div class="step-body">
+      <p>Si una profesional deja de trabajar en la estética, no la elimines: desactivala. Sus turnos y visitas históricas quedan intactas para poder consultarlas después, pero deja de aparecer como opción para nuevos turnos.</p>
+      <div class="image-placeholder">
+        <span class="icon">◇</span>
+        Imagen — Desactivar profesional
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CIERRE -->
+<section class="module" style="text-align: center;">
+  <div class="module-header">
+    <div class="module-number">Fin de la guía</div>
+    <h2>Listos para empezar</h2>
+    <p class="module-intro" style="margin: 0 auto;">Ya conocés todas las secciones de Maison. Ante cualquier duda, escribinos y te acompañamos. Estamos para ayudarte a que tu estética funcione como merece.</p>
+  </div>
+  <div class="divider">◇ ◇ ◇</div>
+</section>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="brand brand-mini">Maison</div>
+    <p>Estudio · CRM para centros de estética</p>
+    <p style="margin-top: 16px; font-size: 12px; color: var(--text-muted);">Guía de uso — Versión 1.0</p>
+  </div>
+</footer>
+
+</body>
+</html>

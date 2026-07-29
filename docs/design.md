@@ -550,6 +550,22 @@ transmitir dinamismo comercial. Esta excepción **no** se extiende a ninguna vis
   `--glow-intensity`). `enableTilt`/`enableMagnetism` del componente original no se portan (sin
   rotación 3D ni desplazamiento magnético). `gsap`/`@gsap/react`/`three`/`@react-three/*` siguen
   fuera del proyecto sin ninguna excepción nueva.
+* **`GradualBlur` en el CTA final — `mask-image` con gradiente, NO reabre la prohibición general
+  de gradientes (UX-53, 2026-07-28):** el borde inferior de la card `bg-wine` del CTA final
+  incorpora un blur progresivo (`components/landing/GradualBlur.tsx`), puerto local de la
+  variante `GradualBlur` de react-bits (cero dependencia nueva instalada, mismo criterio que
+  Silk/DotField/MagicBento). La técnica apila varias capas `absolute` con `backdrop-filter:
+  blur()` creciente y usa `linear-gradient(...)` **exclusivamente** dentro de `mask-image`/
+  `-webkit-mask-image` de cada capa, para definir la banda de opacidad (alfa) donde esa capa de
+  blur es visible — nunca en `background`/`backgroundImage`/`bg-gradient-*`. Esto no reabre la
+  prohibición general de gradientes decorativos por el mismo argumento ya aceptado para el
+  `radialGradient` de un solo color de `DotField.tsx` (fade de alfa, no transición de color): un
+  gradiente en `mask-image` no pinta ningún color — solo modula cuánto se ve una capa de blur ya
+  existente; el `bg-wine` de la card permanece exactamente igual, sin ninguna transición de tono.
+  Sigue prohibido, sin excepción, cualquier `linear-gradient`/`radial-gradient`/`conic-gradient`/
+  `bg-gradient-*` que sí produzca una transición de COLOR visible en `background`/
+  `backgroundImage`. Es un efecto puramente estático (no depende de scroll/mouse/tiempo), por lo
+  que no requiere guarda de `prefers-reduced-motion`.
 
 ---
 
