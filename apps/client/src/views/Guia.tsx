@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useAuth } from "@clerk/react";
 import { motion, useReducedMotion } from "motion/react";
 import type { Variants } from "motion/react";
 import { FiArrowRight, FiInfo } from "react-icons/fi";
@@ -27,6 +28,7 @@ const fadeSlideUp = (prefersReducedMotion: boolean): Variants =>
           };
 
 export default function Guia() {
+    const { isLoaded, userId } = useAuth();
     const prefersReducedMotion = useReducedMotion();
 
     return (
@@ -42,18 +44,34 @@ export default function Guia() {
                         <img src="/shear-logo.png" alt="Shear" className="h-9 w-auto" />
                     </Link>
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <Link
-                            to="/login"
-                            className="hidden rounded-ctrl px-4 py-2 text-sm font-medium text-text-3 no-underline transition-colors hover:bg-hover-soft hover:text-text sm:block"
-                        >
-                            Iniciar sesión
-                        </Link>
-                        <Link
-                            to="/registro"
-                            className="flex items-center gap-1.5 rounded-ctrl bg-accent px-4 py-2 text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90 sm:px-5"
-                        >
-                            Comenzar gratis <FiArrowRight size={14} />
-                        </Link>
+                        {/* UX-66: se oculta el bloque completo hasta que Clerk resuelva la sesión
+                            (`isLoaded`) para evitar el parpadeo del CTA incorrecto (login/registro
+                            vs. Volver al Dashboard), mismo patrón de guard que `Landing.tsx`. */}
+                        {isLoaded && (
+                            userId ? (
+                                <Link
+                                    to="/dashboard"
+                                    className="flex items-center gap-1.5 rounded-ctrl bg-accent px-4 py-2 text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90 sm:px-5"
+                                >
+                                    Volver al Dashboard <FiArrowRight size={14} />
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/login"
+                                        className="hidden rounded-ctrl px-4 py-2 text-sm font-medium text-text-3 no-underline transition-colors hover:bg-hover-soft hover:text-text sm:block"
+                                    >
+                                        Iniciar sesión
+                                    </Link>
+                                    <Link
+                                        to="/registro"
+                                        className="flex items-center gap-1.5 rounded-ctrl bg-accent px-4 py-2 text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90 sm:px-5"
+                                    >
+                                        Comenzar gratis <FiArrowRight size={14} />
+                                    </Link>
+                                </>
+                            )
+                        )}
                     </div>
                 </nav>
             </header>
@@ -186,12 +204,22 @@ export default function Guia() {
                             <Link to="/" className="no-underline transition-colors hover:text-text">
                                 Inicio
                             </Link>
-                            <Link to="/login" className="no-underline transition-colors hover:text-text">
-                                Iniciar sesión
-                            </Link>
-                            <Link to="/registro" className="no-underline transition-colors hover:text-text">
-                                Registrarse
-                            </Link>
+                            {isLoaded && (
+                                userId ? (
+                                    <Link to="/dashboard" className="no-underline transition-colors hover:text-text">
+                                        Volver al Dashboard
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link to="/login" className="no-underline transition-colors hover:text-text">
+                                            Iniciar sesión
+                                        </Link>
+                                        <Link to="/registro" className="no-underline transition-colors hover:text-text">
+                                            Registrarse
+                                        </Link>
+                                    </>
+                                )
+                            )}
                         </nav>
                         <p className="text-xs text-muted">
                             &copy; {new Date().getFullYear()} Shear. Todos los derechos reservados.

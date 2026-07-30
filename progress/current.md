@@ -1,15 +1,15 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-29
+- **Última actualización:** 2026-07-30
 - **Sesión:** activa
-- **Feature en curso:** ninguna — UX-65 cerrada, commit de checkpoint hecho
+- **Feature en curso:** ninguna — UX-66 cerrada
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
-- UX-49 a UX-65 (Landing pública / página /guia) → done, ver `progress/history.md` para el detalle completo
+- UX-49 a UX-66 (Landing pública / página /guia + navegación Dashboard↔Guía) → done, ver `progress/history.md` para el detalle completo
 - (resto del backlog sin cambios respecto a sesiones anteriores, ver `progress/history.md`)
 
 ### Pendientes

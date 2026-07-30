@@ -1270,3 +1270,16 @@
 * **Verificación:** `pnpm --filter @estetica/client build`/`lint` exit 0.
 * **Estado final:** `UX-65` → `"done"`.
 * **Commit de checkpoint (2026-07-29, a pedido explícito del usuario):** se commiteó localmente todo el trabajo acumulado desde el checkpoint anterior (`92a722f`) — UX-60 a UX-65 (logo 3D del hero con extrusión SVG real, fix de overflow mobile, fix del botón "Iniciar sesión", cambio de color del Silk). Sin push.
+
+---
+
+## 2026-07-30 — UX-66: navegación bidireccional Dashboard ↔ /guia
+
+* **Agente:** Claude (Leader) + 1 explorer + 1 implementer frontend + 1 reviewer.
+* **Objetivo:** el usuario reportó que, tras UX-59 (página pública `/guia`, product tour), no había forma de acceder a la guía desde el Dashboard ya logueado, ni de volver al Dashboard desde la propia guía.
+* **Diagnóstico (explorer):** `/guia` vive fuera de `AppLayout.tsx` (ruta pública sin sidebar). El sidebar arma su nav con el helper local `SidebarNavLink` (punto de color + texto, sin íconos react-icons/fi por convención de `docs/design.md` §7.1). El header/footer de `Guia.tsx` mostraban siempre los CTAs "Iniciar sesión"/"Comenzar gratis" sin distinguir sesión activa. El patrón de detección de sesión fuera de `AppLayout` ya existía en `Landing.tsx` (`useAuth()` de `@clerk/react`, no `@clerk/clerk-react`) y era directamente reutilizable.
+* **Cambios:**
+  - `apps/client/src/layouts/AppLayout.tsx` — nuevo `SidebarNavLink` "Guía" → `/guia`, como último ítem del nav principal, visible para los 3 roles (no restringido a ADMIN).
+  - `apps/client/src/views/Guia.tsx` — `useAuth()` de `@clerk/react` con guard `isLoaded` (evita parpadeo); header y footer muestran "Volver al Dashboard" (`/dashboard`) cuando hay sesión activa, preservando intacto el comportamiento original (CTAs login/registro) sin sesión.
+* **Verificación:** `pnpm --filter @estetica/client build`/`lint` exit 0. Reviewer verificó el diff línea por línea contra la bitácora del implementer, sin discrepancias.
+* **Estado final:** `UX-66` → `"done"`. Reviewer: **APPROVED** → `progress/reviews/review_UX-66.md`.

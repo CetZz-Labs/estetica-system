@@ -1097,6 +1097,22 @@
       ]
     },
     {
+      "id": "UX-66",
+      "name": "Navegación bidireccional Dashboard ↔ /guia",
+      "module": "UI",
+      "phase": "Rediseño Shear — Fase 2",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-07-30): la página pública `/guia` (product tour, UX-59..65) no es accesible desde el Dashboard una vez logueado, y tampoco permite volver al Dashboard desde la propia guía. Diagnóstico (explorer, 2026-07-30): `/guia` vive fuera de `AppLayout.tsx` (sin sidebar), y su header (`views/Guia.tsx` líneas 39-59) siempre muestra CTAs de 'Iniciar sesión'/'Comenzar gratis' sin distinguir sesión activa. El patrón de detección de sesión fuera de AppLayout ya existe en `Landing.tsx` (`useAuth()` de `@clerk/react`, no `@clerk/clerk-react`) y es directamente reutilizable. El sidebar (`AppLayout.tsx` líneas 142-171) usa `SidebarNavLink` (punto de color + texto, sin íconos react-icons/fi por convención de `docs/design.md` §7.1) para cada ítem de nav.",
+      "acceptance_criteria": [
+        "El sidebar de `AppLayout.tsx` incluye un nuevo `SidebarNavLink` hacia `/guia` (label 'Guía'), visible para todos los roles (no restringido a ADMIN como la sección Configuración), siguiendo el mismo patrón visual (punto de color + texto, sin ícono) que el resto de los ítems",
+        "En `views/Guia.tsx`, el header usa `useAuth()` de `@clerk/react` (mismo patrón que `Landing.tsx`) para detectar sesión activa: si `userId` existe, se muestra un botón 'Volver al Dashboard' (`Link to=\"/dashboard\"`) en vez de los CTAs 'Iniciar sesión'/'Comenzar gratis'",
+        "El mismo criterio de sesión activa se aplica de forma consistente en el footer de `Guia.tsx` (líneas 179-201), reemplazando los links 'Iniciar sesión'/'Registrarse' por 'Volver al Dashboard' cuando hay sesión",
+        "Sin sesión activa, el comportamiento existente de `/guia` (CTAs de login/registro) no cambia",
+        "No se modifica ninguna otra sección de `Guia.tsx` ni `AppLayout.tsx` fuera de lo descrito",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
       "id": "EP-18",
       "name": "Reporte de actividad del negocio",
       "module": "Reports",
