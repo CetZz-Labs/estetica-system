@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import Select, { type StylesConfig } from "react-select";
-import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText } from "react-icons/fi";
+import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEdit2 } from "react-icons/fi";
 
 import { getServiceRecords } from "../api/serviceRecordApi";
 import { getClients } from "../api/clientApi";
@@ -10,6 +10,7 @@ import { getProfessionals } from "../api/professionalApi";
 import type { Client, Service, Professional, ServiceRecord, Paginated } from "../types";
 import { formatCalendarDate } from "../utils/dates";
 import Pagination from "../components/ui/Pagination";
+import EditRegistroModal from "../components/EditRegistroModal";
 import { useTopbar } from "../layouts/TopbarContext";
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
@@ -49,6 +50,7 @@ export default function Historial() {
     const [professionalId, setProfessionalId] = useState<string>('');
     const [dateFrom, setDateFrom] = useState<string>('');
     const [dateTo, setDateTo] = useState<string>('');
+    const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null);
 
     const { data: clients } = useQuery<Client[]>({
         queryKey: ['clients'],
@@ -192,6 +194,7 @@ export default function Historial() {
                                 <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Profesional</th>
                                 <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Productos usados</th>
                                 <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Notas</th>
+                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -204,11 +207,12 @@ export default function Historial() {
                                         <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-1/2" /></td>
                                         <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-full" /></td>
                                         <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-full" /></td>
+                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-8" /></td>
                                     </tr>
                                 ))
                             ) : isError ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8">
+                                    <td colSpan={7} className="px-6 py-8">
                                         <div className="flex items-center justify-center gap-2 rounded-ctrl bg-alert-bg p-4 text-alert-text">
                                             <FiAlertTriangle aria-hidden className="shrink-0" />
                                             <span>No se pudo cargar el historial de visitas. Reintentá en unos segundos.</span>
@@ -217,7 +221,7 @@ export default function Historial() {
                                 </tr>
                             ) : items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12">
+                                    <td colSpan={7} className="px-6 py-12">
                                         <div className="flex flex-col items-center gap-2 text-muted">
                                             <FiClock aria-hidden size={32} />
                                             <p>
@@ -286,6 +290,17 @@ export default function Historial() {
                                                 <span className="text-[13.5px] text-muted">—</span>
                                             )}
                                         </td>
+                                        <td className="px-5 py-[13px]">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingRecord(registro)}
+                                                aria-label="Editar visita"
+                                                title="Editar visita"
+                                                className="p-2 text-muted hover:text-text-2 hover:bg-surface-2 rounded-ctrl transition-colors cursor-pointer"
+                                            >
+                                                <FiEdit2 size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -297,6 +312,12 @@ export default function Historial() {
                     <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
                 )}
             </div>
+
+            <EditRegistroModal
+                isOpen={!!editingRecord}
+                record={editingRecord}
+                onClose={() => setEditingRecord(null)}
+            />
         </div>
     );
 }

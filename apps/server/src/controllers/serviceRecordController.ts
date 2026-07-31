@@ -225,10 +225,18 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
+        // Paso 0 (UX-67): fetch previo del registro ANTES de tocar cualquier stock.
+        // Garantiza el 404 temprano (registro inexistente / de otro tenant) y nos da
+        // acceso a productsUsed viejo, necesario para calcular deltas en la reconciliación.
+        const existingRecord = await ServiceRecord.findOne({ _id: id, tenantId: req.tenantId });
+        if (!existingRecord) {
+            return res.status(404).json({ error: 'Registro no encontrado' });
+        }
+
         // Whitelist explícita de campos editables (anti mass-assignment).
-        // tenantId, client, service y productsUsed NO son editables vía PUT:
-        // cambiarlos requeriría re-validar pertenencia al tenant y re-calcular stock.
-        const { serviceDate, notes, nextTouchupDate, touchupStatus } = req.body;
+        // tenantId, client y service NO son editables vía PUT.
+        // productsUsed SÍ es editable (UX-67) vía reconciliación de stock por delta (ver abajo).
+        const { serviceDate, notes, nextTouchupDate, touchupStatus, productsUsed } = req.body;
 
         // UX-27: nextTouchupDate no puede ser una fecha ya pasada. Se compara contra el día
         // calendario actual (no el instante exacto): si cae hoy, es válido aunque la hora ya
@@ -247,6 +255,83 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
         if (notes !== undefined) updateData.notes = notes;
         if (nextTouchupDate !== undefined) updateData.nextTouchupDate = nextTouchupDate;
         if (touchupStatus !== undefined) updateData.touchupStatus = touchupStatus;
+
+        // UX-67: reconciliación de stock por delta. undefined = "no tocar productos"
+        // (comportamiento preexistente preservado); [] explícito = "vaciar todos los
+        // insumos y restaurar el 100% del stock consumido". Por eso el guard es
+        // estrictamente `!== undefined`, nunca un chequeo de truthiness/longitud.
+        if (productsUsed !== undefined) {
+            if (!Array.isArray(productsUsed)) {
+                return res.status(400).json({ error: 'productsUsed debe ser una lista (array)' });
+            }
+
+            // 1. Rechazar duplicados dentro del nuevo array antes de leer stock.
+            const seenIds = new Set<string>();
+            for (const item of productsUsed) {
+                const productIdStr = String(item.product);
+                if (seenIds.has(productIdStr)) {
+                    return res.status(400).json({ error: 'Producto duplicado en la lista de insumos' });
+                }
+                seenIds.add(productIdStr);
+            }
+
+            // 2-4. oldMap (registro previo) / newMap (body) / unionIds.
+            const oldMap = new Map<string, number>();
+            for (const item of existingRecord.productsUsed) {
+                oldMap.set(item.product.toString(), item.quantity);
+            }
+
+            const newMap = new Map<string, number>();
+            for (const item of productsUsed) {
+                newMap.set(String(item.product), item.quantity);
+            }
+
+            const unionIds = [...new Set([...oldMap.keys(), ...newMap.keys()])];
+
+            if (unionIds.length > 0) {
+                // 5. Una sola query, sin filtrar isActive (misma convención que createServiceRecord).
+                const products = await Product.find({ _id: { $in: unionIds }, tenantId: req.tenantId });
+
+                if (products.length !== unionIds.length) {
+                    // Anti-IDOR: referencia embebida en el body (no el :id de la ruta) → 400, no 404.
+                    return res.status(400).json({ error: 'Uno o más insumos no son válidos para este negocio' });
+                }
+
+                const productsById = new Map(products.map(p => [p._id.toString(), p]));
+
+                // 6. Fase de validación pura (solo lectura): comprobar suficiencia de stock
+                // para cada delta positivo. Si falla, cortar sin haber mutado nada todavía.
+                for (const productId of unionIds) {
+                    const delta = (newMap.get(productId) ?? 0) - (oldMap.get(productId) ?? 0);
+                    if (delta > 0) {
+                        const product = productsById.get(productId)!;
+                        if (product.stock < delta) {
+                            return res.status(400).json({
+                                error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido adicional: ${delta}`
+                            });
+                        }
+                    }
+                }
+
+                // 7. Fase de escritura: recién ahora, con toda la validación superada, aplicar
+                // los deltas. Misma fórmula para ambos signos: delta positivo resta stock,
+                // delta negativo (restauración) lo suma.
+                for (const productId of unionIds) {
+                    const delta = (newMap.get(productId) ?? 0) - (oldMap.get(productId) ?? 0);
+                    if (delta !== 0) {
+                        const product = productsById.get(productId)!;
+                        product.stock -= delta;
+                        await product.save();
+                    }
+                }
+            }
+
+            // 8. Normalizado a { product, quantity }[], nunca objetos poblados.
+            updateData.productsUsed = productsUsed.map((item: { product: string; quantity: number }) => ({
+                product: item.product,
+                quantity: item.quantity
+            }));
+        }
 
         const updatedRecord = await ServiceRecord.findOneAndUpdate(
             { _id: id, tenantId: req.tenantId },

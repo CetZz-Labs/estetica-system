@@ -85,9 +85,17 @@ router.put(
     '/:id',
     [
         param('id').isMongoId().withMessage('El ID del registro no es válido'),
-        // client, service y productsUsed NO son editables vía PUT (ver whitelist en el controller)
+        // client y service NO son editables vía PUT (ver whitelist en el controller).
+        // productsUsed SÍ es editable (UX-67): mirror literal de los validators del POST.
         body('serviceDate').optional().isISO8601().withMessage('serviceDate debe tener formato ISO 8601').toDate(),
         body('notes').optional().isString().trim(),
+
+        body('productsUsed').optional().isArray().withMessage('productsUsed debe ser una lista (array)'),
+        body('productsUsed.*.product').isMongoId().withMessage('Cada producto usado debe tener un ID válido'),
+        body('productsUsed.*.quantity')
+            .isNumeric().withMessage('La cantidad debe ser un número')
+            .custom(value => value > 0).withMessage('La cantidad debe ser mayor a 0'),
+
         body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'cancelled']).withMessage('Estado de retoque no válido'),
         validateRequest

@@ -1113,6 +1113,25 @@
       ]
     },
     {
+      "id": "UX-67",
+      "name": "Edición de productos usados y notas en el historial de visitas",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo de clientes del sistema (2026-07-31), relevado por el leader junto con otro pedido (registrar visitas de fecha pasada) que se descartó como no-bug tras verificación manual del usuario (serviceDate ya acepta fechas pasadas hoy, sin restricción en frontend ni backend). Diagnóstico previo (leader, 2026-07-31): `updateServiceRecord` (serviceRecordController.ts) YA permite editar `notes` vía PUT /api/registros/:id, pero `Historial.tsx` es una tabla de solo lectura sin ninguna acción de edición conectada a ese endpoint. `productsUsed` está deliberadamente excluido del whitelist de edición (comentario en el controller: requiere re-validar pertenencia al tenant y re-calcular stock) — esta feature debe agregar esa reconciliación. Al guardar una edición de productsUsed, el backend debe: (1) restaurar el stock de los productos que se quitaron o redujeron, (2) descontar el delta de los productos que se agregaron o aumentaron, validando stock suficiente (nunca negativo) en cada producto tocado, todo scopeado por tenantId. Reusar el patrón de selector de insumos (stock-aware, deshabilita sin stock) ya usado en RegistroModal.tsx.",
+      "acceptance_criteria": [
+        "Historial.tsx agrega una acción de edición (ícono, botón semántico) por fila que abre un modal prefilled con notes y productsUsed del registro seleccionado",
+        "El modal permite editar notes (texto libre) y productsUsed (agregar/quitar/cambiar cantidad), reusando el patrón de selector de insumos de RegistroModal.tsx (react-select stock-aware + lista con cantidad y eliminar)",
+        "PUT /api/registros/:id acepta productsUsed en el body (whitelist ampliado) además de notes/serviceDate/nextTouchupDate/touchupStatus ya existentes",
+        "El backend reconcilia el stock: por cada producto tocado, calcula el delta entre la cantidad anterior y la nueva, restaura o descuenta stock según corresponda, y rechaza con 400 si el delta a descontar supera el stock disponible (ningún producto queda con stock negativo)",
+        "La reconciliación de stock y la actualización del ServiceRecord ocurren de forma atómica desde la perspectiva del usuario: si falla la validación de stock de cualquier producto, no se aplica ningún cambio parcial",
+        "Los lookups de producto están scopeados por tenantId (GOV-TENANT); un productId de otro tenant en el body se rechaza",
+        "client, service, professional y tenantId del ServiceRecord siguen sin ser editables vía este PUT (whitelist explícita, anti mass-assignment)",
+        "Tras guardar, Historial.tsx invalida la query de listado y muestra toast de éxito; errores se muestran vía handleApiError (sin duplicar en alerta inline)",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
       "id": "EP-18",
       "name": "Reporte de actividad del negocio",
       "module": "Reports",

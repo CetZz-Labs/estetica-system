@@ -15,6 +15,7 @@
 - [P6 — Registro de visita con auto-retoque](#p6--registro-de-visita-con-auto-retoque)
 - [P7 — Controller con manejo de errores](#p7--controller-con-manejo-de-errores)
 - [P10 — Validación de fecha no pasada, día calendario del tenant](#p10--validación-de-fecha-no-pasada-día-calendario-del-tenant)
+- [P17 — Reconciliación de stock por delta (edición con side-effects)](#p17--reconciliación-de-stock-por-delta-edición-con-side-effects)
 
 ---
 
@@ -540,6 +541,72 @@ if (finalNextTouchupDate) {
 ```
 
 **Gotcha de verificación:** este bug es **no determinístico entre entornos** — no se reproduce corriendo el proceso Node con la TZ del desarrollador (ej. Argentina), solo se manifiesta cuando el proceso corre en una TZ distinta a la del tenant (el caso típico de un deploy serverless en UTC). Para auditar este tipo de validación, reproducir explícitamente con `TZ=UTC node script.js` simulando la hora local límite del tenant (21:00–23:59 ART), no confiar en que "funciona en dev local".
+
+---
+
+## P17 — Reconciliación de stock por delta (edición con side-effects)
+
+> **Regla canónica:** [`governance-rules.md#gov-stock`](governance-rules.md#gov-stock--control-de-inventario-y-stock) + [`#gov-tenant`](governance-rules.md#gov-tenant--aislamiento-multi-tenant). Implementado en UX-67 (2026-07-31). Distinto de P4/P6: aquellos cubren el descuento **puro** al crear; este cubre el caso **mixto** (restaurar + descontar) al **editar** un recurso que ya generó side-effects de stock.
+
+**Cuándo aplica:** un endpoint de update permite modificar una lista de ítems que ya descontaron stock en su creación (ej. `productsUsed` de un `ServiceRecord`). Cambiar cantidades, agregar o quitar ítems requiere reconciliar el stock contra el estado **anterior** del documento, no solo aplicar el estado nuevo a ciegas.
+
+**Mandato (orden estricto, sin `session.withTransaction` disponible — ver nota de atomicidad de P6):**
+1. **Fetch previo del documento** (`findOne({ _id, tenantId })`) ANTES de tocar cualquier stock — da el 404 temprano y el estado "viejo" para calcular deltas.
+2. **Guard de "no tocar" vs. "vaciar explícitamente":** si el campo llega en el body, `undefined` significa "no reconciliar nada" (preserva el comportamiento previo a la feature); un array `[]` explícito significa "vaciar todo y restaurar el 100% del stock". Usar **siempre** `campo !== undefined`, nunca un chequeo de truthiness/longitud (`campo && campo.length > 0`) — ese último trataría `[]` como "no hacer nada" y dejaría stock huérfano sin restaurar.
+3. **Rechazar duplicados** dentro del array nuevo antes de leer stock (400 temprano, sin I/O de más).
+4. **`oldMap`/`newMap`/`unionIds`:** mapear id→cantidad del estado viejo y del nuevo; la unión de ambos conjuntos de ids es el universo a reconciliar.
+5. **Una sola query** `Model.find({ _id: { $in: unionIds }, tenantId })` (sin filtrar `isActive` — un ítem soft-deleted sigue siendo válido para restaurar/ajustar si ya estaba referenciado). Si `results.length !== unionIds.length` → 400 (no 404: es una referencia embebida en el body, no el `:id` de la ruta — mismo criterio anti-IDOR que P6).
+6. **Fase de validación pura (solo lectura):** por cada id, `delta = (newMap.get(id) ?? 0) - (oldMap.get(id) ?? 0)`. Si `delta > 0` (se necesita más del recurso), comprobar que alcance el stock disponible; si no, 400 descriptivo y `return` **inmediato sin haber mutado nada**.
+7. **Fase de escritura (solo si la fase 6 completa sin cortar):** recién ahí, por cada id con `delta !== 0`, `stock -= delta; await save()`. La misma fórmula sirve para ambos signos: `delta` positivo resta, `delta` negativo (restauración) suma.
+8. Normalizar el campo a `{ ref, quantity }[]` explícito antes del `findOneAndUpdate` final — nunca persistir objetos poblados.
+
+```typescript
+// controllers/serviceRecordController.ts — updateServiceRecord (fragmento, ver código completo para el resto del handler)
+const existingRecord = await ServiceRecord.findOne({ _id: id, tenantId: req.tenantId });
+if (!existingRecord) return res.status(404).json({ error: 'Registro no encontrado' });
+
+const { productsUsed } = req.body; // resto de la whitelist omitido en este fragmento
+
+if (productsUsed !== undefined) { // no truthiness/longitud — [] es "vaciar", no "no tocar"
+    const seenIds = new Set<string>();
+    for (const item of productsUsed) {
+        const idStr = String(item.product);
+        if (seenIds.has(idStr)) return res.status(400).json({ error: 'Producto duplicado en la lista de insumos' });
+        seenIds.add(idStr);
+    }
+
+    const oldMap = new Map(existingRecord.productsUsed.map(i => [i.product.toString(), i.quantity]));
+    const newMap = new Map(productsUsed.map((i: { product: string; quantity: number }) => [String(i.product), i.quantity]));
+    const unionIds = [...new Set([...oldMap.keys(), ...newMap.keys()])];
+
+    if (unionIds.length > 0) {
+        const products = await Product.find({ _id: { $in: unionIds }, tenantId: req.tenantId });
+        if (products.length !== unionIds.length) {
+            return res.status(400).json({ error: 'Uno o más insumos no son válidos para este negocio' });
+        }
+        const byId = new Map(products.map(p => [p._id.toString(), p]));
+
+        // Fase 1 — validación pura, sin mutar nada todavía
+        for (const id of unionIds) {
+            const delta = (newMap.get(id) ?? 0) - (oldMap.get(id) ?? 0);
+            if (delta > 0 && byId.get(id)!.stock < delta) {
+                return res.status(400).json({ error: `Stock insuficiente para ${byId.get(id)!.name}` });
+            }
+        }
+        // Fase 2 — escritura, recién con toda la validación superada
+        for (const id of unionIds) {
+            const delta = (newMap.get(id) ?? 0) - (oldMap.get(id) ?? 0);
+            if (delta !== 0) {
+                const p = byId.get(id)!;
+                p.stock -= delta;
+                await p.save();
+            }
+        }
+    }
+}
+```
+
+**Riesgo aceptado — TOCTOU entre requests concurrentes:** el patrón read-check-save (fases 6-7) no es atómico entre dos requests simultáneos que tocan el mismo producto — ambos pueden leer el mismo `stock` antes de que cualquiera escriba. Es la misma limitación preexistente de P4/P6 (no introducida por este patrón); el segundo `.save()` cae en la validación Mongoose `min: 0` como red de seguridad final, propagándose como 500 en vez de un 400 descriptivo. Mitigación disponible pero **no aplicada por defecto** (evaluar caso a caso si el volumen de escritura concurrente lo justifica): reemplazar el `save()` de la fase de escritura por `findOneAndUpdate({ _id, tenantId, stock: { $gte: delta } }, { $inc: { stock: -delta } })` atómico para los deltas positivos (los negativos/restauración no tienen riesgo de negativo, un `$inc` simple alcanza).
 
 ---
 

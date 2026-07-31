@@ -36,6 +36,26 @@
 
 * **Verificación:** server build Exit 0, client build Exit 0. Lint: 0 errores nuevos (1 preexistente `ProductoModal.tsx:37`). Reviewer: **APPROVED** → `progress/reviews/review_EP-16.md`. EP-16 → **done**.
 
+---
+
+## 2026-07-31 — UX-67: Edición de productos usados y notas en el historial de visitas (Fase 1)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend + reviewer (1 ronda).
+* **Origen:** el usuario relevó dos pedidos de clientes del sistema. El segundo ("registrar visitas de fecha pasada") fue descartado como no-bug tras verificación manual del usuario — `serviceDate` ya acepta fechas pasadas sin restricción en frontend ni backend, sin necesidad de código. Solo se avanzó con el primero.
+* **Objetivo:** permitir editar `notes` y `productsUsed` de una visita (`ServiceRecord`) ya registrada desde `Historial.tsx`, con reconciliación de stock por delta (restaurar lo que se quita/reduce, descontar lo que se agrega/aumenta), sin dejar cambios parciales ante fallo de validación.
+
+* **Cambios Backend:**
+  - `apps/server/src/controllers/serviceRecordController.ts::updateServiceRecord` — fetch previo del registro (`findOne` tenant-scoped) antes de tocar stock; `productsUsed` sale del whitelist excluido y se reconcilia por delta (`oldMap`/`newMap`/`unionIds`, fase de validación pura seguida de fase de escritura); guard `!== undefined` (no truthiness/longitud) para distinguir "no tocar" de "vaciar explícitamente y restaurar todo el stock"; rechazo de productos duplicados; lookup de productos anti-IDOR (400, no 404, por ser referencia embebida en el body).
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — PUT `/:id` gana los 3 validators de `productsUsed` que ya tenía el POST (mirror literal).
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/EditRegistroModal.tsx` (nuevo) — modal de edición enfocado solo en `notes`+`productsUsed`, reusando el selector de insumos de `RegistroModal.tsx` (react-select stock-aware, `useFieldArray`, guard anti-duplicados); normaliza `productsUsed.product` poblado (`{_id, name}`) a `_id` string antes de mandar el payload; cliente/servicio/fecha se muestran de solo lectura.
+  - `apps/client/src/views/Historial.tsx` — columna "Acciones" con botón semántico (`FiEdit2`, `aria-label`/`title`, `cursor-pointer`) por fila que abre el modal; invalidación de `['service-records']` y `['products']` al guardar.
+
+* **Patrón nuevo promovido:** `docs/patterns-backend.md` P17 — "Reconciliación de stock por delta (edición con side-effects)", cubre el caso mixto restaurar+descontar en updates, distinto de P4/P6 (descuento puro en creación). Incluye el riesgo TOCTOU aceptado (preexistente en P4/P6, no introducido por esta feature) y su mitigación opcional no aplicada por defecto (`findOneAndUpdate` atómico con `$gte`).
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (0 errores; 4 warnings preexistentes sin relación). Reviewer: **APPROVED** → `progress/reviews/review_UX-67.md`. UX-67 → **done**.
+
 > **Regla de Operación:** Este archivo representa el historial inmutable a largo plazo del monorepo. Queda estrictamente prohibido modificar, reescribir o eliminar entradas anteriores. Las nuevas bitácoras se añadirán única y exclusivamente al final del archivo.
 
 ---
