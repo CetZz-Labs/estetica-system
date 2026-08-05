@@ -42,11 +42,15 @@ router.get(
     getServiceRecords
 );
 
-// 2. Read - Historial por Cliente (GET /api/registros/cliente/:clientId)
+// 2. Read - Historial por Cliente, paginado con filtros de fecha (GET /api/registros/cliente/:clientId)
 router.get(
     '/cliente/:clientId',
     [
         param('clientId').isMongoId().withMessage('El ID del cliente no es válido'),
+        query('page').optional().isInt({ min: 1 }).withMessage('page debe ser un entero positivo'),
+        query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit debe ser un entero entre 1 y 100'),
+        query('dateFrom').optional().isISO8601().withMessage('dateFrom debe tener formato ISO 8601'),
+        query('dateTo').optional().isISO8601().withMessage('dateTo debe tener formato ISO 8601'),
         validateRequest
     ],
     getClientRecords
@@ -75,6 +79,7 @@ router.post(
 
         body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'canceled']).withMessage('Estado de retoque no válido'),
+        body('isBackfill').optional().isBoolean().withMessage('isBackfill debe ser booleano'),
         validateRequest
     ],
     createServiceRecord

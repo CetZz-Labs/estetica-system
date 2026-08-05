@@ -16,7 +16,7 @@
 
 ---
 
-## 7 Colecciones (Fase 1 + Fase 2 + Fase 4)
+## 8 Colecciones (Fase 1 + Fase 2 + Fase 4 + Notificaciones Push)
 
 ### `tenants`
 Centros de estética registrados (Fase 2 / EP-08). Cada tenant es un negocio independiente con datos completamente aislados.
@@ -208,6 +208,33 @@ Turnos/agenda del centro de estética. Vincula cliente, servicio y profesional c
 
 ---
 
+### `pushsubscriptions`
+Suscripciones de Web Push (UX-68) del navegador de un admin logueado, para el recordatorio diario de turnos/retoques al celular (PWA). NO son datos de negocio del centro de estética — son tokens de dispositivo/navegador, análogos a una sesión.
+
+| Campo | Tipo Mongoose | Requerido | Índice | Descripción |
+|-------|--------------|-----------|--------|-------------|
+| `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
+| `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant al que pertenece el admin suscripto |
+| `adminId` | `ObjectId` (ref: Admin) | Sí | Indexado | Admin dueño de la suscripción (un admin puede tener varias, una por dispositivo/navegador) |
+| `endpoint` | `String` | Sí | Único, Indexado | URL de endpoint del push service del navegador (Chrome/Firefox/etc.), identifica unívocamente la suscripción |
+| `keys.p256dh` | `String` | Sí | - | Clave pública de cifrado de la suscripción (protocolo Web Push) |
+| `keys.auth` | `String` | Sí | - | Secreto de autenticación de la suscripción (protocolo Web Push) |
+| `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+| `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
+
+**Índices compuestos:**
+
+| Índice | Colección | Columnas | Propósito |
+|--------|-----------|----------|-----------|
+| - | `pushsubscriptions` | `tenantId: 1, adminId: 1` | Cron diario: obtener todas las suscripciones activas de los admins de un tenant |
+
+**Reglas de negocio:**
+- **Divergencia justificada de la convención `isActive`:** esta colección NO tiene `isActive`/soft delete — a diferencia del resto de colecciones de negocio, una suscripción de push es un token de dispositivo efímero (equivalente a una sesión), no un registro de negocio con historial. Se borra físicamente al desuscribirse (`DELETE /api/notificaciones/push-subscription`) o automáticamente cuando el push service del navegador devuelve `410 Gone`/`404 Not Found` al intentar enviar (suscripción caducada del lado del navegador).
+- Las claves VAPID (par público/privado del servidor, distintas de `keys.p256dh`/`keys.auth` de cada suscripción) NO viven en esta colección ni en ninguna otra de Mongo — se leen de `process.env.VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (GOV-ENV), mismo criterio que el SMTP de GOV-NOTIFY.
+- El cron diario de recordatorio (servicio nuevo, no `reminderScheduler.ts` — cadencia y propósito distintos) consulta esta colección por tenant activo, calcula turnos de hoy + retoques pendientes, y envía un único push resumen por admin suscripto vía el paquete `web-push`.
+
+---
+
 ## Diagrama de Relaciones (Refs)
 
 ```
@@ -217,6 +244,7 @@ tenants ──< services.tenantId (ref)
 tenants ──< products.tenantId (ref)
 tenants ──< servicerecords.tenantId (ref)
 tenants ──< appointments.tenantId (ref)
+tenants ──< pushsubscriptions.tenantId (ref)
 
 clients ──< servicerecords.client (ref)
 clients ──< appointments.client (ref)
@@ -226,6 +254,7 @@ products ──< servicerecords.productsUsed[].product (ref)
 admins ──< appointments.professional (ref)
 admins ──< appointments.createdBy (ref)
 admins ──< appointments.cancelledBy (ref)
+admins ──< pushsubscriptions.adminId (ref)
 ```
 
 > Nota: MongoDB no tiene FK con restricción CASCADE. La integridad referencial se gestiona a nivel de aplicación (soft delete impide eliminar clientes con historial).

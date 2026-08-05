@@ -9,6 +9,8 @@ export interface ServiceRecordPayload {
     notes?: string;
     nextTouchupDate?: string;
     productsUsed: { product: string; quantity: number }[];
+    /** Exime la validación de serviceDate >= hoy, y exige que serviceDate sea estrictamente pasada (UX-69). */
+    isBackfill?: boolean;
 }
 
 export interface DashboardStats {
@@ -43,9 +45,19 @@ export const getServiceRecords = async (
     return response.data;
 };
 
-/** GET /api/registros/cliente/:clientId — Historial de visitas de un cliente */
-export const getClientRecords = async (clientId: string): Promise<ServiceRecord[]> => {
-    const response = await api.get(`/registros/cliente/${clientId}`);
+export interface ClientRecordsParams {
+    page: number;
+    limit: number;
+    dateFrom?: string;
+    dateTo?: string;
+}
+
+/** GET /api/registros/cliente/:clientId — Historial de visitas de un cliente, paginado y filtrable por fecha */
+export const getClientRecords = async (
+    clientId: string,
+    params: ClientRecordsParams
+): Promise<Paginated<ServiceRecord>> => {
+    const response = await api.get(`/registros/cliente/${clientId}`, { params });
     return response.data;
 };
 

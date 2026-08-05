@@ -126,3 +126,15 @@ export const getTodayDateString = (): string => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
+
+/**
+ * Devuelve la fecha local de ayer como string "YYYY-MM-DD", lista para usar como `max`
+ * de un `<input type="date">` en flujos de carga retroactiva ("visita pasada") donde
+ * hoy/futuro no son valores válidos (UX-69).
+ */
+export const getYesterdayDateString = (): string => {
+    const now = new Date();
+    now.setDate(now.getDate() - 1);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};

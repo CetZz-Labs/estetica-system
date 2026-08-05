@@ -1,16 +1,20 @@
 import { useParams, useNavigate } from 'react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2, FiUser } from 'react-icons/fi';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2, FiUser, FiPlus } from 'react-icons/fi';
 
 import { getClientById, deleteClient as deleteClientApi } from '../api/clientApi';
 import { getClientRecords } from '../api/serviceRecordApi';
 import { handleApiError } from '../api/errorHandler';
-import type { Client, ServiceRecord } from '../types';
+import type { Client, ServiceRecord, Paginated } from '../types';
 import { formatDate } from '../utils/dates';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ClienteModal from '../components/ClienteModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import RegistroModal from '../components/RegistroModal';
+import Pagination from '../components/ui/Pagination';
+
+const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
 
 export default function PerfilCliente() {
     const { id } = useParams();
@@ -19,6 +23,10 @@ export default function PerfilCliente() {
     const queryClient = useQueryClient();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isPastVisitModalOpen, setIsPastVisitModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     const { data: cliente, isLoading: isLoadingClient } = useQuery<Client>({
         queryKey: ['client', id],
@@ -26,11 +34,25 @@ export default function PerfilCliente() {
         enabled: !!id
     });
 
-    const { data: historial, isLoading: isLoadingHistory } = useQuery<ServiceRecord[]>({
-        queryKey: ['client-history', id],
-        queryFn: () => getClientRecords(id!),
-        enabled: !!id
+    const historyFilters = {
+        ...(dateFrom ? { dateFrom } : {}),
+        ...(dateTo ? { dateTo } : {}),
+    };
+
+    const { data: historial, isLoading: isLoadingHistory, isError: isErrorHistory } = useQuery<Paginated<ServiceRecord>>({
+        queryKey: ['client-history', id, page, PAGE_SIZE, dateFrom, dateTo],
+        queryFn: () => getClientRecords(id!, { page, limit: PAGE_SIZE, ...historyFilters }),
+        enabled: !!id,
+        placeholderData: keepPreviousData,
     });
+
+    const registros = historial?.data ?? [];
+    const totalRegistros = historial?.meta.total ?? 0;
+    const hasActiveDateFilters = !!(dateFrom || dateTo);
+
+    const handleDateFromChange = (value: string) => { setDateFrom(value); setPage(1); };
+    const handleDateToChange = (value: string) => { setDateTo(value); setPage(1); };
+    const clearDateFilters = () => { setDateFrom(''); setDateTo(''); setPage(1); };
 
     const { mutate: deleteClient } = useMutation({
         mutationFn: () => deleteClientApi(id!),
@@ -107,8 +129,48 @@ export default function PerfilCliente() {
 
             {/* Historial */}
             <div>
-                <h3 className="text-xl sm:text-2xl font-serif text-foreground mb-6 flex items-center gap-3"><FiClock className="text-gray-400" /> Historial de Visitas</h3>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                    <h3 className="text-xl sm:text-2xl font-serif text-foreground flex items-center gap-3"><FiClock className="text-gray-400" /> Historial de Visitas</h3>
+                    <button
+                        type="button"
+                        onClick={() => setIsPastVisitModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-accent hover:text-accent-foreground text-white rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm"
+                    >
+                        <FiPlus /> Registrar visita pasada
+                    </button>
+                </div>
                 <div className="bg-card border border-border rounded-3xl p-5 sm:p-8 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
+                        <div className="flex flex-col gap-1.5">
+                            <label htmlFor="historyDateFrom" className="text-xs font-bold tracking-widest text-gray-500 uppercase">Desde</label>
+                            <input
+                                id="historyDateFrom"
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => handleDateFromChange(e.target.value)}
+                                className="px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label htmlFor="historyDateTo" className="text-xs font-bold tracking-widest text-gray-500 uppercase">Hasta</label>
+                            <input
+                                id="historyDateTo"
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => handleDateToChange(e.target.value)}
+                                className="px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                            />
+                        </div>
+                        {hasActiveDateFilters && (
+                            <button
+                                type="button"
+                                onClick={clearDateFilters}
+                                className="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                            >
+                                Limpiar filtros
+                            </button>
+                        )}
+                    </div>
                     {isLoading ? (
                         <div className="relative pl-4 border-l-2 border-border space-y-8 py-2 ml-2">
                             {[1, 2].map(i => (
@@ -126,11 +188,20 @@ export default function PerfilCliente() {
                                 </div>
                             ))}
                         </div>
-                    ) : historial?.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Este cliente aún no tiene servicios registrados.</p>
+                    ) : isErrorHistory ? (
+                        <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
+                            <FiAlertCircle aria-hidden className="shrink-0" />
+                            <span>No se pudo cargar el historial de visitas. Reintentá en unos segundos.</span>
+                        </div>
+                    ) : registros.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">
+                            {hasActiveDateFilters
+                                ? 'No hay visitas en el rango de fechas seleccionado.'
+                                : 'Este cliente aún no tiene servicios registrados.'}
+                        </p>
                     ) : (
                         <div className="relative pl-4 border-l-2 border-border space-y-8 py-2 ml-2">
-                            {historial?.map((registro) => (
+                            {registros.map((registro) => (
                                 <div key={registro._id} className="relative ml-6 sm:ml-8">
                                     <div className={`absolute left-[-46px] sm:left-[-57px] top-1.5 w-4 h-4 rounded-full ring-4 ring-white ${registro.touchupStatus === 'cancelled' ? 'bg-destructive' : 'bg-primary'}`}></div>
                                     <div className="bg-white border border-border rounded-lg p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -183,10 +254,19 @@ export default function PerfilCliente() {
                             ))}
                         </div>
                     )}
+                    {!isLoading && !isErrorHistory && registros.length > 0 && (
+                        <Pagination page={page} total={totalRegistros} pageSize={PAGE_SIZE} onChange={setPage} />
+                    )}
                 </div>
             </div>
 
             <ClienteModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} clientToEdit={cliente} />
+            <RegistroModal
+                isOpen={isPastVisitModalOpen}
+                onClose={() => setIsPastVisitModalOpen(false)}
+                preselectedClientId={id}
+                pastVisitMode
+            />
             <ConfirmModal
                 isOpen={isDeleteConfirmOpen}
                 onClose={() => setIsDeleteConfirmOpen(false)}

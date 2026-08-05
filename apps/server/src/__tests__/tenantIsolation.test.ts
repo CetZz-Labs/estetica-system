@@ -181,7 +181,9 @@ describe('EP-08 — Aislamiento multi-tenant', () => {
         asUser(USER_A);
         const res = await request(app).get(`/api/registros/cliente/${clientB1.id}`);
         expect(res.status).toBe(200);
-        expect(res.body).toHaveLength(0);
+        // UX-69: la ruta ahora responde paginada { data, meta } en vez de un array plano.
+        expect(res.body.data).toHaveLength(0);
+        expect(res.body.meta.total).toBe(0);
     });
 
     it('GET /api/dashboard/stats cuenta solo los datos del tenant A', async () => {

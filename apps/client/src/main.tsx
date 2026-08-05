@@ -22,6 +22,15 @@ const queryClient = new QueryClient({
   },
 })
 
+// Registro del Service Worker para notificaciones push (UX-68). Se registra siempre
+// que el navegador lo soporte; el opt-in real (permiso + suscripción) es una acción
+// explícita del usuario en Configuración > Mi Negocio, no ocurre automáticamente acá.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => console.error('Error al registrar el Service Worker:', err));
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ClerkProvider

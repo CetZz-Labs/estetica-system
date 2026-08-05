@@ -1,15 +1,17 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-07-31
+- **Última actualización:** 2026-08-04
 - **Sesión:** activa
-- **Feature en curso:** ninguna — UX-67 cerrada
+- **Feature en curso:** ninguna — UX-70, UX-69, UX-68 y UX-71 (fix menor sobre UX-69: quitar Próximo Retoque del form de visita pasada) cerradas
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
-- UX-67 (edición de productos usados/notas en historial de visitas) → done, ver `progress/history.md` para el detalle completo
+- UX-70 (quitar turno duplicado de retoque en agenda) → done, ver `progress/history.md`
+- UX-69 (historial de cliente: visita pasada + paginación/filtros de fecha) → done, ver `progress/history.md`
+- UX-68 (notificaciones push PWA) → done, ver `progress/history.md`. **Requiere acción del usuario humano fuera de código:** cargar el par de claves VAPID en `apps/server/.env` y `VITE_VAPID_PUBLIC_KEY` en `apps/client/.env` (valores entregados en el chat de esta sesión) — sin esto, la feature no envía push en runtime.
 - (resto del backlog sin cambios respecto a sesiones anteriores, ver `progress/history.md`)
 
 ### Pendientes
@@ -19,7 +21,8 @@ _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 - EP-23 a EP-25 Pagos (Fase 6)
 
 ## Bloqueos y Riesgos Conocidos
-- Pedido de cliente sobre "registrar visitas anteriores" descartado como no-bug (2026-07-31, verificado manualmente por el usuario) — sin acción de código pendiente.
-- Reporte de cliente (2026-07-31): "Productos usados" no se veía en `Historial.tsx` tras crear una visita. Diagnosticado (explorer + verificación empírica con el usuario): NO es pérdida de datos — `productsUsed` se guarda y descuenta stock correctamente. Causa raíz real: `RegistroModal.tsx` (`onSuccess` del `useMutation` de creación) no invalida `queryClient.invalidateQueries({ queryKey: ['service-records'] })` al crear una visita, a diferencia de `EditRegistroModal.tsx` que sí lo hace — la tabla de Historial queda con caché stale hasta la próxima recarga completa (F5) o remount de la vista. Confirmado por el usuario: con F5 los productos aparecen correctamente. **Decisión del usuario: dejarlo así, no se prioriza el fix.** Si en el futuro se retoma, es un cambio de una línea en `RegistroModal.tsx`.
-- Riesgo TOCTOU aceptado en la reconciliación de stock por delta (P17, `docs/patterns-backend.md`): preexistente desde `createServiceRecord`, no introducido por UX-67. Mitigación opcional (`findOneAndUpdate` atómico con `$gte`) documentada pero no aplicada — evaluar si el volumen de escritura concurrente lo justifica en el futuro.
-- Ver `progress/history.md` para deuda heredada de sesiones anteriores — sin cambios adicionales en esta entrada.
+- **Deuda de test preexistente (no bloqueante, confirmada repetidamente en UX-70/UX-69/UX-68):** `apps/server/src/__tests__/tenantIsolation.test.ts` tiene 4 tests fallando en `POST /api/registros` por no enviar `professional` en el body (obligatorio desde EP-11). Candidata a feature de mantenimiento futura.
+- **UX-68 — simplificación de alcance documentada (no bloqueante):** el cron diario de push (`pushReminderScheduler.ts`) calcula "hoy" con la timezone del proceso servidor, no `tenant.timezone` (a diferencia del patrón canónico de otros controllers). Aceptable para un resumen a las 08:00 AM; revisar si se requiere precisión por tenant en una iteración futura.
+- Reporte de cliente (2026-07-31): "Productos usados" no se veía en `Historial.tsx` tras crear una visita — causa raíz conocida (`RegistroModal.tsx` no invalida `['service-records']`). **Decisión del usuario: no se prioriza el fix.**
+- Riesgo TOCTOU aceptado en la reconciliación de stock por delta (P17, `docs/patterns-backend.md`): preexistente desde `createServiceRecord`.
+- **Recordatorio operativo (incidente 2026-08-04, ver memoria `reviewer-git-stash-incident`):** ningún subagente debe usar `git stash` sin acotar a un archivo específico ni dejarlo sin pop. Verificar `git stash list` vacío al cierre de cada revisión — ya incorporado como instrucción explícita en los prompts de reviewer de esta sesión.

@@ -1234,6 +1234,75 @@
         "DEBE mostrar historial de pagos",
         "DEBE permitir cambiar de plan o cancelar suscripción"
       ]
+    },
+    {
+      "id": "UX-70",
+      "name": "Registrar retoque sin crear turno duplicado en agenda",
+      "module": "ServiceRecords",
+      "phase": "Fase 4 — Agenda",
+      "status": "done",
+      "description": "Pedido directo de clientes del sistema (2026-08-04): al registrar una visita con 'Próximo Retoque' (createServiceRecord, serviceRecordController.ts líneas 108-127), el sistema hoy crea DOS cosas para el mismo evento futuro: (1) el propio ServiceRecord queda con nextTouchupDate/touchupStatus:'pending' (esto alimenta 'Próximos Retoques' en Dashboard/ProfileClient), y (2) además crea automáticamente un Appointment en la agenda (notes: 'Retoque programado automáticamente'). El cliente ve el mismo evento duplicado en dos lugares distintos (Próximos Retoques Y Agenda) y se confunde. Pedido: al registrar el retoque, NO crear el Appointment — solo persistir nextTouchupDate/touchupStatus en el ServiceRecord. EFECTO COLATERAL DETECTADO (leader, 2026-08-04): reminderScheduler.ts (GOV-NOTIFY) envía el recordatorio automático por mail 24h antes consultando exclusivamente la colección Appointment (status in ['pending','confirmed'], reminderSent:false). Si se deja de crear el Appointment del retoque, los retoques dejan de recibir el recordatorio por mail 24h antes que sí reciben hoy los turnos agendados manualmente — es una regresión silenciosa de una feature ya existente (GOV-NOTIFY), no solo un cambio de UI. Confirmar con el usuario si este trade-off es aceptable antes de implementar.",
+      "acceptance_criteria": [
+        "createServiceRecord (serviceRecordController.ts) YA NO llama a Appointment.create(...) al persistir un nextTouchupDate — el bloque 'Auto-create next touchup appointment in calendar' (líneas 108-127) se elimina por completo",
+        "El ServiceRecord sigue guardando nextTouchupDate y touchupStatus:'pending' exactamente igual que hoy — 'Próximos Retoques' (Dashboard, ProfileClient, getUpcomingTouchups) no cambia de comportamiento",
+        "La agenda (Turnos.tsx / GET /api/turnos) deja de mostrar el evento 'Retoque programado automáticamente' — verificar manualmente que no queda ningún Appointment huérfano generado por este flujo",
+        "Ningún otro flujo que cree Appointments (turnos manuales, completeAppointment) se modifica",
+        "Decisión explícita registrada sobre el efecto colateral en reminderScheduler.ts: si el usuario acepta perder el recordatorio por mail 24h para retoques, documentar la decisión en progress/history.md al cerrar; si no la acepta, evaluar alternativa (ej. un cron dedicado a retoques que no dependa de Appointment) como alcance adicional de esta misma feature o una feature de seguimiento",
+        "pnpm --filter @estetica/server build pasa con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-69",
+      "name": "Historial de cliente: registrar visita pasada, paginación y filtros por fecha",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo de clientes del sistema (2026-08-04). Dos partes relacionadas: (1) Hoy createServiceRecord no valida serviceDate contra el día de hoy (a diferencia de nextTouchupDate, que sí tiene el guard UX-27/isBeforeCalendarDay) — el flujo normal de registro (RegistroModal.tsx, input serviceDate sin min) permite cargar una visita con fecha pasada desde cualquier lugar, lo cual el cliente considera confuso/indeseado para el flujo estándar (que se usa para registrar lo que pasa hoy o turnos completados). Se pide restringir el flujo NORMAL a serviceDate >= hoy, y habilitar la carga de visitas con fecha pasada ('se me olvidó cargar esta visita') ÚNICAMENTE desde una acción dedicada dentro de la ficha del cliente (ProfileClient.tsx, sección 'Historial de Visitas'). (2) getClientRecords (GET /api/registros/cliente/:clientId, serviceRecordController.ts líneas 183-198) devuelve el array completo sin paginar y sin filtros — a diferencia del listado global getServiceRecords que sí sigue el patrón P1 (paginado 7/página + filtros server-side). Se pide agregar paginación (mismo contrato { data, meta }, 7/página) y filtros por rango de fecha (dateFrom/dateTo) a este endpoint y a ProfileClient.tsx, replicando patrones-backend.md §P1 y patterns-frontend.md §P3 ya usados en Historial.tsx/getServiceRecords.",
+      "acceptance_criteria": [
+        "Backend: createServiceRecord rechaza con 400 ('La fecha del servicio no puede ser anterior al día de hoy') cuando serviceDate < hoy (mismo patrón isBeforeCalendarDay + timezone del tenant que UX-27), EXCEPTO cuando el request viene marcado explícitamente como carga de visita pasada (ver siguiente punto) — no se restringe fecha futura",
+        "Se define un mecanismo explícito para el flujo de 'visita pasada' (ej. flag isBackfill: true en el body de POST /api/registros) que exime la validación anterior y, a la inversa, exige que esa visita SÍ tenga serviceDate estrictamente pasada (no se puede usar el flag para registrar una visita de hoy/futuro) — anti-abuso del bypass",
+        "Frontend: RegistroModal.tsx (flujo normal, usado desde Dashboard y desde completar turnos) agrega min={getTodayDateString()} al input serviceDate, igual que ya tiene touchupDate",
+        "Nueva acción 'Registrar visita pasada' en ProfileClient.tsx (sección Historial de Visitas): botón que abre un modal (puede reusar RegistroModal.tsx con un nuevo prop, ej. pastVisitMode, que quita el min del input serviceDate, agrega validación inline de que la fecha sea estrictamente pasada, preselecciona el cliente vía preselectedClientId, y envía isBackfill: true)",
+        "getClientRecords (GET /api/registros/cliente/:clientId) migra al contrato paginado { data: ServiceRecord[], meta: { total, page, limit, totalPages } }, page-size 7, acepta query params page, limit, dateFrom, dateTo validados con express-validator, sigue scopeado por tenantId + clientId",
+        "ProfileClient.tsx consume el nuevo contrato paginado: agrega control de paginación (mismo patrón que Historial.tsx) y un filtro por rango de fecha (dateFrom/dateTo) sobre la sección Historial de Visitas; el contador de visitas se lee de meta.total, nunca de data.length",
+        "queryKey de la query de historial de cliente incluye page/limit/dateFrom/dateTo; cambiar el filtro resetea page a 1; placeholderData: keepPreviousData para transición suave",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-68",
+      "name": "Notificaciones push (PWA) en celular: turnos y retoques del día",
+      "module": "Notifications",
+      "phase": "Fase 2 — Notificaciones",
+      "status": "done",
+      "description": "Pedido directo de clientes del sistema (2026-08-04): recibir notificaciones push en el celular (al estilo app de diario/newsletter, sin necesidad de abrir la web) sobre turnos agendados y retoques — en particular, un recordatorio diario si hay turnos o retoques ese día. Investigación de factibilidad (leader, 2026-08-04): NO existe hoy ninguna infraestructura PWA en el repo — no hay manifest.json, no hay Service Worker (apps/client no tiene public/sw.js ni ningún registro de navigator.serviceWorker), es una app Vite SPA estándar. La infraestructura de notificaciones existente (GOV-NOTIFY) es exclusivamente EMAIL (nodemailer, reminderScheduler.ts con node-cron cada 15 min, ventana configurable por tenant notificationSettings.reminderHoursBefore) y le habla a los CLIENTES del salón, no al usuario admin de la app — es un canal distinto y no se toca. Es técnicamente viable con el Web Push API estándar (Push API + Notifications API), soportado en Chrome/Edge/Firefox Android y de escritorio, y en iOS Safari 16.4+ SOLO si la PWA fue 'Agregada a Inicio' (instalada) — limitación de plataforma a comunicar al usuario, no un blocker de implementación. Requiere: (1) Service Worker nuevo en apps/client/public/sw.js + registro + manifest.json + ícono para instalabilidad, (2) claves VAPID (par de claves pública/privada, se generan una vez y se guardan en variables de entorno, no en Mongo — GOV-ENV), (3) modelo nuevo PushSubscription (tenantId, adminId, endpoint, keys.p256dh, keys.auth) para persistir las suscripciones del navegador de cada admin, (4) un cron diario (ej. 8:00 hora del tenant) que arma UN push resumen ('Hoy: 2 turnos, 1 retoque pendiente') por admin con suscripción activa, evitando el patrón de 'un push por evento' para no ser invasivo, (5) DEPENDENCIA NUEVA REQUERIDA: paquete npm web-push (backend, implementa el protocolo VAPID) — bloqueado por la regla dura de .claude/rules/backend.md §1 ('Bloqueo de Dependencias'): requiere aprobación explícita del usuario humano antes de pnpm add web-push --filter @estetica/server. El frontend NO necesita dependencias nuevas (Push API / Service Worker son APIs nativas del navegador).",
+      "acceptance_criteria": [
+        "BLOQUEADO hasta aprobación explícita del usuario humano para agregar la dependencia web-push al workspace apps/server — no se instala nada sin ese OK",
+        "apps/client/public/manifest.json + apps/client/public/sw.js nuevos; index.html enlaza el manifest; se registra el Service Worker al cargar la app (solo si ('serviceWorker' in navigator))",
+        "UI de opt-in explícito (no autopedir el permiso al cargar la app — debe haber una acción del usuario, ej. un toggle en una sección de Configuración/Notificaciones) que dispara Notification.requestPermission() y, si se concede, pushManager.subscribe(...) con la VAPID public key (expuesta vía VITE_VAPID_PUBLIC_KEY, GOV-CLIENT: nunca hardcodeada)",
+        "POST /api/notificaciones/push-subscription (autenticado, checkAdminAccess + checkTenantAccess) persiste la suscripción scopeada a tenantId + adminId; DELETE para desuscribir; whitelist estricta del body (endpoint + keys), sin aceptar tenantId del body (GOV-TENANT)",
+        "Nuevo modelo Mongoose PushSubscription documentado antes en docs/db-schema.md siguiendo el patrón de modelo existente (docs/db-schema.md es lectura obligatoria antes de crear el modelo, backend.md §8)",
+        "Cron diario nuevo (node-cron, ya es dependencia existente) que por cada tenant activo con admins suscriptos calcula: turnos de hoy (Appointment, status pending/confirmed) + retoques pendientes con nextTouchupDate = hoy o vencidos (ServiceRecord touchupStatus:'pending'), y si el total es > 0 envía UN push resumen por admin suscripto vía web-push.sendNotification(...)",
+        "Suscripciones con error 410/404 (Gone/Not Found) al enviar se eliminan automáticamente de la colección (limpieza de suscripciones caducadas — comportamiento estándar de Web Push)",
+        "Trifecta de accesibilidad (GOV-ACCESS) en la UI de opt-in: estado activado/desactivado con color + icono + texto, nunca solo un toggle mudo",
+        "Documentar en progress/history.md la limitación conocida de iOS (requiere instalar la PWA a Inicio) para que el usuario pueda comunicarla a sus clientes",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-71",
+      "name": "Quitar campo Próximo Retoque del formulario de visita pasada",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-08-04), sobre UX-69 ya cerrada: en el modo pastVisitMode de RegistroModal.tsx (formulario de \"Registrar visita pasada\" desde ProfileClient.tsx), el bloque \"Próximo Retoque\" (touchupDate/touchupTime) no tiene sentido de negocio — una visita que se carga retroactivamente porque se olvidó asentar no debería generar un próximo retoque programado desde ese mismo formulario. Se pide ocultar/quitar ese bloque completo únicamente cuando pastVisitMode es true, sin afectar el modo normal (crear visita nueva) ni el modo de completar turno (appointmentId).",
+      "acceptance_criteria": [
+        "En apps/client/src/components/RegistroModal.tsx, cuando pastVisitMode es true, el bloque \"Próximo Retoque\" (label, botón \"Usar sugerida\", inputs touchupDate/touchupTime y su mensaje de error) no se renderiza",
+        "El input \"Fecha del Servicio\" ocupa el espacio disponible de forma prolija cuando el bloque de retoque no está (ajustar el grid contenedor, ej. de md:grid-cols-2 a md:grid-cols-1, condicionado a pastVisitMode, sin romper el layout de los otros dos modos)",
+        "En modo normal (sin pastVisitMode) y en modo completar turno (appointmentId), el bloque \"Próximo Retoque\" sigue apareciendo exactamente igual que antes — sin cambios de comportamiento",
+        "El payload enviado en pastVisitMode nunca incluye nextTouchupDate (ya es el comportamiento implícito al no haber inputs de touchupDate/touchupTime, pero confirmar que no queda ningún valor residual si el usuario alternó pastVisitMode en la misma sesión del modal)",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
     }
   ]
 }

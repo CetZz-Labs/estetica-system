@@ -16,6 +16,7 @@ import professionalRoutes from './routes/professionalRoutes';
 import invitationRoutes from './routes/invitationRoutes';
 import disponibilidadRoutes from './routes/disponibilidadRoutes';
 import notificationSettingsRoutes from './routes/notificationSettingsRoutes';
+import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -61,6 +62,11 @@ app.use('/api/invitacion', invitationRoutes);
 app.use('/api/negocio', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), tenantRoutes);
 // EP-16: /api/disponibilidad restringido solo a rol ADMIN (configuración de negocio)
 app.use('/api/disponibilidad', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), disponibilidadRoutes);
+// UX-68: montado ANTES de '/api/notificaciones' (más específico) para que este router hermano
+// intercepte /api/notificaciones/push-subscription antes del requireRole('ADMIN') de abajo —
+// cualquier admin autenticado (no solo ADMIN) puede suscribir su propio dispositivo.
+// Aplica su propio checkAdminAccess/checkTenantAccess internamente (ver pushSubscriptionRoutes.ts).
+app.use('/api/notificaciones/push-subscription', pushSubscriptionRoutes);
 // EP-17: /api/notificaciones restringido solo a rol ADMIN (configuración SMTP + recordatorios)
 app.use('/api/notificaciones', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), notificationSettingsRoutes);
 // EP-12 fix: appointmentRoutes aplica checkAdminAccess+checkTenantAccess internamente — sin doble middleware

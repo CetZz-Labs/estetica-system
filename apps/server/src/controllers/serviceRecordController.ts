@@ -3,7 +3,6 @@ import { ServiceRecord } from '../models/ServiceRecord';
 import { Service } from '../models/Service';
 import { Product } from '../models/Product';
 import { Client } from '../models/Client';
-import { Appointment } from '../models/Appointment';
 import { Professional } from '../models/Professional';
 import { Tenant } from '../models/Tenant';
 import { isBeforeCalendarDay } from '../utils/dateUtils';
@@ -11,7 +10,7 @@ import { isBeforeCalendarDay } from '../utils/dateUtils';
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
     try {
-        const { client, service, professional, serviceDate, notes, productsUsed, nextTouchupDate } = req.body;
+        const { client, service, professional, serviceDate, notes, productsUsed, nextTouchupDate, isBackfill } = req.body;
         const tenantId = req.tenantId;
 
         // 0. VALIDACIÓN MULTI-TENANT: el cliente del body debe pertenecer al tenant autenticado
@@ -39,13 +38,35 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         // 1. Lógica de fecha de retoque — el usuario tiene control total: no hay auto-cálculo.
         const finalNextTouchupDate = nextTouchupDate;
 
+        // Resolución única del tenant/tz, reusada por el guard de serviceDate (UX-69) y el de
+        // nextTouchupDate (UX-27) para evitar una segunda query a Tenant.
+        const tenant = await Tenant.findById(tenantId);
+        const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
+
+        // UX-69: por defecto (isBackfill falso/ausente) serviceDate no puede ser una fecha pasada
+        // — flujo normal de registro del día. Con isBackfill=true el usuario declara explícitamente
+        // que está cargando una visita pasada, y en ese caso serviceDate DEBE ser estrictamente
+        // anterior a hoy (no tendría sentido de negocio usar el flag para hoy/futuro). Mismo
+        // criterio de "día calendario" en zona horaria del tenant que el guard de nextTouchupDate.
+        // Comparación estricta contra `true` (mismo patrón que `confirm` en professionalController.ts):
+        // el validator `isBoolean()` de express-validator también acepta strings como 'false' sin
+        // convertirlas, y `!isBackfill` trataría un string 'false' truthy como si fuera true.
+        const backfillFlag = isBackfill === true || isBackfill === 'true';
+        if (!backfillFlag) {
+            if (isBeforeCalendarDay(new Date(serviceDate), new Date(), tz)) {
+                return res.status(400).json({ error: 'La fecha del servicio no puede ser anterior al día de hoy' });
+            }
+        } else {
+            if (!isBeforeCalendarDay(new Date(serviceDate), new Date(), tz)) {
+                return res.status(400).json({ error: 'Una visita pasada debe tener una fecha anterior a hoy' });
+            }
+        }
+
         // UX-27: nextTouchupDate no puede ser una fecha ya pasada. Se compara contra el día
         // calendario actual (no el instante exacto): si cae hoy, es válido aunque la hora ya
         // haya pasado. El "hoy" se calcula en la zona horaria del tenant (no la del proceso
         // servidor), mismo patrón que `checkBusinessHours` en appointmentController.ts.
         if (finalNextTouchupDate) {
-            const tenant = await Tenant.findById(tenantId);
-            const tz = tenant?.timezone || 'America/Argentina/Buenos_Aires';
             if (isBeforeCalendarDay(new Date(finalNextTouchupDate), new Date(), tz)) {
                 return res.status(400).json({ error: 'La fecha de próximo retoque no puede ser anterior al día de hoy' });
             }
@@ -105,27 +126,6 @@ export const createServiceRecord = async (req: Request, res: Response) => {
 
         const savedRecord = await newRecord.save();
 
-        // Auto-create next touchup appointment in calendar
-        if (finalNextTouchupDate) {
-            const touchupStart = new Date(finalNextTouchupDate);
-
-            const duration = foundService.duration || 60;
-            const touchupEnd = new Date(touchupStart.getTime() + duration * 60000);
-
-            await Appointment.create({
-                tenantId,
-                client,
-                service,
-                professional,
-                startTime: touchupStart,
-                endTime: touchupEnd,
-                status: 'pending',
-                notes: 'Retoque programado automáticamente',
-                createdBy: req.adminInfo!._id,
-                isActive: true,
-            });
-        }
-
         return res.status(201).json(savedRecord);
 
     } catch (error) {
@@ -179,18 +179,37 @@ export const getServiceRecords = async (req: Request, res: Response) => {
     }
 };
 
-// 2. Read - Historial por Cliente (GET /api/registros/cliente/:clientId)
+// 2. Read - Historial por Cliente, paginado con filtros de fecha (GET /api/registros/cliente/:clientId)
 export const getClientRecords = async (req: Request, res: Response) => {
     try {
         const { clientId } = req.params;
+        const page = Math.max(DEFAULT_PAGE, Number(req.query.page) || DEFAULT_PAGE);
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit) || PAGE_SIZE));
+        const { dateFrom, dateTo } = req.query;
 
-        const records = await ServiceRecord.find({ tenantId: req.tenantId, client: clientId })
-            .populate('service', 'name') // Solo traemos el nombre del servicio
-            .populate('professional', 'name color')
-            .populate('productsUsed.product', 'name')
-            .sort({ serviceDate: -1 }); // El más reciente primero (descendente)
+        const filter: Record<string, unknown> = { tenantId: req.tenantId, client: clientId };
+        if (dateFrom || dateTo) {
+            const serviceDateFilter: Record<string, Date> = {};
+            if (dateFrom) serviceDateFilter.$gte = new Date(dateFrom as string);
+            if (dateTo) serviceDateFilter.$lte = new Date(dateTo as string);
+            filter.serviceDate = serviceDateFilter;
+        }
 
-        return res.status(200).json(records);
+        const [data, total] = await Promise.all([
+            ServiceRecord.find(filter)
+                .populate('service', 'name') // Solo traemos el nombre del servicio
+                .populate('professional', 'name color')
+                .populate('productsUsed.product', 'name')
+                .sort({ serviceDate: -1 }) // El más reciente primero (descendente)
+                .skip((page - 1) * limit)
+                .limit(limit),
+            ServiceRecord.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            data,
+            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        });
     } catch (error) {
         console.error('Error al obtener el historial del cliente:', error);
         return res.status(500).json({ error: 'Error interno del servidor al obtener el historial' });

@@ -17,7 +17,7 @@ import { handleApiError } from "../api/errorHandler";
 import type { Product, Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
-import { getTodayDateString } from "../utils/dates";
+import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
 
 interface SelectOption {
     value: string;
@@ -33,6 +33,8 @@ interface Props {
     preselectedProfessionalId?: string;
     appointmentId?: string;
     preselectedServiceDate?: string;
+    /** Modo "visita pasada": permite serviceDate estrictamente anterior a hoy y envía isBackfill: true (UX-69). */
+    pastVisitMode?: boolean;
 }
 
 // ⭐️ Constante para estilar los React-Select para que coincidan con tu tema "Maison"
@@ -61,7 +63,7 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
     touchupTime: string;
 }
 
-export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate }: Props) {
+export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
     const queryClient = useQueryClient();
 
     const { data: inventoryProducts } = useQuery<Product[]>({
@@ -113,7 +115,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
             professional: preselectedProfessionalId || '',
-            serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
+            serviceDate: preselectedServiceDate || (pastVisitMode ? getYesterdayDateString() : new Date().toISOString().split('T')[0]),
             notes: '',
             touchupDate: '',
             touchupTime: '',
@@ -192,14 +194,14 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                 client: preselectedClientId || '',
                 service: preselectedServiceId || '',
                 professional: preselectedProfessionalId || '',
-                serviceDate: preselectedServiceDate || new Date().toISOString().split('T')[0],
+                serviceDate: preselectedServiceDate || (pastVisitMode ? getYesterdayDateString() : new Date().toISOString().split('T')[0]),
                 notes: '',
                 touchupDate: '',
                 touchupTime: '',
                 productsUsed: []
             });
         }
-    }, [isOpen, preselectedClientId, preselectedServiceId, preselectedProfessionalId, preselectedServiceDate, reset]);
+    }, [isOpen, preselectedClientId, preselectedServiceId, preselectedProfessionalId, preselectedServiceDate, pastVisitMode, reset]);
 
     const { mutate, isPending } = useMutation({
         mutationFn: async (data: ServiceRecordPayload) => {
@@ -220,6 +222,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             queryClient.invalidateQueries({ queryKey: ['upcoming-appointments'] });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
             queryClient.invalidateQueries({ queryKey: ['pending-registration'] });
+            queryClient.invalidateQueries({ queryKey: ['client-history'] });
 
             handleCloseModal();
         },
@@ -234,6 +237,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         const payload: ServiceRecordPayload = {
             ...rest,
             ...(nextTouchupDate ? { nextTouchupDate } : {}),
+            ...(pastVisitMode ? { isBackfill: true } : {}),
         };
         mutate(payload);
     };
@@ -262,7 +266,15 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     );
 
     return (
-        <Modal isOpen={isOpen} onClose={handleCloseModal} title="Registrar Visita" subtitle="Asentá el servicio y consumos del cliente." maxWidth="max-w-3xl" containerClassName="flex flex-col max-h-[90vh]" footer={footer}>
+        <Modal
+            isOpen={isOpen}
+            onClose={handleCloseModal}
+            title={pastVisitMode ? "Registrar Visita Pasada" : "Registrar Visita"}
+            subtitle={pastVisitMode ? "Cargá un servicio que se te olvidó asentar." : "Asentá el servicio y consumos del cliente."}
+            maxWidth="max-w-3xl"
+            containerClassName="flex flex-col max-h-[90vh]"
+            footer={footer}
+        >
             <form id="registroForm" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -332,55 +344,70 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                     {errors.professional && <span className="text-[10px] text-destructive">{errors.professional.message}</span>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className={`grid grid-cols-1 ${pastVisitMode ? '' : 'md:grid-cols-2'} gap-5`}>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">Fecha del Servicio *</label>
-                        <input type="date" className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.serviceDate ? 'border-destructive' : 'border-border'}`} {...register('serviceDate', { required: 'Requerido' })} />
+                        <input
+                            type="date"
+                            min={pastVisitMode || appointmentId ? undefined : getTodayDateString()}
+                            max={pastVisitMode ? getYesterdayDateString() : undefined}
+                            className={`w-full px-4 py-2.5 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring ${errors.serviceDate ? 'border-destructive' : 'border-border'}`}
+                            {...register('serviceDate', {
+                                required: 'Requerido',
+                                validate: (value) => {
+                                    if (!pastVisitMode) return true;
+                                    return value < getTodayDateString() || 'La fecha debe ser anterior a hoy';
+                                }
+                            })}
+                        />
+                        {errors.serviceDate && <span className="text-[10px] text-destructive">{errors.serviceDate.message}</span>}
                     </div>
-                    <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-lg border border-gray-200 md:-mt-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
-                                Próximo Retoque <span className="text-gray-400 font-normal normal-case ml-1">Opcional</span>
-                            </label>
-                            {hasSuggestedTouchup && (
-                                <button
-                                    type="button"
-                                    onClick={handleUseSuggestedDate}
-                                    className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
-                                >
-                                    Usar sugerida (+{selectedService!.defaultTouchupDays}d)
-                                </button>
-                            )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <input type="date" min={getTodayDateString()} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" {...register('touchupDate')} />
-                            <Controller
-                                name="touchupTime"
-                                control={control}
-                                rules={{
-                                    validate: (value) => {
-                                        if (!!value !== !!watchedTouchupDate) {
-                                            return 'Completá fecha y hora, o dejá ambas vacías';
-                                        }
-                                        return true;
-                                    }
-                                }}
-                                render={({ field }) => (
-                                    <Select
-                                        options={touchupTimeOptions}
-                                        placeholder="Hora..."
-                                        styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                                        menuPortalTarget={document.body}
-                                        noOptionsMessage={() => "Sin horarios disponibles"}
-                                        isDisabled={!watchedTouchupDate}
-                                        value={touchupTimeOptions.find(t => t.value === field.value) || null}
-                                        onChange={(val) => field.onChange(val?.value)}
-                                    />
+                    {!pastVisitMode && (
+                        <div className="flex flex-col gap-1.5 bg-gray-50 p-3.5 rounded-lg border border-gray-200 md:-mt-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
+                                    Próximo Retoque <span className="text-gray-400 font-normal normal-case ml-1">Opcional</span>
+                                </label>
+                                {hasSuggestedTouchup && (
+                                    <button
+                                        type="button"
+                                        onClick={handleUseSuggestedDate}
+                                        className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                                    >
+                                        Usar sugerida (+{selectedService!.defaultTouchupDays}d)
+                                    </button>
                                 )}
-                            />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <input type="date" min={getTodayDateString()} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" {...register('touchupDate')} />
+                                <Controller
+                                    name="touchupTime"
+                                    control={control}
+                                    rules={{
+                                        validate: (value) => {
+                                            if (!!value !== !!watchedTouchupDate) {
+                                                return 'Completá fecha y hora, o dejá ambas vacías';
+                                            }
+                                            return true;
+                                        }
+                                    }}
+                                    render={({ field }) => (
+                                        <Select
+                                            options={touchupTimeOptions}
+                                            placeholder="Hora..."
+                                            styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                                            menuPortalTarget={document.body}
+                                            noOptionsMessage={() => "Sin horarios disponibles"}
+                                            isDisabled={!watchedTouchupDate}
+                                            value={touchupTimeOptions.find(t => t.value === field.value) || null}
+                                            onChange={(val) => field.onChange(val?.value)}
+                                        />
+                                    )}
+                                />
+                            </div>
+                            {errors.touchupTime && <span className="text-[10px] text-destructive">{errors.touchupTime.message}</span>}
                         </div>
-                        {errors.touchupTime && <span className="text-[10px] text-destructive">{errors.touchupTime.message}</span>}
-                    </div>
+                    )}
                 </div>
 
                 <div className="border border-border rounded-lg p-5 bg-white">

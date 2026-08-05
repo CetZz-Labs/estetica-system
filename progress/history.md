@@ -1303,3 +1303,89 @@
   - `apps/client/src/views/Guia.tsx` — `useAuth()` de `@clerk/react` con guard `isLoaded` (evita parpadeo); header y footer muestran "Volver al Dashboard" (`/dashboard`) cuando hay sesión activa, preservando intacto el comportamiento original (CTAs login/registro) sin sesión.
 * **Verificación:** `pnpm --filter @estetica/client build`/`lint` exit 0. Reviewer verificó el diff línea por línea contra la bitácora del implementer, sin discrepancias.
 * **Estado final:** `UX-66` → `"done"`. Reviewer: **APPROVED** → `progress/reviews/review_UX-66.md`.
+
+---
+
+## 2026-08-04 — UX-70: Registrar retoque sin crear turno duplicado en agenda (Fase 4 — Agenda)
+
+* **Agente:** Claude (Leader) + implementer (backend) + reviewer (1 ronda).
+* **Objetivo:** al registrar una visita con próximo retoque, el sistema creaba DOS representaciones del mismo evento futuro: el ServiceRecord (que alimenta "Próximos Retoques") y además un Appointment automático en la Agenda (notes: 'Retoque programado automáticamente'). El cliente del sistema veía el evento duplicado en dos secciones y se confundía.
+
+* **Cambios Backend:**
+  - apps/server/src/controllers/serviceRecordController.ts::createServiceRecord — eliminado el bloque de auto-creación de Appointment tras guardar el ServiceRecord; eliminado el import muerto de Appointment. El ServiceRecord sigue guardando nextTouchupDate/touchupStatus:'pending' sin cambios.
+
+* **Decisión de producto (confirmada con el usuario, 2026-08-04):** al quitar el Appointment automático, los retoques dejan de recibir el recordatorio por mail 24h antes (reminderScheduler.ts solo consulta Appointment, no ServiceRecord — GOV-NOTIFY). El usuario aceptó explícitamente este trade-off; no se agregó ningún cron de reemplazo. reminderScheduler.ts/mailService.ts no fueron tocados.
+
+* **Hallazgo del reviewer (deuda preexistente, no bloqueante):** apps/server/src/__tests__/tenantIsolation.test.ts tiene 4 tests fallando en POST /api/registros — confirmado con git stash que son preexistentes (no causados por este cambio): los tests no envían professional en el body, campo que el controller exige desde EP-11. Queda como deuda de test desactualizado a resolver en una feature de mantenimiento futura.
+
+* **Verificación:** pnpm --filter @estetica/server build Exit 0. Reviewer: **APPROVED** → progress/reviews/review_UX-70.md. UX-70 → **done**.
+
+---
+
+## 2026-08-04 — UX-69: Historial de cliente: registrar visita pasada, paginación y filtros por fecha (Fase 1)
+
+* **Agente:** Claude (Leader) + implementer (backend) + implementer (frontend, en paralelo) + reviewer (2 rondas).
+* **Objetivo:** dos pedidos relacionados del cliente del sistema (2026-08-04). (1) El flujo normal de registro de visitas no restringía serviceDate contra "hoy", permitiendo cargar visitas pasadas desde cualquier lugar — se pidió restringirlo al día de hoy/futuro y habilitar la carga de visitas pasadas solo desde una acción dedicada en la ficha del cliente. (2) El historial de visitas de un cliente (ProfileClient.tsx) no estaba paginado ni tenía filtros de fecha, a diferencia del listado global.
+
+* **Cambios Backend:**
+  - `apps/server/src/controllers/serviceRecordController.ts::createServiceRecord` — nuevo guard de `serviceDate` gobernado por flag de request `isBackfill` (no persistido en el schema). Sin `isBackfill`/`false`: rechaza serviceDate < hoy (400). Con `isBackfill: true`: exige serviceDate estrictamente < hoy (400 si no). Reusa la resolución tenant/timezone ya existente para el guard de `nextTouchupDate` (UX-27).
+  - `apps/server/src/controllers/serviceRecordController.ts::getClientRecords` — migrado de array plano a contrato paginado `{ data, meta: { total, page, limit, totalPages } }` (page-size 7), con filtros `dateFrom`/`dateTo`, mismo patrón P1 que `getServiceRecords`.
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — validators nuevos: `body('isBackfill').optional().isBoolean()` en POST /; `query('page')/('limit')/('dateFrom')/('dateTo')` en GET /cliente/:clientId.
+  - `apps/server/src/__tests__/tenantIsolation.test.ts` — ajustado el test de `getClientRecords` de cliente ajeno al nuevo contrato `{ data, meta }`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/utils/dates.ts` — nuevo helper `getYesterdayDateString()`.
+  - `apps/client/src/api/serviceRecordApi.ts` — `ServiceRecordPayload.isBackfill?: boolean`; `getClientRecords(clientId, params)` migrado a `Promise<Paginated<ServiceRecord>>`.
+  - `apps/client/src/components/RegistroModal.tsx` — nuevo prop `pastVisitMode`. Modo normal: `min={getTodayDateString()}` en `serviceDate` (fix post-review: NO se aplica cuando `appointmentId` está presente, para no romper el flujo "Completar y Registrar" de un turno vencido — el backend `completeAppointment` tampoco valida ese camino). Modo `pastVisitMode`: sin `min`, `max`=ayer + validación inline, título/subtítulo distintos, envía `isBackfill: true`. `onSuccess` invalida también `['client-history']`.
+  - `apps/client/src/views/ProfileClient.tsx` — nuevo botón "Registrar visita pasada"; historial migrado a paginación + filtros `dateFrom`/`dateTo` (reset de página al filtrar), `placeholderData: keepPreviousData`, nuevo estado de error (trifecta), contador de `meta.total`.
+
+* **CHANGELOG.md:** entrada `[BREAKING] (permitido — feature in_progress) UX-69` agregada por el leader (fuera de sandbox de código) documentando el cambio de contrato de `GET /api/registros/cliente/:clientId` y el nuevo `isBackfill` de `POST /api/registros`.
+
+* **Incidente en la primera pasada de review (corregido):** el reviewer detectó una regresión real — el `min` nuevo de `serviceDate` bloqueaba (vía Constraint Validation API nativa del navegador, sin `noValidate` en el form) el flujo de completar un turno vencido desde el Dashboard, porque `preselectedServiceDate` puede ser una fecha pasada para turnos no completados a tiempo. Corregido excluyendo el caso `appointmentId` del `min`. Segunda pasada: APPROVED.
+
+* **Deuda de test preexistente (heredada de UX-70, confirmada de nuevo sin cambios):** los mismos 4 tests de `tenantIsolation.test.ts` (falta de `professional` en el body, EP-11) siguen fallando, no relacionados con esta feature.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0. Reviewer: **APPROVED** (2 rondas) → `progress/reviews/review_UX-69.md`. UX-69 → **done**.
+
+---
+
+## 2026-08-04 — UX-68: Notificaciones push (PWA) en celular: turnos y retoques del día (Fase 2 — Notificaciones)
+
+* **Agente:** Claude (Leader) + implementer (backend) + implementer (frontend) + reviewer (2 rondas).
+* **Objetivo:** pedido directo del cliente del sistema — recibir notificaciones push en el celular (estilo app de diario/newsletter) sobre turnos agendados y retoques, en particular un recordatorio diario si hay actividad ese día. No existía ninguna infraestructura PWA en el repo (greenfield).
+
+* **Cambios Backend:**
+  - Nueva dependencia `web-push` (+ `@types/web-push`), APROBADA explícitamente por el usuario antes de instalarse (regla dura de `.claude/rules/backend.md` §1).
+  - `apps/server/src/models/PushSubscription.ts` (nuevo) — tenantId, adminId, endpoint (único), keys.p256dh/auth. Sin `isActive` (divergencia intencional de la convención de soft-delete: es un token de dispositivo, no un registro de negocio — documentada en `docs/db-schema.md`, sección `pushsubscriptions`, actualizada por el leader ANTES de crear el modelo).
+  - `apps/server/src/config/pushConfig.ts` (nuevo) — lee `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` de env, `console.warn` si faltan (no crashea), mismo patrón que `mailConfig.ts`.
+  - `apps/server/src/controllers/pushSubscriptionController.ts` + `apps/server/src/routes/pushSubscriptionRoutes.ts` (nuevos) — `POST`/`DELETE /api/notificaciones/push-subscription`, montado como router HERMANO de `/api/notificaciones` (no anidado, para no heredar `requireRole('ADMIN')` — cualquier rol autenticado puede suscribir su propio dispositivo). Anti-IDOR real en el DELETE (tenantId+adminId del request, nunca del body).
+  - `apps/server/src/services/pushReminderScheduler.ts` (nuevo) — cron diario `node-cron` (`0 8 * * *`), por tenant activo cuenta turnos de hoy + retoques pendientes, envía un único push resumen por suscripción si hay actividad, limpia suscripciones caducadas (410/404). Simplificación de alcance documentada: usa el día calendario del proceso servidor, no `tenant.timezone` (a diferencia del patrón canónico de otros controllers) — aceptado como razonable para un resumen a las 08:00 AM, anotado para una futura iteración si se requiere precisión por tenant.
+  - `apps/server/.env.example` — placeholders `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`. Par de claves VAPID real generado una sola vez y entregado al usuario humano para cargar en su `.env` local (no versionado).
+
+* **Cambios Frontend:**
+  - `apps/client/public/manifest.json` + `apps/client/public/sw.js` (nuevos) — infraestructura PWA mínima, reusando íconos ya existentes (`shear-favicon.png`), sin lógica de caching/offline (fuera de alcance).
+  - `apps/client/src/main.tsx` — registro condicional del Service Worker (`'serviceWorker' in navigator`).
+  - `apps/client/src/api/pushNotificationApi.ts` + `apps/client/src/utils/webPush.ts` (nuevos) — consumo del contrato del backend, helper `urlBase64ToUint8Array` para la VAPID public key.
+  - `apps/client/src/views/Negocio.tsx` — nueva card "Notificaciones push" con toggle accesible (`<button role="switch">`, trifecta color+icono+texto), opt-in explícito (no autopedido), manejo de permiso denegado, y aviso de la limitación de iOS Safari (requiere instalar la PWA a pantalla de inicio para recibir push).
+
+* **CHANGELOG.md:** entrada nueva bajo `### Added` agregada por el leader (fuera de sandbox de código) tras el primer hallazgo del reviewer (C8 — feature nueva sin documentar).
+
+* **Limitación de plataforma conocida (comunicar al usuario para que la traslade a sus clientes):** en iOS Safari, las notificaciones push SOLO funcionan si la PWA fue "Agregada a Inicio" (instalada) — si el usuario solo tiene la web abierta en una pestaña normal del navegador, no va a recibir push. Es una limitación del propio Web Push API en iOS (16.4+), no un bug de esta implementación.
+
+* **Acción pendiente del usuario humano (fuera del alcance de código):** cargar el par de claves VAPID generado en `apps/server/.env` (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` con un email de contacto real) y `VITE_VAPID_PUBLIC_KEY` en `apps/client/.env` — sin esto, la feature queda con warning silencioso y no envía push en producción/desarrollo local.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0. Reviewer: **APPROVED** (2 rondas) → `progress/reviews/review_UX-68.md`. UX-68 → **done**.
+
+* **Cierre de las 3 mejoras pedidas por el cliente el 2026-08-04:** UX-70 (quitar turno duplicado de retoque), UX-69 (visita pasada + paginación/filtros de historial de cliente) y UX-68 (notificaciones push) quedan las tres **done** en esta sesión. Ver entradas individuales arriba.
+
+---
+
+## 2026-08-04 — UX-71: Quitar campo Próximo Retoque del formulario de visita pasada (Fase 1)
+
+* **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** pedido directo del usuario sobre UX-69 ya cerrada — en el modo `pastVisitMode` de `RegistroModal.tsx` (formulario "Registrar visita pasada"), el bloque "Próximo Retoque" no tenía sentido de negocio (una visita cargada retroactivamente no debería generar un retoque programado desde ese mismo formulario).
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/RegistroModal.tsx` — el bloque "Próximo Retoque" (label, botón "Usar sugerida", inputs `touchupDate`/`touchupTime`, error) se renderiza condicionalmente con `{!pastVisitMode && (...)}`. El grid contenedor pasa a una sola columna (`grid-cols-1`, sin `md:grid-cols-2`) cuando `pastVisitMode` es `true`, para que "Fecha del Servicio" ocupe el ancho completo. Modo normal y modo completar turno (`appointmentId`) sin cambios.
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0. Reviewer: **APPROVED** → `progress/reviews/review_UX-71.md`. UX-71 → **done**.
