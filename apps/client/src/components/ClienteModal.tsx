@@ -102,17 +102,14 @@ export default function ClienteModal({ isOpen, onClose, clientToEdit }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Apellido *</label>
+                        <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase flex justify-between">
+                            Apellido <span className="text-muted font-normal normal-case">Opcional</span>
+                        </label>
                         <input
                             type="text"
-                            className={`w-full px-3.5 py-2.5 bg-bg border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors ${errors.lastName ? 'border-alert-text' : 'border-border'}`}
-                            {...register('lastName', { required: 'Requerido' })}
+                            className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text focus:outline-none focus:border-accent-rose transition-colors"
+                            {...register('lastName')}
                         />
-                        {errors.lastName && (
-                            <span className="flex items-center gap-1 text-xs text-alert-text mt-1 font-medium">
-                                <FiAlertCircle /> {errors.lastName.message}
-                            </span>
-                        )}
                     </div>
                 </div>
 

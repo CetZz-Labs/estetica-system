@@ -97,7 +97,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     });
 
     // ⭐️ Formateamos los datos para que react-select los entienda ({ label, value })
-    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })) || [];
+    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
     const productOptions = inventoryProducts?.map(p => ({

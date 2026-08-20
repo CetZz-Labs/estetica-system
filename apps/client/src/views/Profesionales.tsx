@@ -188,7 +188,7 @@ export default function Profesionales() {
                                     <FiCalendar />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-foreground">{appt.client.firstName} {appt.client.lastName} · {appt.service.name}</p>
+                                    <p className="text-sm font-medium text-foreground">{`${appt.client.firstName} ${appt.client.lastName ?? ''}`.trim()} · {appt.service.name}</p>
                                     <p className="text-xs text-muted-foreground">{formatStartTime(appt.startTime)}</p>
                                 </div>
                             </li>

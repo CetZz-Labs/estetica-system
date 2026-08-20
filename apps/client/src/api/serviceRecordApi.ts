@@ -82,6 +82,11 @@ export const updateServiceRecord = async (
     return response.data;
 };
 
+/** DELETE /api/registros/:id — Elimina un registro de visita y restaura el stock de los productos usados (solo ADMIN) */
+export const deleteServiceRecord = async (id: string): Promise<void> => {
+    await api.delete(`/registros/${id}`);
+};
+
 /** GET /api/dashboard/stats — Estadísticas del dashboard */
 export const getDashboardStats = async (): Promise<DashboardStats> => {
     const response = await api.get('/dashboard/stats');

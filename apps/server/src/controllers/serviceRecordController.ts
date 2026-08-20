@@ -5,7 +5,7 @@ import { Product } from '../models/Product';
 import { Client } from '../models/Client';
 import { Professional } from '../models/Professional';
 import { Tenant } from '../models/Tenant';
-import { isBeforeCalendarDay } from '../utils/dateUtils';
+import { isBeforeCalendarDay, toLocalDateString } from '../utils/dateUtils';
 
 // 1. Create (POST /api/registros)
 export const createServiceRecord = async (req: Request, res: Response) => {
@@ -51,13 +51,21 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         // Comparación estricta contra `true` (mismo patrón que `confirm` en professionalController.ts):
         // el validator `isBoolean()` de express-validator también acepta strings como 'false' sin
         // convertirlas, y `!isBackfill` trataría un string 'false' truthy como si fuera true.
+        //
+        // UX-74: serviceDate llega SIEMPRE como string date-only 'YYYY-MM-DD' (input type="date").
+        // A diferencia de nextTouchupDate (que sí trae hora/offset real), `new Date(serviceDate)`
+        // ancla a medianoche UTC y, al reformatear en `tz` (ej. Argentina UTC-3), retrocede un día
+        // calendario — por eso NO se usa isBeforeCalendarDay acá: se compara el string directamente
+        // contra el día de hoy en la timezone del tenant.
         const backfillFlag = isBackfill === true || isBackfill === 'true';
+        const todayLocalStr = toLocalDateString(new Date(), tz);
+        const serviceDateStr = String(serviceDate);
         if (!backfillFlag) {
-            if (isBeforeCalendarDay(new Date(serviceDate), new Date(), tz)) {
+            if (serviceDateStr < todayLocalStr) {
                 return res.status(400).json({ error: 'La fecha del servicio no puede ser anterior al día de hoy' });
             }
         } else {
-            if (!isBeforeCalendarDay(new Date(serviceDate), new Date(), tz)) {
+            if (!(serviceDateStr < todayLocalStr)) {
                 return res.status(400).json({ error: 'Una visita pasada debe tener una fecha anterior a hoy' });
             }
         }
@@ -373,6 +381,23 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
 export const deleteServiceRecord = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+
+        // Paso 0 (UX-72): fetch previo tenant-scoped para leer productsUsed antes de borrar.
+        // 404 temprano si el registro no existe o pertenece a otro tenant.
+        const existingRecord = await ServiceRecord.findOne({ _id: id, tenantId: req.tenantId });
+        if (!existingRecord) {
+            return res.status(404).json({ error: 'Registro no encontrado' });
+        }
+
+        // UX-72: restaurar el stock consumido por esta visita antes de borrar el registro.
+        // Si un producto referenciado ya no existe (fue borrado en el ínterin), se ignora ese
+        // item — nunca debe quedar un registro imposible de eliminar por un producto huérfano.
+        for (const item of existingRecord.productsUsed) {
+            await Product.updateOne(
+                { _id: item.product, tenantId: req.tenantId },
+                { $inc: { stock: item.quantity } }
+            );
+        }
 
         // IMPORTANTE: Borrado físico como fue requerido para casos de error de carga (acotado al tenant)
         const deletedRecord = await ServiceRecord.findOneAndDelete({ _id: id, tenantId: req.tenantId });

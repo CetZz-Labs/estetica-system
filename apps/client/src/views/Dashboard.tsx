@@ -401,7 +401,7 @@ export default function Dashboard() {
                                         <span className={`w-2 h-2 rounded-full shrink-0 ${getServiceCategoryDot(appt.service?.name)}`} aria-hidden />
                                         <span className="min-w-0">
                                             <span className="block font-semibold text-text text-sm truncate">
-                                                {appt.client.firstName} {appt.client.lastName}
+                                                {`${appt.client.firstName} ${appt.client.lastName ?? ''}`.trim()}
                                             </span>
                                             <span className="block text-[12.5px] text-text-3 truncate">
                                                 {appt.service?.name ?? 'Sin servicio'}{appt.professional ? ` · ${appt.professional.name}` : ''}
@@ -568,7 +568,7 @@ export default function Dashboard() {
                                         </span>
                                         <span className="min-w-0">
                                             <span className="block font-semibold text-text text-sm truncate">
-                                                {registro.client.firstName} {registro.client.lastName}
+                                                {`${registro.client.firstName} ${registro.client.lastName ?? ''}`.trim()}
                                             </span>
                                             <span className="block text-[12.5px] text-text-3 truncate">{registro.service.name}</span>
                                         </span>
@@ -632,7 +632,7 @@ export default function Dashboard() {
                             <div key={registro._id} className="flex items-center gap-3 bg-surface-2 rounded-ctrl px-3 py-2.5">
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${getServiceCategoryDot(registro.service.name)}`} aria-hidden />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-text text-sm truncate">{registro.client.firstName} {registro.client.lastName}</p>
+                                    <p className="font-semibold text-text text-sm truncate">{`${registro.client.firstName} ${registro.client.lastName ?? ''}`.trim()}</p>
                                     <p className="text-[12.5px] text-text-3 truncate">{registro.service.name}</p>
                                 </div>
                                 <span className="text-[11px] text-muted font-medium tracking-wide shrink-0">{formatDate(registro.createdAt)}</span>
@@ -691,7 +691,7 @@ export default function Dashboard() {
                                 <FiUser className="text-lg" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-text">{selectedRetoqueDetail.client.firstName} {selectedRetoqueDetail.client.lastName}</p>
+                                <p className="text-sm font-semibold text-text">{`${selectedRetoqueDetail.client.firstName} ${selectedRetoqueDetail.client.lastName ?? ''}`.trim()}</p>
                                 {selectedRetoqueDetail.client.phone && (
                                     <p className="text-xs text-muted mt-0.5">{selectedRetoqueDetail.client.phone}</p>
                                 )}

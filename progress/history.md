@@ -1389,3 +1389,65 @@
   - `apps/client/src/components/RegistroModal.tsx` — el bloque "Próximo Retoque" (label, botón "Usar sugerida", inputs `touchupDate`/`touchupTime`, error) se renderiza condicionalmente con `{!pastVisitMode && (...)}`. El grid contenedor pasa a una sola columna (`grid-cols-1`, sin `md:grid-cols-2`) cuando `pastVisitMode` es `true`, para que "Fecha del Servicio" ocupe el ancho completo. Modo normal y modo completar turno (`appointmentId`) sin cambios.
 
 * **Verificación:** `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0. Reviewer: **APPROVED** → `progress/reviews/review_UX-71.md`. UX-71 → **done**.
+
+---
+
+## 2026-08-20 — UX-72: Eliminar un registro del historial de visitas (con restauración de stock)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Objetivo:** pedido directo del usuario, antes del merge a development/main. Hallazgo del leader: ya existía un endpoint `DELETE /api/registros/:id` (`deleteServiceRecord`) implementado originalmente "para casos de error de carga", pero sin conectar a ninguna UI y con dos gaps: no restauraba stock de los productos consumidos, y no tenía restricción de rol. El usuario confirmó (vía `AskUserQuestion`): mantener borrado físico, agregar restauración de stock, restringir a rol ADMIN, y exponer el botón tanto en `Historial.tsx` como en `ProfileClient.tsx`.
+
+* **Cambios Backend:**
+  - `apps/server/src/controllers/serviceRecordController.ts::deleteServiceRecord` — fetch previo tenant-scoped del `ServiceRecord`, restaura stock (`$inc`, tenant-scoped) de cada producto en `productsUsed` antes del `findOneAndDelete`; productos huérfanos (ya eliminados) se ignoran sin bloquear el borrado.
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — `requireRole('ADMIN')` en el `DELETE /:id`, mismo patrón que `clientRoutes.ts`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/api/serviceRecordApi.ts` — nueva función `deleteServiceRecord(id)`.
+  - `apps/client/src/views/Historial.tsx` y `apps/client/src/views/ProfileClient.tsx` — botón `FiTrash2` por fila/item, visible solo si `adminInfo.role === 'ADMIN'` (oculto, no solo deshabilitado, para otros roles), confirmación vía `<ConfirmModal>` compartido (patrón P9), invalidación de `['service-records']`, `['client-history']` y `['products']` al éxito. En `ProfileClient.tsx` el nuevo flujo usa estado/mutation propios, separados del flujo preexistente de "eliminar cliente".
+
+* **Hallazgo del reviewer (no bloqueante):** riesgo TOCTOU entre el loop de restauración de stock y el `findOneAndDelete` final — mismo riesgo ya aceptado como patrón P17 (`docs/patterns-backend.md`), no introduce nada nuevo.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (solo warnings preexistentes documentados). Reviewer: **APPROVED** → `progress/reviews/review_UX-72.md`. UX-72 → **done**.
+
+---
+
+## 2026-08-20 — UX-74: Bugfix — no se podía registrar una visita con fecha de hoy
+
+* **Agente:** Claude (Leader, diagnóstico propio por lectura directa de código) + implementer-backend (2 rondas) + reviewer (2 rondas).
+* **Objetivo:** el usuario reportó que el guard de "no permitir fecha pasada" de UX-69 también rechazaba la fecha de hoy al registrar una visita nueva.
+
+* **Diagnóstico del leader:** `serviceDate` viaja del frontend como string date-only `'YYYY-MM-DD'` (input `type="date"`). El guard de `createServiceRecord` hacía `isBeforeCalendarDay(new Date(serviceDate), new Date(), tz)`: `new Date('YYYY-MM-DD')` ancla a medianoche UTC, y al reformatear con la timezone del tenant (Argentina, UTC-3) el día calendario retrocedía uno — "hoy" se evaluaba como "ayer" y se rechazaba siempre, sin importar la hora del día.
+
+* **Ronda 1 (CHANGES_REQUESTED):** el implementer cambió el guard a comparar `String(serviceDate)` contra `toLocalDateString(new Date(), tz)`, asumiendo que `serviceDate` llegaba como string al controller. El reviewer encontró que esa premisa era falsa: `serviceRecordRoutes.ts` tenía `.toDate()` como sanitizer en el validator de `serviceDate` (POST y PUT), mutando el body a un objeto `Date` real ANTES del controller — `String(serviceDate)` daba la salida de `Date.prototype.toString()` (empieza con letra), estructuralmente siempre "menor" que `todayLocalStr` (empieza con dígito). El bug quedaba peor: aceptaba fechas de hace un año sin `isBackfill`, y rechazaba siempre el flujo `isBackfill=true` (rompiendo UX-69). Invisible para `tsc` porque `string < string` es válido en compilación sin mirar el contenido en runtime.
+
+* **Ronda 2 (APPROVED):** fix real — se quitó `.toDate()` de los dos validators de `serviceDate` en `serviceRecordRoutes.ts` (POST y PUT), dejando solo `isISO8601()` para validar formato sin mutar el valor. `nextTouchupDate` no se tocó (sigue necesitando `Date` real, no tiene este bug). El guard de comparación de strings de la ronda 1 queda correcto una vez que su precondición (string real) se cumple. Verificado empíricamente por implementer y reviewer con scripts sueltos (`express-validator` real, no dejados en el repo) contra 5 casos de negocio (hoy/pasado/backfill-ayer/backfill-hoy/futuro).
+
+* **Lección de proceso:** la ronda 1 falló por "verificación mental" del implementer sin reproducir el pipeline real de `express-validator`. La ronda 2 exigió verificación empírica explícita — patrón a repetir en fixes futuros de validación de fechas/sanitizers.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0 en ambas rondas. Reviewer: **APPROVED** (2da ronda) → `progress/reviews/review_UX-74.md`. UX-74 → **done**.
+
+---
+
+## 2026-08-20 — UX-73: Hacer opcional el apellido del cliente
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (2 rondas).
+* **Objetivo:** pedido directo del usuario — el cliente del sistema a veces no recuerda o no quiere cargar el apellido de un cliente, y el campo era obligatorio. Se pidió opcional en toda la app, incluida la carga masiva (decisión confirmada con el usuario vía `AskUserQuestion`).
+
+* **Cambios Backend:**
+  - `apps/server/src/models/Client.ts` — `lastName` pasa a `required: false` (mantiene `trim`), `IClient.lastName?: string`.
+  - `apps/server/src/routes/clientRoutes.ts` — los 3 validators de `lastName` (creación, edición, carga masiva) relajados a `.optional({ checkFalsy: true })`; `firstName` sigue obligatorio en los 3.
+  - `apps/server/src/controllers/clientController.ts::createBulkClients` — el filtro de filas válidas exige solo `firstName`; el dedup case-insensitive `(firstName+lastName)` funciona correctamente con `lastName === ''`.
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/ClienteModal.tsx` — quitado `required` de `lastName`, label sin marca de obligatorio.
+  - `apps/client/src/components/CargaMasivaClientesModal.tsx` — filtro de filas válidas solo exige `firstName`; badge de columna "Apellido" pasa a "Opcional".
+  - `apps/client/src/types/index.ts` — `lastName` opcional en `Client`/`ClientSlim`/`Appointment.client`.
+  - Patrón `` `${firstName} ${lastName ?? ''}`.trim() `` aplicado en los 9 puntos donde se renderiza nombre completo (Clients, ProfileClient, Historial, Dashboard, Turnos, Profesionales, RegistroModal, EditRegistroModal, AppointmentDetail); avatares de iniciales guardados contra `lastName` vacío/undefined.
+
+* **Ronda 1 del reviewer (CHANGES_REQUESTED, solo documentación):** código de ambos sandboxes sin hallazgos, pero faltaba actualizar el contrato documentado (gate C8): `CHANGELOG.md` sin entrada del cambio de `lastName` requerido→opcional, y `docs/db-schema.md` (Referencia Inmutable) todavía marcaba `lastName` como `Requerido: Sí`. El leader aplicó ambos fixes directamente (excepción del rol orquestador para documentación pura, sin tocar `apps/`).
+
+* **Ronda 2 (APPROVED):** confirmados ambos fixes de documentación, sin cambios en código.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (solo warnings preexistentes documentados). Reviewer: **APPROVED** (2 rondas) → `progress/reviews/review_UX-73.md`. UX-73 → **done**.
+
+* **Cierre de las 3 features de la sesión (2026-08-20):** UX-72 (eliminar registro de historial con restauración de stock), UX-74 (bugfix fecha de hoy rechazada) y UX-73 (apellido opcional) quedan las tres **done**. Quedan pendientes del usuario humano: revisar en la app real que el flujo de registro de visitas y el borrado de historial funcionen antes del merge a development/main.

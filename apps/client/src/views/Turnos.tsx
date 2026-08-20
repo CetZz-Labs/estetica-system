@@ -173,8 +173,8 @@ export default function Turnos() {
             return {
                 id: `appt-${a._id}`,
                 title: a.service
-                    ? `${a.client.firstName} ${a.client.lastName} - ${a.service.name}`
-                    : `${a.client.firstName} ${a.client.lastName}`,
+                    ? `${`${a.client.firstName} ${a.client.lastName ?? ''}`.trim()} - ${a.service.name}`
+                    : `${a.client.firstName} ${a.client.lastName ?? ''}`.trim(),
                 start: a.startTime,
                 end: a.endTime,
                 extendedProps: { appointment: a, type: 'appointment' as const, professionalColor },
@@ -186,7 +186,7 @@ export default function Turnos() {
         });
     }, [appointments]);
 
-    const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })), [clientsData]);
+    const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })), [clientsData]);
     const serviceOptions = useMemo(() => (servicesData || []).map(s => ({ value: s._id, label: `${s.name} (${s.duration} min)` })), [servicesData]);
     const professionalOptions = useMemo(() => (professionalsData || []).map(p => ({ value: p._id, label: p.name })), [professionalsData]);
 
@@ -268,7 +268,7 @@ export default function Turnos() {
         const timeStr = formatTime(appointment.startTime);
         const serviceLabel = appointment.service?.name || 'Sin servicio';
         info.el.setAttribute('data-tooltip-id', 'appointment-tooltip');
-        info.el.setAttribute('data-tooltip-content', `${appointment.client.firstName} ${appointment.client.lastName} · ${serviceLabel} · ${timeStr}`);
+        info.el.setAttribute('data-tooltip-content', `${`${appointment.client.firstName} ${appointment.client.lastName ?? ''}`.trim()} · ${serviceLabel} · ${timeStr}`);
     }, []);
 
     const onSubmit = (data: AppointmentFormValues) => {

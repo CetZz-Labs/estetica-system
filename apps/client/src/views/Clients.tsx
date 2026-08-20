@@ -50,7 +50,7 @@ export default function Clients() {
     // Lógica de filtrado en tiempo real (client-side — no hay paginación server-side para /clientes)
     const filteredClientes = clientes?.filter(cliente => {
         const term = searchTerm.toLowerCase();
-        const fullName = `${cliente.firstName} ${cliente.lastName}`.toLowerCase();
+        const fullName = `${cliente.firstName} ${cliente.lastName ?? ''}`.trim().toLowerCase();
         const phone = cliente.phone || '';
         return fullName.includes(term) || phone.includes(term);
     });
@@ -135,7 +135,7 @@ export default function Clients() {
                                 </tr>
                             ) : (
                                 filteredClientes?.map((cliente) => {
-                                    const initials = cliente.firstName.charAt(0).toUpperCase() + cliente.lastName.charAt(0).toUpperCase();
+                                    const initials = cliente.firstName.charAt(0).toUpperCase() + (cliente.lastName ?? '').charAt(0).toUpperCase();
                                     const tint = getAvatarTint(cliente._id);
                                     return (
                                         <tr key={cliente._id} className="relative border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors cursor-pointer">
@@ -148,7 +148,7 @@ export default function Clients() {
                                                         {initials}
                                                     </span>
                                                     <span className="font-semibold text-text text-sm truncate">
-                                                        {cliente.firstName} {cliente.lastName}
+                                                        {`${cliente.firstName} ${cliente.lastName ?? ''}`.trim()}
                                                     </span>
                                                 </Link>
                                             </td>

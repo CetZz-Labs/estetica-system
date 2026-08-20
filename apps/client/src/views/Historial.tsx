@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import Select, { type StylesConfig } from "react-select";
-import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEdit2 } from "react-icons/fi";
+import { toast } from "sonner";
+import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
 
-import { getServiceRecords } from "../api/serviceRecordApi";
+import { getServiceRecords, deleteServiceRecord as deleteServiceRecordApi } from "../api/serviceRecordApi";
 import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { getProfessionals } from "../api/professionalApi";
-import type { Client, Service, Professional, ServiceRecord, Paginated } from "../types";
+import { getMe } from "../api/adminApi";
+import { handleApiError } from "../api/errorHandler";
+import type { Client, Service, Professional, ServiceRecord, Paginated, AdminInfo } from "../types";
 import { formatCalendarDate } from "../utils/dates";
 import Pagination from "../components/ui/Pagination";
 import EditRegistroModal from "../components/EditRegistroModal";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import { useTopbar } from "../layouts/TopbarContext";
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
@@ -51,6 +55,27 @@ export default function Historial() {
     const [dateFrom, setDateFrom] = useState<string>('');
     const [dateTo, setDateTo] = useState<string>('');
     const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+
+    const queryClient = useQueryClient();
+
+    const { data: adminInfo } = useQuery<AdminInfo>({
+        queryKey: ['admin-me'],
+        queryFn: getMe,
+    });
+    const isAdmin = adminInfo?.role === 'ADMIN';
+
+    const { mutate: deleteRecord, isPending: isDeleting } = useMutation({
+        mutationFn: (id: string) => deleteServiceRecordApi(id),
+        onSuccess: () => {
+            toast.success('Registro de visita eliminado');
+            queryClient.invalidateQueries({ queryKey: ['service-records'] });
+            queryClient.invalidateQueries({ queryKey: ['client-history'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            setConfirmDelete(null);
+        },
+        onError: (error) => handleApiError(error, 'No se puede eliminar el registro de visita'),
+    });
 
     const { data: clients } = useQuery<Client[]>({
         queryKey: ['clients'],
@@ -67,7 +92,7 @@ export default function Historial() {
         queryFn: () => getProfessionals(),
     });
 
-    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName}` })) || [];
+    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
 
@@ -237,7 +262,7 @@ export default function Historial() {
                                     <tr key={registro._id} className="border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors">
                                         <td className="px-5 py-[13px]">
                                             <span className="font-semibold text-text text-sm">
-                                                {registro.client.firstName} {registro.client.lastName}
+                                                {`${registro.client.firstName} ${registro.client.lastName ?? ''}`.trim()}
                                             </span>
                                         </td>
                                         <td className="px-5 py-[13px]">
@@ -291,15 +316,31 @@ export default function Historial() {
                                             )}
                                         </td>
                                         <td className="px-5 py-[13px]">
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditingRecord(registro)}
-                                                aria-label="Editar visita"
-                                                title="Editar visita"
-                                                className="p-2 text-muted hover:text-text-2 hover:bg-surface-2 rounded-ctrl transition-colors cursor-pointer"
-                                            >
-                                                <FiEdit2 size={16} />
-                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditingRecord(registro)}
+                                                    aria-label="Editar visita"
+                                                    title="Editar visita"
+                                                    className="p-2 text-muted hover:text-text-2 hover:bg-surface-2 rounded-ctrl transition-colors cursor-pointer"
+                                                >
+                                                    <FiEdit2 size={16} />
+                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfirmDelete({
+                                                            id: registro._id,
+                                                            label: `${registro.service.name} — ${`${registro.client.firstName} ${registro.client.lastName ?? ''}`.trim()}`,
+                                                        })}
+                                                        aria-label="Eliminar visita"
+                                                        title="Eliminar visita"
+                                                        className="p-2 text-muted hover:text-alert-text hover:bg-surface-2 rounded-ctrl transition-colors cursor-pointer"
+                                                    >
+                                                        <FiTrash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -317,6 +358,16 @@ export default function Historial() {
                 isOpen={!!editingRecord}
                 record={editingRecord}
                 onClose={() => setEditingRecord(null)}
+            />
+
+            <ConfirmModal
+                isOpen={confirmDelete !== null}
+                onClose={() => setConfirmDelete(null)}
+                onConfirm={() => { if (confirmDelete) deleteRecord(confirmDelete.id); }}
+                title="Eliminar registro de visita"
+                message={`¿Seguro que querés eliminar la visita "${confirmDelete?.label}"? Se restaurará el stock de los productos usados. Esta acción no se puede deshacer.`}
+                confirmLabel="Eliminar visita"
+                isPending={isDeleting}
             />
         </div>
     );

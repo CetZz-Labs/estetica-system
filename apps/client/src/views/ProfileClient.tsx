@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tansta
 import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2, FiUser, FiPlus } from 'react-icons/fi';
 
 import { getClientById, deleteClient as deleteClientApi } from '../api/clientApi';
-import { getClientRecords } from '../api/serviceRecordApi';
+import { getClientRecords, deleteServiceRecord as deleteServiceRecordApi } from '../api/serviceRecordApi';
+import { getMe } from '../api/adminApi';
 import { handleApiError } from '../api/errorHandler';
-import type { Client, ServiceRecord, Paginated } from '../types';
+import type { Client, ServiceRecord, Paginated, AdminInfo } from '../types';
 import { formatDate } from '../utils/dates';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -27,6 +28,13 @@ export default function PerfilCliente() {
     const [page, setPage] = useState(1);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [confirmDeleteRecord, setConfirmDeleteRecord] = useState<{ id: string; label: string } | null>(null);
+
+    const { data: adminInfo } = useQuery<AdminInfo>({
+        queryKey: ['admin-me'],
+        queryFn: getMe,
+    });
+    const isAdmin = adminInfo?.role === 'ADMIN';
 
     const { data: cliente, isLoading: isLoadingClient } = useQuery<Client>({
         queryKey: ['client', id],
@@ -68,13 +76,25 @@ export default function PerfilCliente() {
         setIsDeleteConfirmOpen(true);
     };
 
+    const { mutate: deleteServiceRecord, isPending: isDeletingRecord } = useMutation({
+        mutationFn: (recordId: string) => deleteServiceRecordApi(recordId),
+        onSuccess: () => {
+            toast.success('Registro de visita eliminado');
+            queryClient.invalidateQueries({ queryKey: ['service-records'] });
+            queryClient.invalidateQueries({ queryKey: ['client-history'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            setConfirmDeleteRecord(null);
+        },
+        onError: (error) => handleApiError(error, 'No se puede eliminar el registro de visita'),
+    });
+
     const isLoading = isLoadingClient || isLoadingHistory;
 
     if (!isLoading && !cliente) {
         return <div className="p-8 text-destructive text-center">Cliente no encontrado.</div>;
     }
 
-    const initials = cliente ? cliente.firstName.charAt(0).toUpperCase() + cliente.lastName.charAt(0).toUpperCase() : '';
+    const initials = cliente ? cliente.firstName.charAt(0).toUpperCase() + (cliente.lastName ?? '').charAt(0).toUpperCase() : '';
 
     return (
         <div className="max-w-4xl mx-auto pb-12">
@@ -106,7 +126,7 @@ export default function PerfilCliente() {
                         <div className="relative flex flex-col sm:flex-row gap-5 sm:gap-8 items-start sm:items-center">
                             <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 rounded-full bg-white border-2 border-border flex items-center justify-center font-serif text-3xl sm:text-4xl text-foreground shadow-sm">{initials}</div>
                             <div className="flex-1 pr-16 sm:pr-0">
-                                <h2 className="text-2xl sm:text-4xl font-serif text-foreground mb-2">{cliente?.firstName} {cliente?.lastName}</h2>
+                                <h2 className="text-2xl sm:text-4xl font-serif text-foreground mb-2">{`${cliente?.firstName ?? ''} ${cliente?.lastName ?? ''}`.trim()}</h2>
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-gray-600 mt-3">
                                     <span className="flex items-center gap-1.5 bg-background px-3 py-1.5 rounded-lg border border-border">
                                         <FiPhone className="text-gray-400 shrink-0" />{cliente?.phone || 'Sin teléfono'}
@@ -221,12 +241,28 @@ export default function PerfilCliente() {
                                                     )}
                                                 </p>
                                             </div>
-                                            {registro.touchupStatus === 'completed' && (
-                                                <span className="bg-green-50 text-ring border border-green-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Listo</span>
-                                            )}
-                                            {registro.touchupStatus === 'cancelled' && (
-                                                <span className="bg-red-50 text-destructive border border-red-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Cancelado</span>
-                                            )}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {registro.touchupStatus === 'completed' && (
+                                                    <span className="bg-green-50 text-ring border border-green-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Listo</span>
+                                                )}
+                                                {registro.touchupStatus === 'cancelled' && (
+                                                    <span className="bg-red-50 text-destructive border border-red-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Cancelado</span>
+                                                )}
+                                                {isAdmin && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfirmDeleteRecord({
+                                                            id: registro._id,
+                                                            label: `${registro.service.name} — ${formatDate(registro.serviceDate)}`,
+                                                        })}
+                                                        aria-label="Eliminar visita"
+                                                        title="Eliminar visita"
+                                                        className="p-2 text-gray-400 hover:text-destructive hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                    >
+                                                        <FiTrash2 size={15} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         {(registro.notes || registro.productsUsed) && (
                                             <div className="mt-4 pt-4 border-t border-border space-y-3">
@@ -274,6 +310,15 @@ export default function PerfilCliente() {
                 title="Eliminar cliente"
                 message="¿Estás seguro de que deseas eliminar este cliente y todo su historial? Esta acción no se puede deshacer."
                 confirmLabel="Eliminar cliente"
+            />
+            <ConfirmModal
+                isOpen={confirmDeleteRecord !== null}
+                onClose={() => setConfirmDeleteRecord(null)}
+                onConfirm={() => { if (confirmDeleteRecord) deleteServiceRecord(confirmDeleteRecord.id); }}
+                title="Eliminar registro de visita"
+                message={`¿Seguro que querés eliminar la visita "${confirmDeleteRecord?.label}"? Se restaurará el stock de los productos usados. Esta acción no se puede deshacer.`}
+                confirmLabel="Eliminar visita"
+                isPending={isDeletingRecord}
             />
         </div>
     );

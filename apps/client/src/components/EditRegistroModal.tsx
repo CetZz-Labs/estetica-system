@@ -150,7 +150,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                         <span className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Cliente</span>
                         <span className="flex items-center gap-1.5 text-sm text-gray-700">
                             <FiUser className="text-gray-400 shrink-0" aria-hidden />
-                            {record.client.firstName} {record.client.lastName}
+                            {`${record.client.firstName} ${record.client.lastName ?? ''}`.trim()}
                         </span>
                     </div>
                     <div className="flex flex-col gap-1">

@@ -1303,6 +1303,58 @@
         "El payload enviado en pastVisitMode nunca incluye nextTouchupDate (ya es el comportamiento implícito al no haber inputs de touchupDate/touchupTime, pero confirmar que no queda ningún valor residual si el usuario alternó pastVisitMode en la misma sesión del modal)",
         "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-74",
+      "name": "Bug: no se puede registrar una visita con fecha de hoy",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Reporte directo del usuario (2026-08-20): al registrar una nueva visita, el sistema rechaza la fecha de hoy como si fuera anterior a hoy. Diagnóstico del leader (lectura directa de código, sin sub-agente de exploración): el guard de UX-69 en createServiceRecord (apps/server/src/controllers/serviceRecordController.ts, líneas ~55-63) llama isBeforeCalendarDay(new Date(serviceDate), new Date(), tz). serviceDate llega desde el frontend SIEMPRE como string date-only 'YYYY-MM-DD' (input type=\"date\" en RegistroModal.tsx, sin hora ni offset — confirmado en los 3 call sites: valor por defecto, preselectedServiceDate desde Dashboard.tsx y Turnos.tsx). new Date('YYYY-MM-DD') ancla a medianoche UTC; al reformatear ese instante con la timezone del tenant (Argentina, UTC-3), retrocede al día calendario anterior (medianoche UTC del día X = 21:00 del día X-1 en Argentina). Esto hace que el 'hoy' elegido por el usuario se evalúe como 'ayer' y se rechace siempre, independientemente de la hora del día en que se cargue — es el mismo patrón de bug ya documentado en .claude/rules/frontend.md para campos date-only (ahí resuelto forzando timeZone:'UTC' en el display), pero acá ocurre en el backend usando la timezone del tenant en vez de UTC para un campo que nunca tuvo offset real.",
+      "acceptance_criteria": [
+        "createServiceRecord ya NO construye new Date(serviceDate) para el guard de 'no anterior a hoy' — compara el string serviceDate (ya 'YYYY-MM-DD') directamente contra el día de hoy calculado con toLocalDateString(new Date(), tz) (apps/server/src/utils/dateUtils.ts, ya existente)",
+        "Registrar una visita con serviceDate = hoy (en la timezone del tenant) se guarda exitosamente, sin el error 'La fecha del servicio no puede ser anterior al día de hoy'",
+        "El flujo isBackfill (UX-69, visita pasada) sigue exigiendo serviceDate estrictamente anterior a hoy, sin cambios de comportamiento salvo la corrección del bug",
+        "nextTouchupDate/touchupDate (guard separado, UX-27) no se modifica — esos campos sí llevan hora real con offset correcto y no tienen este bug",
+        "pnpm --filter @estetica/server build pasa con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-72",
+      "name": "Eliminar un registro del historial de visitas (con restauración de stock)",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-08-20), antes del merge a development/main. Hallazgo del leader: ya existe un endpoint DELETE /api/registros/:id (deleteServiceRecord, serviceRecordController.ts) implementado originalmente 'para casos de error de carga', pero no está conectado a ninguna UI ni función de apps/client/src/api/serviceRecordApi.ts. Tiene dos gaps confirmados con el usuario a corregir en esta feature: (1) no restaura el stock de los productos consumidos por esa visita al borrarla (deja el inventario desincronizado), (2) no tiene restricción de rol (cualquier admin autenticado podría invocarlo por API aunque no haya botón). El usuario confirmó: mantener borrado físico (no soft-delete, coherente con el comportamiento ya documentado del endpoint), agregar restauración de stock, restringir a rol ADMIN, y exponer el botón tanto en el listado global (Historial.tsx) como en el historial de la ficha del cliente (ProfileClient.tsx).",
+      "acceptance_criteria": [
+        "Backend: deleteServiceRecord (serviceRecordController.ts) hace fetch previo del ServiceRecord (tenant-scoped) antes de borrar; por cada item de productsUsed incrementa el stock del Product correspondiente ($inc, tenant-scoped) ANTES de confirmar el borrado; si algún producto referenciado ya no existe, se ignora ese item sin bloquear el borrado del registro (no debe poder quedar un registro imposible de borrar por productos huérfanos)",
+        "El borrado del ServiceRecord sigue siendo físico (findOneAndDelete), no se introduce soft-delete",
+        "serviceRecordRoutes.ts: el DELETE /:id gana requireRole('ADMIN') (mismo patrón que otras rutas destructivas, ej. clientRoutes.ts DELETE)",
+        "Frontend: nueva función deleteServiceRecord(id) en apps/client/src/api/serviceRecordApi.ts",
+        "Botón de eliminar (FiTrash2, HTML semántico <button type=\"button\">, cursor-pointer) por fila/item en Historial.tsx Y en la sección de historial de visitas de ProfileClient.tsx, visible únicamente cuando el rol del admin autenticado es ADMIN (reutilizar el patrón de ocultamiento por rol ya usado en AppLayout.tsx/ProtectedRoute vía adminInfo.role)",
+        "Confirmación mediante el componente <ConfirmModal> compartido (patrón P9, docs/patterns-frontend.md), nunca window.confirm",
+        "Al eliminar con éxito: invalidar ['service-records'], ['client-history'] y ['products'] (por el stock restaurado), toast.success",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-73",
+      "name": "Hacer opcional el apellido del cliente",
+      "module": "Clients",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-08-20), antes del merge a development/main: el cliente del sistema a veces no recuerda o no quiere cargar el apellido del cliente, y el campo lastName es obligatorio hoy (Client.ts, ClienteModal.tsx). Se pide hacerlo opcional en toda la app, incluyendo la carga masiva por Excel/CSV (decisión confirmada con el usuario: mismo criterio en formulario manual y bulk).",
+      "acceptance_criteria": [
+        "Backend: Client.ts — lastName pasa a required:false (mantiene trim); IClient refleja lastName?: string",
+        "clientRoutes.ts — body('lastName') pierde notEmpty() en el POST de creación individual, en el PUT de edición y en el POST de carga masiva (body('*.lastName')); se mantiene .trim()",
+        "clientController.ts::bulkCreateClients — el dedup case-insensitive por (firstName+lastName) sigue funcionando cuando lastName es '' (no debe romper el $regex ni exigir lastName no vacío para incluir la fila)",
+        "Frontend: ClienteModal.tsx — se quita required: 'Requerido' de register('lastName'); el label deja de marcar el campo como obligatorio (ej. sin asterisco/estilo de campo requerido)",
+        "CargaMasivaClientesModal.tsx — el filtro de filas válidas ya no descarta filas con lastName vacío (solo exige firstName)",
+        "Todos los puntos donde se renderiza `${firstName} ${lastName}` (Clients.tsx, ProfileClient.tsx, Historial.tsx, Dashboard.tsx, Turnos.tsx, RegistroModal.tsx, EditRegistroModal.tsx, AppointmentDetail.tsx, Profesionales.tsx) no dejan un espacio colgante visible cuando lastName está vacío",
+        "Los avatares de iniciales (Clients.tsx, ProfileClient.tsx) que hacen lastName.charAt(0) no crashean ni muestran 'undefined' cuando lastName es vacío — se muestra solo la inicial de firstName",
+        "El ordenamiento existente por lastName (Client.find(...).sort({ lastName: 1 })) no se modifica — clientes sin apellido ordenan al principio, comportamiento aceptado sin tratamiento especial",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
     }
   ]
 }

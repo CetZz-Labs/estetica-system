@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IClient extends Document {
     tenantId: Types.ObjectId;
     firstName: string;
-    lastName: string;
+    lastName?: string;
     phone?: string;
     email?: string;
     medicalNotes?: string;
@@ -15,7 +15,7 @@ export interface IClient extends Document {
 const ClientSchema: Schema = new Schema({
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: false, trim: true },
     phone: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
     medicalNotes: { type: String, trim: true }, // Ej: "Alérgica a la PPD"

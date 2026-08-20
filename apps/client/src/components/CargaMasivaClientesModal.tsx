@@ -91,7 +91,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                     email: String(row.Email || row.email || '').trim() || undefined,
                     medicalNotes: String(row.NotasMedicas || row.notasMedicas || row.medicalNotes || '').trim() || undefined,
                 }))
-                .filter(c => c.firstName !== '' && c.lastName !== '');
+                .filter(c => c.firstName !== '');
 
             setPreviewData(mappedData);
         };
@@ -160,7 +160,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                         <tbody>
                             <tr>
                                 <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-alert-bg text-alert-text text-[10px] font-semibold rounded-pill">Obligatorio</span></td>
-                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-alert-bg text-alert-text text-[10px] font-semibold rounded-pill">Obligatorio</span></td>
+                                <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
                                 <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
                                 <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
                                 <td className="p-2 border border-border"><span className="px-1.5 py-0.5 bg-surface-2 text-muted text-[10px] font-semibold rounded-pill">Opcional</span></td>
@@ -246,7 +246,7 @@ export default function CargaMasivaClientesModal({ isOpen, onClose }: Props) {
                             <tbody className="divide-y divide-border-soft bg-surface">
                                 {previewData.slice(0, 10).map((c, i) => (
                                     <tr key={i}>
-                                        <td className="p-3 font-medium text-text">{c.firstName} {c.lastName}</td>
+                                        <td className="p-3 font-medium text-text">{`${c.firstName} ${c.lastName ?? ''}`.trim()}</td>
                                         <td className="p-3 text-text-2">{c.phone || <span className="italic text-muted">—</span>}</td>
                                     </tr>
                                 ))}

@@ -68,7 +68,7 @@ router.post(
         body('client').isMongoId().withMessage('El ID del cliente (client) es obligatorio y debe ser válido'),
         body('service').isMongoId().withMessage('El ID del servicio (service) es obligatorio y debe ser válido'),
         body('professional').isMongoId().withMessage('El ID de la profesional (professional) es obligatorio y debe ser válido'),
-        body('serviceDate').isISO8601().withMessage('La fecha del servicio (serviceDate) es obligatoria y debe tener formato ISO 8601').toDate(),
+        body('serviceDate').isISO8601().withMessage('La fecha del servicio (serviceDate) es obligatoria y debe tener formato ISO 8601'),
         body('notes').optional().isString().trim(),
 
         body('productsUsed').optional().isArray().withMessage('productsUsed debe ser una lista (array)'),
@@ -92,7 +92,7 @@ router.put(
         param('id').isMongoId().withMessage('El ID del registro no es válido'),
         // client y service NO son editables vía PUT (ver whitelist en el controller).
         // productsUsed SÍ es editable (UX-67): mirror literal de los validators del POST.
-        body('serviceDate').optional().isISO8601().withMessage('serviceDate debe tener formato ISO 8601').toDate(),
+        body('serviceDate').optional().isISO8601().withMessage('serviceDate debe tener formato ISO 8601'),
         body('notes').optional().isString().trim(),
 
         body('productsUsed').optional().isArray().withMessage('productsUsed debe ser una lista (array)'),
@@ -108,10 +108,11 @@ router.put(
     updateServiceRecord
 );
 
-// 5. Delete (DELETE /api/registros/:id)
+// 5. Delete (DELETE /api/registros/:id) — solo ADMIN (UX-72: restaura stock, borrado físico)
 router.delete(
     '/:id',
     [
+        requireRole('ADMIN'),
         param('id').isMongoId().withMessage('El ID del registro no es válido'),
         validateRequest
     ],

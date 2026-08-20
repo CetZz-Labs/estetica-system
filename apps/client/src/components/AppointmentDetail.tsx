@@ -38,7 +38,7 @@ export default function AppointmentDetail({ appointment }: DetailProps) {
                     <FiUser className="text-lg" />
                 </div>
                 <div>
-                    <p className="text-sm font-medium text-foreground">{appointment.client.firstName} {appointment.client.lastName}</p>
+                    <p className="text-sm font-medium text-foreground">{`${appointment.client.firstName} ${appointment.client.lastName ?? ''}`.trim()}</p>
                     {appointment.client.phone && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><FiPhone /> {appointment.client.phone}</p>
                     )}
