@@ -1355,6 +1355,24 @@
         "El ordenamiento existente por lastName (Client.find(...).sort({ lastName: 1 })) no se modifica — clientes sin apellido ordenan al principio, comportamiento aceptado sin tratamiento especial",
         "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-75",
+      "name": "Revertir apellido opcional — vuelve a ser obligatorio",
+      "module": "Clients",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-08-20): revertir UX-73. El apellido del cliente vuelve a ser obligatorio en el alta/edición manual y en la carga masiva por Excel/CSV, igual que antes de UX-73. Revertir exactamente los cambios de requeridad (no las mejoras de renderizado defensivo agregadas en UX-73, que quedan como no-ops inofensivos ya que lastName nunca estará vacío).",
+      "acceptance_criteria": [
+        "Backend: Client.ts — lastName vuelve a required:true (mantiene trim); IClient refleja lastName: string (sin ?)",
+        "clientRoutes.ts — body('lastName') recupera notEmpty().withMessage('El apellido (lastName) es obligatorio') en el POST de creación individual, en el PUT de edición (optional().notEmpty()... 'no puede estar vacío') y body('*.lastName').notEmpty()... en la carga masiva",
+        "clientController.ts::bulkCreateClients — el filtro `if (!firstName)` vuelve a `if (!firstName || !lastName)`",
+        "Frontend: ClienteModal.tsx — register('lastName', { required: 'Requerido' }) vuelve, label 'Apellido *' con estilo de campo requerido y mensaje de error inline (FiAlertCircle) igual que antes de UX-73",
+        "CargaMasivaClientesModal.tsx — el filtro de filas válidas vuelve a exigir firstName Y lastName no vacíos; la columna Apellido en la tabla de mapeo de columnas vuelve a mostrar 'Obligatorio'",
+        "types/index.ts — ClientSlim.lastName, Client.lastName y Appointment.client.lastName vuelven a ser `lastName: string` (sin `?`)",
+        "No tocar Historial.tsx, ProfileClient.tsx, Clients.tsx, Dashboard.tsx, Turnos.tsx, RegistroModal.tsx, EditRegistroModal.tsx, AppointmentDetail.tsx, Profesionales.tsx — sus tweaks defensivos de renderizado (optional chaining, `?? ''`) quedan como están, son inofensivos y algunos comparten líneas con UX-72",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
     }
   ]
 }

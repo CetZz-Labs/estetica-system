@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-08-20 — UX-75: Revert de UX-73 — el apellido del cliente vuelve a ser obligatorio
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (1 ronda).
+* **Objetivo:** Pedido directo del usuario, el mismo día en que se cerró UX-73 ("hacer opcional el apellido"): revertir esa decisión y dejar `lastName` obligatorio de nuevo en toda la app, sin afectar UX-72 (borrado de historial) ni UX-74 (fix fecha de hoy), que quedaron bundleados en el mismo commit `fc250a4`.
+
+* **Cambios Backend:**
+  - `apps/server/src/models/Client.ts` — `lastName` vuelve a `required: true` (schema) y `lastName: string` (interfaz `IClient`, sin `?`).
+  - `apps/server/src/routes/clientRoutes.ts` — `notEmpty()` restaurado en los 3 validators de `lastName` (POST creación, POST carga masiva `*.lastName`, PUT edición).
+  - `apps/server/src/controllers/clientController.ts::createBulkClients` — filtro de fila válida vuelve a `if (!firstName || !lastName)`.
+  - `docs/db-schema.md` — fila `lastName` revertida a "Sí" (requerido).
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/ClienteModal.tsx` — `register('lastName', { required: 'Requerido' })`, label "Apellido *", error inline con `FiAlertCircle` restaurados.
+  - `apps/client/src/components/CargaMasivaClientesModal.tsx` — filtro de filas exige `lastName` no vacío de nuevo; badge de columna vuelve a "Obligatorio".
+  - `apps/client/src/types/index.ts` — `ClientSlim.lastName`, `Client.lastName`, `Appointment.client.lastName` vuelven a `string` (sin `?`).
+
+* **Decisión de alcance:** los tweaks defensivos de renderizado que UX-73 había agregado en `Historial.tsx`, `ProfileClient.tsx`, `Clients.tsx`, `Dashboard.tsx`, `Turnos.tsx`, `RegistroModal.tsx`, `EditRegistroModal.tsx`, `AppointmentDetail.tsx`, `Profesionales.tsx` (optional chaining, `?? ''`) **no se revirtieron** — quedan como no-ops inofensivos (lastName nunca será vacío de nuevo) y varios comparten líneas con la feature de borrado de UX-72, por lo que tocarlos habría sido riesgo innecesario sin beneficio.
+
+* **Verificación:** server build Exit 0, client build Exit 0, lint Exit 0 (solo 4 warnings preexistentes no relacionados). `git diff --stat` confirmó que solo se tocaron los archivos esperados — UX-72/UX-74 intactos. Reviewer: **APPROVED** → `progress/reviews/review_UX-75.md`. UX-75 → **done**.
+
+---
+
 ## 2026-06-30 — EP-16: Configuración de disponibilidad del negocio (Fase 4)
 
 * **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (1 ronda).

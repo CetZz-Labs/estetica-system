@@ -40,7 +40,7 @@ export interface UsedProduct {
 export interface ClientSlim {
     _id: string;
     firstName: string;
-    lastName?: string;
+    lastName: string;
     phone?: string;
 }
 
@@ -70,7 +70,7 @@ export interface ServiceRecord {
 export interface Client {
     _id: string;
     firstName: string;
-    lastName?: string;
+    lastName: string;
     phone?: string;
     email?: string;
     medicalNotes?: string;
@@ -100,7 +100,7 @@ export interface Professional {
 
 export interface Appointment {
     _id: string;
-    client: { _id: string; firstName: string; lastName?: string; phone?: string };
+    client: { _id: string; firstName: string; lastName: string; phone?: string };
     service?: { _id: string; name: string; duration: number };
     professional?: { _id: string; name: string; color: string };
     startTime: string;

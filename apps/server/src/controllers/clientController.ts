@@ -131,7 +131,7 @@ export const createBulkClients = async (req: Request, res: Response) => {
             const firstName = String(cli.firstName || '').trim();
             const lastName = String(cli.lastName || '').trim();
 
-            if (!firstName) {
+            if (!firstName || !lastName) {
                 skipped++;
                 continue;
             }

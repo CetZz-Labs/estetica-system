@@ -75,7 +75,7 @@ Clientes del centro de estética. Perfil con datos de contacto y notas médicas.
 | `_id` | `ObjectId` | Auto | PK | ID interno de Mongo |
 | `tenantId` | `ObjectId` (ref: Tenant) | Sí | Indexado | Tenant propietario del cliente |
 | `firstName` | `String` | Sí | - | Nombre del cliente. `trim` |
-| `lastName` | `String` | No (UX-73) | - | Apellido del cliente. `trim`. Opcional: el usuario puede no recordarlo/no quererlo cargar |
+| `lastName` | `String` | Sí | - | Apellido del cliente. `trim` |
 | `phone` | `String` | No | - | Teléfono de contacto. `trim` |
 | `email` | `String` | No | - | Email de contacto. `trim`, `lowercase`. Sin restricción de unicidad |
 | `medicalNotes` | `String` | No | - | Alergias, contraindicaciones, etc. `trim` |
