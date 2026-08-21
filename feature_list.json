@@ -1357,6 +1357,26 @@
       ]
     },
     {
+      "id": "SEC-01",
+      "name": "Parchear vulnerabilidades Dependabot — bumps seguros (sin xlsx)",
+      "module": "Infra/Dependencias",
+      "phase": "Transversal",
+      "status": "done",
+      "description": "GitHub Dependabot reportó 69 vulnerabilidades (30 high, 33 moderate, 6 low) en el repo. `pnpm audit` local confirmó 31 advisories únicas (13 high, 16 moderate, 2 low). El usuario aprobó explícitamente (2026-08-20) actualizar las dependencias con fix ya publicado en npm que caen dentro del rango semver (`^`) ya declarado en package.json, sin agregar librerías nuevas. `xlsx@0.18.5` queda explícitamente fuera de alcance (SheetJS no publica fix en npm; requiere migración al CDN de SheetJS, decisión separada) — debe quedar documentado como riesgo aceptado, no arreglado.",
+      "acceptance_criteria": [
+        "apps/server: mongoose actualizado a >=9.7.2 (fix GHSA-664h-wqgq-64gw, prototype pollution en update casting)",
+        "apps/server: express (o su árbol de deps) actualizado de forma que path-to-regexp quede en >=0.1.13, qs en >=6.15.2, body-parser en >=1.20.6 — si el rango semver actual de express (fijo en '4.21.2', sin caret) no permite absorber la versión parcheada de sus transitivas, usar `pnpm.overrides` en el package.json raíz para forzar `path-to-regexp`, `qs` y `body-parser` a versiones parcheadas sin romper la API de express 4.x",
+        "apps/client: axios actualizado a >=1.18.0 (resuelve 9 CVEs de una sola vez: form-data CRLF, prototype pollution, ReDoS, NO_PROXY bypass, etc.)",
+        "apps/client: react-router actualizado a >=7.18.2 (resuelve DoS por route matching ineficiente, CSRF bypass, open redirect, XSS)",
+        "apps/client: vite actualizado a una versión cuyo postcss transitivo sea >=8.5.23 y nanoid transitivo sea >=3.3.18 — si el caret actual de vite no alcanza, usar `pnpm.overrides` en el package.json raíz",
+        "apps/client (devDependency): eslint/minimatch actualizados de forma que brace-expansion quede en >=5.0.9 (dev-only, no bloqueante para producción pero incluido si el bump es de bajo riesgo)",
+        "xlsx permanece en 0.18.5 sin tocar — agregar nota en CHANGELOG.md o docs/governance-rules.md documentando el riesgo aceptado y el pendiente de migración a CDN de SheetJS",
+        "`pnpm audit` post-cambio muestra 0 advisories high/moderate/low para los paquetes listados arriba (xlsx puede seguir apareciendo, es aceptado)",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0 tras los bumps — prestar atención especial a react-router (posibles breaking changes de API entre 7.15 y 7.18) y mongoose (posibles cambios de tipos)",
+        "No se instaló ninguna librería nueva, solo se actualizaron versiones de dependencias ya presentes en package.json"
+      ]
+    },
+    {
       "id": "UX-75",
       "name": "Revertir apellido opcional — vuelve a ser obligatorio",
       "module": "Clients",

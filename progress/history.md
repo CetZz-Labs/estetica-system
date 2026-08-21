@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-08-20 — SEC-01: Parcheo de vulnerabilidades Dependabot (bumps seguros, xlsx queda aparte)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Objetivo:** GitHub Dependabot reportó 69 vulnerabilidades (30 high, 33 moderate, 6 low) sobre `development`/`main`. `pnpm audit` local confirmó 31 advisories únicas (13 high, 16 moderate, 2 low). El usuario aprobó explícitamente actualizar dependencias existentes dentro de sus rangos semver ya declarados, sin instalar librerías nuevas, dejando `xlsx@0.18.5` fuera de alcance (SheetJS no publica fix en npm).
+
+* **Cambios Backend:**
+  - `apps/server/package.json` — `mongoose` `9.7.0`→`9.9.3` (fix GHSA-664h-wqgq-64gw), `express` `4.21.2`→`4.22.2` (se mantiene en major 4.x) arrastrando `path-to-regexp` `0.1.12`→`0.1.13`, `qs` `6.13.0`→`6.15.3`, `body-parser` `1.20.3`→`1.20.6` como transitivas parcheadas, sin necesidad de `pnpm.overrides`.
+
+* **Cambios Frontend:**
+  - `apps/client/package.json` — `axios` `1.17.0`→`1.19.0` (resuelve 9 CVEs de un solo bump), `react-router` `7.17.0`→`7.18.2`, `vite` `8.0.16`→`8.2.2` arrastrando `postcss` `8.5.15`→`8.5.26` y `nanoid` `3.3.12`→`3.3.18` como transitivas.
+  - `package.json` (raíz) — nuevo bloque `pnpm.overrides.brace-expansion: ">=5.0.9"` (única forma de forzar la transitiva de `eslint>minimatch`, dev-only). Patrón documentado en `docs/conventions.md § Parches de Seguridad en Dependencias Transitivas`.
+
+* **Riesgo aceptado documentado:** `xlsx@0.18.5` mantiene 2 advisories high sin fix publicado en npm (Prototype Pollution GHSA-4r6h-8v6p-xvw6, ReDoS GHSA-5pgg-2g8v-p4x9). Mitigación parcial: el único punto de uso (`CargaMasivaClientesModal.tsx`, carga masiva de clientes por Excel/CSV) es accesible solo para usuarios ADMIN autenticados. Fix real pendiente: migrar al CDN de SheetJS (`https://cdn.sheetjs.com`). Documentado en `CHANGELOG.md § Security`.
+
+* **Verificación:** `pnpm audit` post-cambio → solo sobreviven las 2 advisories de `xlsx` (esperado). Server build Exit 0, client build Exit 0, lint Exit 0 (4 warnings preexistentes no relacionados). Server tests: 31 passed / 4 failed — mismos 4 casos de deuda preexistente en `tenantIsolation.test.ts`, sin regresiones nuevas. Cero archivos tocados dentro de `apps/*/src/` (solo manifiestos y lockfile). Reviewer: **APPROVED** → `progress/reviews/review_SEC-01.md`. SEC-01 → **done**.
+
+---
+
 ## 2026-08-20 — UX-75: Revert de UX-73 — el apellido del cliente vuelve a ser obligatorio
 
 * **Agente:** Claude (Leader) + implementer-backend + implementer-frontend + reviewer (1 ronda).

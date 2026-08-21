@@ -36,6 +36,9 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 
 ### Security
 
+- SEC-01: Parcheadas 29 de las 31 vulnerabilidades reportadas por Dependabot/`pnpm audit` (13 high, 16 moderate, 2 low → quedan 2 high). Bumps dentro del rango semver ya declarado, sin librerías nuevas: `apps/server` — `mongoose` `^9.6.0`→`^9.9.3` (fix `GHSA-664h-wqgq-64gw`, prototype pollution en update casting), `express` `4.21.2`→`4.22.2` (arrastra `path-to-regexp@0.1.13`, `qs@6.15.3`, `body-parser@1.20.6` parcheados, sin saltar a Express 5). `apps/client` — `axios` `^1.16.1`→`^1.19.0` (9 CVEs: form-data CRLF, prototype pollution, ReDoS, bypass de `NO_PROXY`, etc.), `react-router` `^7.15.0`→`^7.18.2` (DoS por route matching ineficiente, CSRF bypass, open redirect, XSS), `vite` `^8.0.12`→`^8.2.2` (arrastra `postcss@8.5.26` y `nanoid@3.3.18` parcheados), `eslint` `^10.3.0`→`^10.8.1` + override `pnpm.overrides.brace-expansion` `>=5.0.9` en el `package.json` raíz (dev-only, transitiva de `minimatch` que `eslint` no controla directamente).
+- **Riesgo aceptado — `xlsx@0.18.5` (SheetJS):** 2 vulnerabilidades high sin fix publicado en npm — `GHSA-4r6h-8v6p-xvw6` (Prototype Pollution) y `GHSA-5pgg-2g8v-p4x9` (ReDoS). El fix real requiere migrar al CDN de SheetJS (https://cdn.sheetjs.com), fuera de alcance de SEC-01 por decisión de producto. Mitigación parcial: el único punto de import de Excel/CSV que usa `xlsx` (`CargaMasivaClientesModal.tsx`) solo es accesible para usuarios ADMIN autenticados, no expuesto a input no confiable de terceros. Pendiente: migración a CDN de SheetJS en una feature futura dedicada.
+
 ---
 
 ## [0.1.0-beta] — 2026-06-10

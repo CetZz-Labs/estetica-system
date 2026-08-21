@@ -199,3 +199,21 @@ No escribir comentarios que describan *qué* hace el código. Solo autorizados p
 ```typescript
 // Se usa $inc en lugar de save() para evitar race conditions en stock concurrente
 ```
+
+## Parches de Seguridad en Dependencias Transitivas (`pnpm.overrides`)
+
+Cuando una vulnerabilidad reportada por `pnpm audit`/Dependabot vive en una dependencia **transitiva** (no declarada directamente en ningún `package.json` del monorepo) y el paquete directo del que depende (ej. `express`, `vite`) no tiene todavía una versión publicada que la arrastre parcheada dentro de su propio rango semver, se fuerza la versión mínima segura con un override en el `package.json` de la **raíz** del monorepo:
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "brace-expansion": ">=5.0.9"
+    }
+  }
+}
+```
+
+* **Solo en la raíz**, nunca en `apps/client/package.json` ni `apps/server/package.json` — `pnpm.overrides` aplica a todo el árbol de resolución del workspace.
+* Antes de recurrir al override, probar primero `pnpm --filter <paquete> update <dep-directa>` — si el rango `^` ya declarado alcanza una versión que trae la transitiva parcheada, no hace falta overridear nada (así se resolvieron `mongoose`→`express`/`path-to-regexp`/`qs`/`body-parser` y `vite`→`postcss`/`nanoid` en SEC-01, 2026-08-20).
+* Cada override que se agregue debe quedar documentado con el CVE/advisory que lo motiva en el commit o en `CHANGELOG.md`, para poder removerlo el día que la dependencia directa lo absorba de forma nativa.
