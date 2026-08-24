@@ -4,10 +4,10 @@ import { useUser } from '@clerk/react';
 import { FiScissors, FiCheck, FiX, FiAlertTriangle, FiTrash2, FiUser, FiClock, FiExternalLink, FiEdit2, FiPackage, FiCheckCircle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
-import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord, getServiceRecords } from '../api/serviceRecordApi';
+import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
 import { getPendingRegistration, cancelAppointment, getUpcomingAppointments } from '../api/appointmentApi';
 import { getProducts } from '../api/productApi';
-import type { ServiceRecord, Appointment, Product, Paginated } from '../types';
+import type { ServiceRecord, Appointment, Product } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
 import { formatDate, getTimelineStatus, formatDateTime, getTodayDateString } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
@@ -27,8 +27,6 @@ const getGreeting = (): string => {
 
 /** Umbral de stock bajo — mismo valor hardcodeado que Inventario.tsx (no existe un campo `minStock` en el modelo Product). */
 const LOW_STOCK_THRESHOLD = 5;
-
-const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 /**
  * Tono visual Shear derivado del `dotColor` "legacy" que devuelve `getTimelineStatus`
@@ -52,20 +50,6 @@ const getServiceCategoryDot = (serviceName?: string): string => {
     if (/corte|peinad|facial|depila/.test(name)) return 'bg-sage';
     if (/uñ|mani|pedi/.test(name)) return 'bg-gold';
     return 'bg-dotted';
-};
-
-/** Lunes y domingo (YYYY-MM-DD) de la semana calendario actual, en horario local. */
-const getCurrentWeekRange = (): { from: string; to: string } => {
-    const now = new Date();
-    const diffToMonday = (now.getDay() + 6) % 7;
-    const monday = new Date(now);
-    monday.setHours(0, 0, 0, 0);
-    monday.setDate(now.getDate() - diffToMonday);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const toStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    return { from: toStr(monday), to: toStr(sunday) };
 };
 
 interface KpiCardProps {
@@ -161,12 +145,6 @@ export default function Dashboard() {
     const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: getProducts,
-    });
-
-    const weekRange = getCurrentWeekRange();
-    const { data: weekRecordsPage, isLoading: isLoadingWeek } = useQuery<Paginated<ServiceRecord>>({
-        queryKey: ['service-records-week', weekRange.from, weekRange.to],
-        queryFn: () => getServiceRecords({ page: 1, limit: 200, dateFrom: weekRange.from, dateTo: weekRange.to }),
     });
 
     const handleTouchupCheck = (clientId: string, serviceId: string) => {
@@ -323,19 +301,6 @@ export default function Dashboard() {
         .sort((a, b) => a.stock - b.stock)
         .slice(0, 5);
 
-    // Bloque destacado wine (§7.5). No existe campo de precio en Service/ServiceRecord
-    // (EP-19 "Reporte de ingresos estimados" sigue pending) — se usa la cantidad real de
-    // servicios registrados esta semana en vez de inventar una cifra monetaria.
-    const weekRecords = weekRecordsPage?.data ?? [];
-    const totalThisWeek = weekRecordsPage?.meta.total ?? 0;
-    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
-    weekRecords.forEach((r) => {
-        const jsDay = new Date(r.serviceDate).getUTCDay();
-        dayCounts[(jsDay + 6) % 7] += 1;
-    });
-    const maxDayCount = Math.max(...dayCounts, 1);
-    const todayIdx = (new Date().getDay() + 6) % 7;
-
     return (
         <div className="max-w-6xl mx-auto">
             {/* KPI cards */}
@@ -364,7 +329,7 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Turnos del día + panel lateral (poco stock / servicios de la semana) */}
+            {/* Turnos del día + panel lateral (poco stock) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div className="lg:col-span-2 bg-surface border border-border rounded-card p-6">
                     <div className="mb-2">
@@ -435,91 +400,50 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                <div className="flex flex-col gap-6">
-                    {/* Poco stock */}
-                    <div className="bg-surface border border-border rounded-card p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <FiPackage className="text-alert-text" aria-hidden />
-                                <h4 className="text-xl font-serif font-semibold text-text">Poco stock</h4>
-                            </div>
-                            <Link to="/inventario" className="text-[13px] font-semibold text-accent hover:opacity-80 transition-opacity">
-                                Productos →
-                            </Link>
+                {/* Poco stock */}
+                <div className="bg-surface border border-border rounded-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <FiPackage className="text-alert-text" aria-hidden />
+                            <h4 className="text-xl font-serif font-semibold text-text">Poco stock</h4>
                         </div>
-                        {isLoadingProducts ? (
-                            <div className="space-y-4 animate-pulse">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="space-y-2">
-                                        <div className="h-3.5 bg-surface-2 rounded w-2/3" />
-                                        <div className="h-1 bg-surface-2 rounded-full w-full" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : lowStockProducts.length === 0 ? (
-                            <div className="flex flex-col items-center gap-2 py-6 text-sage text-center">
-                                <FiCheckCircle size={24} aria-hidden />
-                                <p className="text-sm">Todo el stock está en niveles saludables.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {lowStockProducts.map((product) => {
-                                    const pct = Math.min(100, (product.stock / LOW_STOCK_THRESHOLD) * 100);
-                                    return (
-                                        <div key={product._id}>
-                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                <span className="font-semibold text-text text-sm truncate">{product.name}</span>
-                                                <span className="text-sm font-semibold text-alert-text shrink-0">{product.stock} u.</span>
-                                            </div>
-                                            <p className="text-muted text-[12px] mb-2">Mínimo sugerido: {LOW_STOCK_THRESHOLD} u.</p>
-                                            <div className="h-1 rounded-full bg-dotted overflow-hidden">
-                                                <div className="h-full rounded-full bg-alert-text" style={{ width: `${pct}%` }} />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        <Link to="/inventario" className="text-[13px] font-semibold text-accent hover:opacity-80 transition-opacity">
+                            Productos →
+                        </Link>
                     </div>
-
-                    {/* Bloque destacado — único fondo wine sólido de la vista (docs/design.md §7.5) */}
-                    <div className="bg-wine rounded-card p-6">
-                        <p className="text-[11.5px] uppercase tracking-wide font-semibold" style={{ color: 'var(--color-accent-tint)' }}>
-                            Servicios de la semana
-                        </p>
-                        {isLoadingWeek ? (
-                            <div className="h-9 bg-white/10 rounded w-1/2 mt-2 animate-pulse" />
-                        ) : (
-                            <p className="font-serif text-white text-[34px] font-semibold leading-none mt-2 mb-2">{totalThisWeek}</p>
-                        )}
-                        <p className="text-[12.5px]" style={{ color: 'var(--color-accent-tint)' }}>
-                            {totalThisWeek} servicio{totalThisWeek !== 1 ? 's' : ''} registrado{totalThisWeek !== 1 ? 's' : ''} esta semana
-                        </p>
-                        <div className="flex items-end gap-2 mt-5" style={{ height: '56px' }}>
-                            {DAY_LABELS.map((label, idx) => {
-                                const heightPct = Math.max(10, (dayCounts[idx] / maxDayCount) * 100);
-                                const isToday = idx === todayIdx;
+                    {isLoadingProducts ? (
+                        <div className="space-y-4 animate-pulse">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="space-y-2">
+                                    <div className="h-3.5 bg-surface-2 rounded w-2/3" />
+                                    <div className="h-1 bg-surface-2 rounded-full w-full" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : lowStockProducts.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 py-6 text-sage text-center">
+                            <FiCheckCircle size={24} aria-hidden />
+                            <p className="text-sm">Todo el stock está en niveles saludables.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {lowStockProducts.map((product) => {
+                                const pct = Math.min(100, (product.stock / LOW_STOCK_THRESHOLD) * 100);
                                 return (
-                                    <div key={label} className="flex-1 h-full flex flex-col justify-end">
-                                        <div
-                                            className="w-full rounded-t-sm"
-                                            style={{
-                                                height: `${heightPct}%`,
-                                                backgroundColor: isToday ? 'var(--color-accent-tint)' : 'rgba(227,185,198,.45)',
-                                            }}
-                                        />
+                                    <div key={product._id}>
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                            <span className="font-semibold text-text text-sm truncate">{product.name}</span>
+                                            <span className="text-sm font-semibold text-alert-text shrink-0">{product.stock} u.</span>
+                                        </div>
+                                        <p className="text-muted text-[12px] mb-2">Mínimo sugerido: {LOW_STOCK_THRESHOLD} u.</p>
+                                        <div className="h-1 rounded-full bg-dotted overflow-hidden">
+                                            <div className="h-full rounded-full bg-alert-text" style={{ width: `${pct}%` }} />
+                                        </div>
                                     </div>
                                 );
                             })}
                         </div>
-                        <div className="flex gap-2 mt-1.5">
-                            {DAY_LABELS.map((label) => (
-                                <span key={label} className="flex-1 text-center text-[10px] uppercase tracking-wide" style={{ color: 'rgba(227,185,198,.7)' }}>
-                                    {label}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
 

@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-08-24 — UX-77: Eliminar por completo la tarjeta "Servicios de la semana" del Dashboard
+
+* **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** Follow-up directo del usuario tras UX-76 (mismo día): no alcanzaba con quitar el gráfico de barras, había que sacar la tarjeta wine "Servicios de la semana" (título, número total y subtítulo) por completo del panel lateral del Dashboard.
+
+* **Cambios Frontend (único archivo tocado):**
+  - `apps/client/src/views/Dashboard.tsx` — eliminado el bloque `<div className="bg-wine rounded-card p-6">` completo, junto con el código que solo lo alimentaba: `getCurrentWeekRange`, el `useQuery` de `weekRecordsPage`/`isLoadingWeek`, `weekRange`, `totalThisWeek`, y los imports huérfanos `getServiceRecords` (`../api/serviceRecordApi`) y `Paginated` (`../types`). Se simplificó el wrapper `flex flex-col gap-6` del panel lateral, que ahora contiene únicamente la tarjeta "Poco stock" como segundo hijo directo del grid `lg:grid-cols-3`.
+  - Ninguna otra sección del Dashboard (KPIs, alerta de turnos pendientes, próximos turnos, próximos retoques, últimos movimientos, modales) se modificó.
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados). Grep de residuos (`getServiceRecords|Paginated|weekRange|weekRecordsPage|isLoadingWeek|getCurrentWeekRange|totalThisWeek|DAY_LABELS|bg-wine`) sobre `Dashboard.tsx` → 0 matches. Único archivo tocado. Reviewer: **APPROVED** → `progress/reviews/review_UX-77.md`. UX-77 → **done**.
+
+---
+
+## 2026-08-24 — UX-76: Eliminar gráfico de barras "Servicios de la semana" del Dashboard
+
+* **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** Pedido directo del usuario: quitar el gráfico de barras por día (L-M-X-J-V-S-D) del bloque destacado wine "Servicios de la semana" en el Dashboard, que medía visualmente la cantidad de servicios registrados por día.
+
+* **Cambios Frontend (único archivo tocado):**
+  - `apps/client/src/views/Dashboard.tsx` — eliminado el JSX de la fila de barras (`flex items-end gap-2`, `heightPct`) y la fila de etiquetas de día debajo. Eliminado el código muerto que solo alimentaba el gráfico: `DAY_LABELS`, cálculo de `dayCounts`, `maxDayCount`, `todayIdx` y `weekRecords` (variable intermedia que solo se usaba en el `.forEach` del gráfico).
+  - Se conservó intacto: título "Servicios de la semana", número `totalThisWeek`, subtítulo, fondo wine, y la query `weekRecordsPage`/`getServiceRecords`/`getCurrentWeekRange` (sigue alimentando `totalThisWeek`).
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes `react-hooks/incompatible-library` en otros archivos, no relacionados). `git diff --stat`: 34 líneas eliminadas, 0 agregadas, único archivo tocado. Reviewer: **APPROVED** → `progress/reviews/review_UX-76.md`. UX-76 → **done**.
+
+---
+
 ## 2026-08-20 — SEC-01: Parcheo de vulnerabilidades Dependabot (bumps seguros, xlsx queda aparte)
 
 * **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).

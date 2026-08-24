@@ -1,14 +1,16 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-08-20
+- **Última actualización:** 2026-08-24
 - **Sesión:** activa
-- **Feature en curso:** ninguna — UX-72, UX-74, UX-73, UX-75 y SEC-01 cerradas esta sesión (ver `progress/history.md`)
+- **Feature en curso:** ninguna — UX-76 y UX-77 cerradas esta sesión (ver `progress/history.md`)
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
+- UX-77 (eliminar por completo la tarjeta "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
+- UX-76 (eliminar gráfico de barras "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
 - UX-72 (eliminar registro de historial con restauración de stock, rol ADMIN) → done, ver `progress/history.md`
 - UX-74 (bugfix: no se podía registrar visita con fecha de hoy) → done, ver `progress/history.md`
 - UX-73 (apellido opcional del cliente, incluida carga masiva) → done, ver `progress/history.md`

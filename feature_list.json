@@ -1393,6 +1393,37 @@
         "No tocar Historial.tsx, ProfileClient.tsx, Clients.tsx, Dashboard.tsx, Turnos.tsx, RegistroModal.tsx, EditRegistroModal.tsx, AppointmentDetail.tsx, Profesionales.tsx — sus tweaks defensivos de renderizado (optional chaining, `?? ''`) quedan como están, son inofensivos y algunos comparten líneas con UX-72",
         "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-76",
+      "name": "Eliminar gráfico de barras de servicios de la semana en el Dashboard",
+      "module": "Dashboard",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-08-24): en el bloque destacado wine 'Servicios de la semana' de Dashboard.tsx (docs/design.md §7.5), quitar la visualización de barras por día (L-M-X-J-V-S-D, basada en dayCounts) que mide la cantidad de servicios registrados por día. Se conserva el resto del bloque (título, número total de la semana y subtítulo), que ya comunica la misma información en texto.",
+      "acceptance_criteria": [
+        "Dashboard.tsx — se elimina el JSX de la fila de barras ('flex items-end gap-2', altura calculada con heightPct) y la fila de etiquetas de día debajo de las barras",
+        "Se elimina el código ahora muerto que solo alimentaba el gráfico: constante DAY_LABELS, cálculo de dayCounts, maxDayCount y todayIdx — sin dejar variables sin usar (el build de TS con noUnusedLocals debe pasar)",
+        "Se conserva sin cambios: título 'Servicios de la semana', el número totalThisWeek, el subtítulo '{totalThisWeek} servicio(s) registrado(s) esta semana', y el fondo wine del bloque",
+        "La query weekRecordsPage/getServiceRecords (rango de la semana actual) se conserva intacta porque sigue alimentando totalThisWeek — no tocar getCurrentWeekRange ni la queryKey",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-77",
+      "name": "Eliminar por completo la sección 'Servicios de la semana' del Dashboard",
+      "module": "Dashboard",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Follow-up directo del usuario tras UX-76 (2026-08-24): no alcanza con quitar el gráfico de barras, hay que eliminar toda la tarjeta wine 'Servicios de la semana' (título, número total y subtítulo) del panel lateral del Dashboard, junto con todo el código que solo la alimentaba (query semanal, cálculo de rango de semana).",
+      "acceptance_criteria": [
+        "Dashboard.tsx — se elimina por completo el bloque `<div className=\"bg-wine rounded-card p-6\">...</div>` ('Servicios de la semana') dentro del panel lateral (`flex flex-col gap-6` junto a 'Poco stock')",
+        "El panel lateral queda solo con la tarjeta 'Poco stock', sin dejar un contenedor `flex flex-col` vacío alrededor de un único hijo (puede simplificarse si corresponde, pero no es obligatorio si el layout se ve correcto)",
+        "Se elimina el código ahora muerto que solo alimentaba esa tarjeta: la query `weekRecordsPage`/`isLoadingWeek` (useQuery con queryKey ['service-records-week', ...]), `weekRange`, la función `getCurrentWeekRange`, y `totalThisWeek` — sin dejar variables sin usar",
+        "Se elimina el import de `getServiceRecords` de '../api/serviceRecordApi' si queda sin otro uso en el archivo, y el import de tipo `Paginated` de '../types' si queda sin otro uso",
+        "No se toca ninguna otra sección del Dashboard (KPIs, alerta de turnos pendientes, próximos turnos, poco stock, próximos retoques, últimos movimientos, modales)",
+        "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
+      ]
     }
   ]
 }
