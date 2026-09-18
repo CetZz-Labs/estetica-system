@@ -2,6 +2,40 @@
 
 ---
 
+## 2026-09-18 — UX-78: Revertir UX-70 — vuelve a crearse el turno automático al registrar un retoque directo
+
+* **Agente:** Claude (Leader, diagnóstico propio vía `git show`) + implementer (backend) + reviewer (1 ronda).
+* **Objetivo:** pedido directo del usuario — revertir UX-70 (2026-08-04), que había eliminado la auto-creación de un `Appointment` en la agenda al registrar una visita directa (`POST /api/registros`) con "Próximo Retoque". El usuario quería que volviera a crearse también el turno, como antes de UX-70.
+
+* **Diagnóstico del leader:** localizado el commit exacto que introdujo la regresión (`ae1328a`, UX-70/69/71/68). `git show ae1328a -- apps/server/src/controllers/serviceRecordController.ts` dio el diff exacto a restaurar. Se confirmó que `completeAppointment` (`appointmentController.ts`, flujo de completar un turno ya agendado) **nunca perdió** este comportamiento — solo faltaba en el registro directo, acotando el alcance de la reversión a un único archivo.
+
+* **Cambios Backend (único archivo tocado):**
+  - `apps/server/src/controllers/serviceRecordController.ts` — reimportado `Appointment` desde `'../models/Appointment'`; restaurado el bloque "Auto-create next touchup appointment in calendar" dentro de `createServiceRecord`, entre `savedRecord.save()` y el `return res.status(201)`. Usa las variables ya existentes del scope (`finalNextTouchupDate`, `foundService`, `tenantId`, `client`, `service`, `professional`, `req.adminInfo!._id`) — sin derivar "effective service/professional" (ya son obligatorios en este flujo, a diferencia de `completeAppointment`). Sin validación de solapamiento/horario para este Appointment auto-generado, mismo criterio que el bloque análogo en `completeAppointment`. Contrato de respuesta de `POST /api/registros` sin cambios (sigue devolviendo `savedRecord` directo).
+
+* **Efecto colateral positivo (reversión del trade-off de UX-70):** al volver a existir el `Appointment` del retoque, `reminderScheduler.ts` (GOV-NOTIFY) vuelve a enviar el recordatorio por mail 24h antes para estos retoques — consecuencia automática, sin cambio de código adicional.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0 (verificado por implementer y de nuevo, independientemente, por el reviewer). `git diff` hermético: único archivo de código tocado `serviceRecordController.ts` (+22 líneas); `appointmentController.ts` sin cambios (confirmado explícitamente, ya que su bloque análogo en `completeAppointment` es preexistente e intacto). Sin secretos, sin `console.log`/`debugger`/TODO, `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_UX-78.md`. UX-78 → **done**.
+
+---
+
+## 2026-09-18 — OPS-01: Endpoint público /api/health para keep-alive de Render (plan free)
+
+* **Agente:** Claude (Leader) + implementer (backend) + reviewer (1 ronda).
+* **Objetivo:** pedido operativo directo del usuario, sin relación con el backlog SRS — el servidor corre en el plan free de Render, que suspende la instancia tras inactividad. El usuario quería configurar un cron externo en cron-job.org que pegue cada 14 minutos entre las 06:00 y la 01:00 (día siguiente) hora Argentina para mantenerla activa en esa franja. Se dio de alta la feature `OPS-01` en `feature_list.json` (nuevo prefijo `OPS` para tareas de infra/deploy transversales).
+
+* **Cambios Backend (único archivo tocado):**
+  - `apps/server/src/server.ts` — nuevo `app.get('/api/health', ...)` inline, montado **antes** de `app.use(clerkMiddleware())`, por lo tanto 100% público (sin `checkAdminAccess`/`checkTenantAccess`/`requireRole`). Responde `200 { status: 'ok', timestamp: new Date().toISOString() }`. Sin acceso a Mongoose ni a ningún modelo. Mismo estilo que el `app.get('/api', ...)` preexistente.
+
+* **Bloqueo de entorno encontrado y resuelto:** el implementer detectó que `pnpm --filter @estetica/server build` fallaba con `Cannot find module '.../typescript/bin/tsc'`, ajeno al cambio de código. Causa raíz: todos los symlinks de `node_modules/*` en los tres workspaces apuntaban a una ruta stale `...\Estetica-system-monorepo\node_modules\.pnpm\...` que ya no existe — quedaron rotos tras un rename previo de la carpeta del repo (de `Estetica-system-monorepo` a `Estetica-system`). El implementer no lo resolvió por su cuenta (regla dura: no correr `pnpm install` sin aprobación humana explícita) y lo documentó como bloqueo. El leader pidió aprobación explícita al usuario vía `AskUserQuestion`, y con el "sí" corrió `CI=true pnpm install` en la raíz (no interactivo por falta de TTY; no agregó ni cambió versiones de dependencias, solo regeneró symlinks desde el lockfile existente). Build posterior: exit code 0.
+
+* **Entrega fuera de código:** el leader armó y entregó al usuario en el chat la configuración de cron-job.org — URL `https://<app>.onrender.com/api/health`, método GET, expresión cron `*/14 0-1,6-23 * * *` en timezone `America/Argentina/Buenos_Aires` (cubre 06:00→01:00 del día siguiente, inactivo 02:00–05:59).
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0 (verificado independientemente por implementer bloqueado→leader tras el fix, y de nuevo por el reviewer). `git diff --stat` hermético: solo `server.ts`, +7 líneas. Sin secretos, sin `console.log`/`debugger`/TODO, `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_OPS-01.md`. OPS-01 → **done**.
+
+* **Nota operativa para sesiones futuras:** si vuelve a aparecer `Cannot find module '.../node_modules/typescript/bin/tsc'` (u otro módulo) en cualquier workspace, es el mismo síntoma de symlinks stale tras un rename de carpeta — repetir `CI=true pnpm install` en la raíz del monorepo (con aprobación humana), no es necesariamente un bug de código nuevo.
+
+---
+
 ## 2026-08-24 — UX-77: Eliminar por completo la tarjeta "Servicios de la semana" del Dashboard
 
 * **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).

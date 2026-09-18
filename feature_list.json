@@ -1424,6 +1424,37 @@
         "No se toca ninguna otra sección del Dashboard (KPIs, alerta de turnos pendientes, próximos turnos, poco stock, próximos retoques, últimos movimientos, modales)",
         "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "OPS-01",
+      "name": "Endpoint de health check público para keep-alive de Render (plan free)",
+      "module": "Infra/Deploy",
+      "phase": "Transversal",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-18): el servidor corre en el plan free de Render, que suspende la instancia tras inactividad. El usuario quiere configurar un cron externo en cron-job.org que haga ping cada 14 minutos entre las 06:00 y la 01:00 (día siguiente) hora Argentina para mantener la instancia activa en esa franja. Se necesita un endpoint liviano, sin autenticación (excepción ya documentada en AGENTS.md §4: 'Todos los endpoints de la API DEBEN estar autenticados, excepto health check'), que no toque la base de datos ni lógica de negocio.",
+      "acceptance_criteria": [
+        "Nuevo endpoint GET /api/health montado en apps/server/src/server.ts, ANTES de clerkMiddleware/checkAdminAccess — no debe requerir autenticación ni tenant",
+        "Responde 200 con un JSON mínimo tipo { status: 'ok', timestamp: <ISO string> } — sin consultar Mongoose ni ningún modelo de negocio",
+        "No aplica checkAdminAccess, checkTenantAccess ni ningún middleware de auth — debe ser accesible públicamente para que cron-job.org pueda pegarle",
+        "No se crea un router/controller/model nuevo si el endpoint puede vivir como un handler inline en server.ts, siguiendo el patrón ya existente de app.get('/api', ...) en la misma línea de código",
+        "pnpm --filter @estetica/server build pasa con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-78",
+      "name": "Revertir UX-70: volver a crear el turno automático al registrar un retoque",
+      "module": "ServiceRecords",
+      "phase": "Fase 4 — Agenda",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-18): revertir UX-70. Al registrar una visita directamente (POST /api/registros, createServiceRecord — NO vía completar un turno existente) con 'Próximo Retoque' completado, el sistema debe volver a crear también un Appointment automático en la agenda además del ServiceRecord, tal como funcionaba antes de UX-70 (commit ae1328a lo eliminó). El bloque original a restaurar es exactamente el que existía antes de UX-70 — diff disponible en `git show ae1328a -- apps/server/src/controllers/serviceRecordController.ts`. Nota: completeAppointment (appointmentController.ts, flujo de completar un turno agendado) NUNCA dejó de crear este Appointment de retoque automático — solo faltaba en el flujo de registro directo, que es el que se revierte acá. Efecto colateral POSITIVO esperado (reversión del trade-off aceptado en UX-70): al volver a existir el Appointment, reminderScheduler.ts (GOV-NOTIFY) vuelve a enviar el recordatorio por mail 24h antes para estos retoques — no requiere cambio de código adicional, es consecuencia automática de que la colección Appointment vuelva a tener el registro.",
+      "acceptance_criteria": [
+        "apps/server/src/controllers/serviceRecordController.ts — se reimporta `Appointment` desde '../models/Appointment'",
+        "createServiceRecord — después de `const savedRecord = await newRecord.save();` y antes del `return res.status(201).json(savedRecord)`, se restaura el bloque 'Auto-create next touchup appointment in calendar': si `finalNextTouchupDate` está presente, crea un `Appointment` con `tenantId`, `client`, `service`, `professional` (los mismos valores ya validados del body, no un 'effective*' derivado), `startTime: new Date(finalNextTouchupDate)`, `endTime` calculado con `foundService.duration || 60` minutos, `status: 'pending'`, `notes: 'Retoque programado automáticamente'`, `createdBy: req.adminInfo!._id`, `isActive: true`",
+        "El contrato de respuesta de POST /api/registros NO cambia — sigue devolviendo el ServiceRecord guardado directamente (sin envolver en un objeto con touchupAppointment), igual que antes de UX-70 y que ahora",
+        "No se valida solapamiento de agenda ni horario de atención para este Appointment auto-generado (mismo comportamiento que el bloque original de antes de UX-70 y que el análogo ya existente en completeAppointment) — es un evento de sistema, no una reserva interactiva",
+        "Ningún otro flujo que cree Appointments (turnos manuales vía createAppointment, completeAppointment) se modifica",
+        "pnpm --filter @estetica/server build pasa con exit code 0"
+      ]
     }
   ]
 }

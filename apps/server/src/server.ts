@@ -41,6 +41,13 @@ app.use((req, res, next) => {
 });
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// OPS-01: healthcheck público, sin ningún middleware de auth ni acceso a Mongoose.
+// Solo confirma que el proceso Node está vivo (para que un cron externo evite
+// que Render suspenda la instancia en el plan free por inactividad).
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
 app.use(clerkMiddleware())
 
 app.get('/api', (req, res) => {
