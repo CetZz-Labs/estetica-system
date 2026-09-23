@@ -1424,6 +1424,25 @@
         "No se toca ninguna otra sección del Dashboard (KPIs, alerta de turnos pendientes, próximos turnos, poco stock, próximos retoques, últimos movimientos, modales)",
         "pnpm --filter @estetica/client build y pnpm --filter @estetica/client lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-78",
+      "name": "Sección de recordatorios manuales de turnos por WhatsApp",
+      "module": "Notifications",
+      "phase": "Fase 2 — Notificaciones",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-23): nueva vista dentro de la app donde aparezcan todos los clientes con turno agendado para HOY (status pending/confirmed, no cancelados), con un botón por fila para enviarles manualmente un recordatorio por WhatsApp. Decisión confirmada explícitamente con el usuario tras dos preguntas de scope: (1) NO se toca la notificación push diaria existente (UX-68, ya hace exactamente esto vía cron a las 8am con resumen contado) — queda fuera de alcance; (2) el envío de WhatsApp es manual vía link wa.me (no integración de API tipo Twilio/Meta Cloud API), el botón abre WhatsApp Web/App con el mensaje predefinido ya cargado y el admin aprieta 'Enviar' a mano — sin nueva dependencia, sin cuenta de negocio, sin costo por mensaje.",
+      "acceptance_criteria": [
+        "Nueva vista (ej. /recordatorios) protegida por auth, con entrada propia en el sidebar (AppLayout.tsx), que lista los turnos de HOY del tenant (status pending o confirmed, isActive:true) ordenados por hora, mostrando nombre completo del cliente, servicio, horario y profesional",
+        "Reutiliza GET /api/turnos con startDate/endDate acotados al día de hoy (mismo criterio de 'hoy' ya usado en el resto de la app) — no se crea un endpoint nuevo",
+        "Backend: getAppointments (appointmentController.ts) agrega 'phone' al populate de 'client' (hoy solo trae firstName lastName) — único cambio de backend, sin alterar el contrato existente para los consumidores actuales (Turnos.tsx) que ignoran el campo nuevo",
+        "Cada fila tiene un botón 'Enviar recordatorio por WhatsApp' que abre en una pestaña nueva https://wa.me/<telefono>?text=<mensaje> con el teléfono normalizado (solo dígitos, prefijo de país agregado si falta) y el mensaje predefinido pre-cargado vía encodeURIComponent — mensaje con placeholders de nombre del cliente, servicio, fecha/hora y nombre del negocio, tono consistente con el texto plano de mailService.ts::sendAppointmentReminder",
+        "Clientes sin teléfono cargado (Client.phone es opcional) se listan igual pero el botón aparece deshabilitado con la razón visible (trifecta de accesibilidad: color + icono + texto), no se rompe el render del resto de la fila",
+        "4 estados obligatorios (.claude/rules/frontend.md §3): loading (skeleton), error (toast + handleApiError), vacío ('No hay turnos para hoy', trifecta), data",
+        "Vista NO pagina server-side: al estar acotada a 'los turnos de hoy' se documenta como excepción equivalente a los widgets de dashboard (docs/patterns-backend.md, sección de exenciones), no aplica P1",
+        "No se modifica pushReminderScheduler.ts, reminderScheduler.ts, ni ninguna otra funcionalidad de notificaciones existente (UX-68, EP-17) — feature aditiva y aislada",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
     }
   ]
 }

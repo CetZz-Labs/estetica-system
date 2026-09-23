@@ -69,6 +69,7 @@ export const getClients = async (req: Request, res: Response) => {
 - **Catálogos acotados** con tope pequeño y conocido (selects/dropdowns de servicios).
 - **Rankings / top-N** que no son tablas navegables: array plano ordenado con `.limit(N)` fijo, renderizado sin controles de paginación.
 - **Agregaciones / KPIs** que no devuelven filas (`dashboard/stats`).
+- **Vistas acotadas a un día calendario** (ej. `/recordatorios` de UX-78, agenda diaria): el filtro de fecha (`startDate`/`endDate` = hoy) ya acota el dataset a un tamaño naturalmente pequeño, mismo criterio que los widgets de dashboard — no aplica P1 aunque la UI sea una tabla/lista navegable.
 
 ---
 
