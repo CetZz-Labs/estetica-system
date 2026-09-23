@@ -1,3 +1,9 @@
 node_modules
 EsteticaSystem_SRS_v1_0.md
 .atl
+
+# Bitácoras de comunicación entre subagentes (explorer/implementer/reviewer):
+# uso interno del arnés, no aportan valor en el repo remoto.
+progress/implements/
+progress/reviews/
+progress/explores/

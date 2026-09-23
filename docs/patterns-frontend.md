@@ -585,7 +585,7 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ## P17 — Link `wa.me` manual con normalización best-effort de teléfono AR
 
-> **Origen:** UX-78 (Sección de recordatorios manuales de turnos por WhatsApp, 2026-09-23).
+> **Origen:** UX-79 (Sección de recordatorios manuales de turnos por WhatsApp, 2026-09-23).
 
 **Cuándo usarlo:** cualquier botón que abra un chat de WhatsApp pre-cargado con un mensaje, sin enviarlo automáticamente (el usuario humano revisa y aprieta "Enviar" a mano) — no requiere API de pago, cuenta de negocio ni nueva dependencia.
 

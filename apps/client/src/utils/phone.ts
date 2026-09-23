@@ -2,7 +2,7 @@
  * Normaliza un teléfono argentino guardado en `Client.phone` (formato libre, sin validación
  * en el schema) al E.164 esperado por los links `wa.me` (54 9 <código de área><número>, sin '+').
  *
- * Limitación conocida (UX-78, no se resuelve acá): números guardados en el formato viejo
+ * Limitación conocida (UX-79, no se resuelve acá): números guardados en el formato viejo
  * "código de área + 15 + número" (ej. "011 15 1234-5678") producen un link incorrecto porque
  * no hay forma confiable de saber dónde termina el código de área para quitar el "15" infijo.
  * Riesgo aceptado: el envío es manual y el admin ve el chat de WhatsApp antes de mandar nada.

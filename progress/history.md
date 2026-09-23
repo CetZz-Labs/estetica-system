@@ -1520,10 +1520,11 @@
 
 ---
 
-## 2026-09-23 — UX-78: Sección de recordatorios manuales de turnos por WhatsApp
+## 2026-09-23 — UX-79: Sección de recordatorios manuales de turnos por WhatsApp
 
+* **Nota de renumeración:** esta feature se implementó originalmente como "UX-78". Al mergear a `development`/`main` se detectó que un compañero (Lautaro) ya había usado el ID `UX-78` para otra feature distinta (revert de UX-70 + OPS-01), commiteada directo en `main` el 2026-09-18 sin pasar por `development`. Se renombró esta feature a `UX-79` (todas las referencias en `feature_list.json`, código y documentación) para resolver la colisión — la rama sigue llamándose `feature/UX-78-recordatorios-whatsapp` por ser cosmético y no haberse publicado nunca a `origin`.
 * **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
-* **Rama:** `feature/UX-78-recordatorios-whatsapp`, partida de `development`.
+* **Rama:** `feature/UX-78-recordatorios-whatsapp` (nombre de rama sin renombrar, ver nota arriba), partida de `development`.
 * **Objetivo:** pedido directo del usuario, con dos partes. (1) Push notification diaria a las 8am con los turnos del día — se detectó en el arranque de sesión que **ya existe** (`UX-68`, cerrada 2026-08-04, `pushReminderScheduler.ts`, cron `0 8 * * *`, resumen contado por admin suscripto); confirmado con el usuario vía `AskUserQuestion` que queda **fuera de alcance**, tal cual. (2) Nueva sección para enviar recordatorios manuales de turno por WhatsApp — esto sí era 100% nuevo (sin integración de WhatsApp previa en el repo). Decisión de producto confirmada con el usuario: envío **manual** vía link `wa.me` (sin API de pago, sin cuenta de negocio, sin nueva dependencia) — el admin ve el chat pre-cargado y aprieta "Enviar" a mano.
 
 * **Decisiones de producto confirmadas con el usuario (vía `AskUserQuestion`, tras hallazgos del `explorer`):**
@@ -1543,6 +1544,6 @@
   - `docs/patterns-frontend.md` § P17 — link `wa.me` manual + heurística de normalización de teléfono AR, con el gotcha del formato viejo "15" documentado.
   - `docs/patterns-backend.md` § exenciones de paginación — nueva categoría "vistas acotadas a un día calendario" (dataset ya acotado por el filtro de fecha, mismo criterio que los widgets de dashboard).
 
-* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados). `pnpm --filter @estetica/server test`: mismos 4 fallos preexistentes de `tenantIsolation.test.ts` (deuda documentada, sin relación al cambio de esta feature). Sin dependencias nuevas. Reviewer: **APPROVED** → `progress/reviews/review_UX-78.md`. UX-78 → **done**.
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados). `pnpm --filter @estetica/server test`: mismos 4 fallos preexistentes de `tenantIsolation.test.ts` (deuda documentada, sin relación al cambio de esta feature). Sin dependencias nuevas. Reviewer: **APPROVED** → `progress/reviews/review_UX-79.md` (archivo renombrado de `review_UX-78.md` junto con la feature). UX-79 → **done**.
 
 * **Pendiente para el usuario:** confirmar en la app real (login) que el link `wa.me` abre correctamente con números reales de la base antes de mergear a `development`/`main`; probar al menos un número en formato viejo "15" para decidir si vale la pena una migración de datos de `Client.phone` a futuro.

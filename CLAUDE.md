@@ -46,12 +46,14 @@ Los subagentes **nunca deben transferir código crudo por el chat**. Al lanzar s
 - `progress/reviews/review_<feature>.md` ➡️ Checklist de QA del reviewer.
 - `progress/history.md` ➡️ Registro histórico append-only.
 
+> **Política de git (2026-09-18):** `progress/implements/`, `progress/reviews/` y `progress/explores/` están en `.gitignore` — son bitácoras internas de comunicación entre subagentes, cumplen su función en disco durante la sesión pero **no se commitean ni se publican al repo remoto**. `progress/current.md` y `progress/history.md` sí se commitean (son el estado vivo y el registro histórico permanente). Al archivar (paso siguiente), usá `mv` común, no `git mv` — esos archivos ya no están trackeados.
+
 > **Compuerta de naming:** ordena explícitamente al subagente el **nombre de archivo exacto** (carpeta incluida) antes de lanzarlo — no dejes que lo infiera. El `<ID>` debe ser **idéntico** al campo `id` de `feature_list.json` (ej. `EP-08`, `UX-02`), preservando mayúsculas y guiones. El sufijo `-backend`/`-frontend` es obligatorio solo cuando la feature se reparte entre los dos sandboxes (cada implementer escribe su propio archivo; nunca uno compartido → condiciones de carrera).
 
 ### Ciclo de vida de `progress/` al cerrar una feature
 
 1. **Extraer lo reutilizable:** antes de archivar, revisá las "Decisiones técnicas / Hallazgos" del `impl_*.md`. Si hay un patrón o gotcha genuinamente nuevo y reutilizable, promovelo a `docs/patterns-backend.md`, `docs/patterns-frontend.md`, `docs/architecture.md` o `docs/conventions.md`. Lo que solo reafirma una convención ya documentada NO se extrae (evitar duplicación).
-2. **Archivar:** mové el/los `impl_*.md` y `explore_*.md` de la feature cerrada a `progress/implements/_archive/` y `progress/explores/_archive/` con `git mv` (nunca borrado destructivo). `progress/history.md` ya conserva el resumen permanente; las carpetas de trabajo quedan despejadas para la siguiente feature.
+2. **Archivar:** mové el/los `impl_*.md` y `explore_*.md` de la feature cerrada a `progress/implements/_archive/` y `progress/explores/_archive/` con `mv` común (no `git mv` — están gitignored desde 2026-09-18, ver nota arriba; nunca borrado destructivo). `progress/history.md` ya conserva el resumen permanente; las carpetas de trabajo quedan despejadas para la siguiente feature.
 
 ---
 
