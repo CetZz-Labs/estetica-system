@@ -1517,3 +1517,32 @@
 * **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (solo warnings preexistentes documentados). Reviewer: **APPROVED** (2 rondas) → `progress/reviews/review_UX-73.md`. UX-73 → **done**.
 
 * **Cierre de las 3 features de la sesión (2026-08-20):** UX-72 (eliminar registro de historial con restauración de stock), UX-74 (bugfix fecha de hoy rechazada) y UX-73 (apellido opcional) quedan las tres **done**. Quedan pendientes del usuario humano: revisar en la app real que el flujo de registro de visitas y el borrado de historial funcionen antes del merge a development/main.
+
+---
+
+## 2026-09-23 — UX-78: Sección de recordatorios manuales de turnos por WhatsApp
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/UX-78-recordatorios-whatsapp`, partida de `development`.
+* **Objetivo:** pedido directo del usuario, con dos partes. (1) Push notification diaria a las 8am con los turnos del día — se detectó en el arranque de sesión que **ya existe** (`UX-68`, cerrada 2026-08-04, `pushReminderScheduler.ts`, cron `0 8 * * *`, resumen contado por admin suscripto); confirmado con el usuario vía `AskUserQuestion` que queda **fuera de alcance**, tal cual. (2) Nueva sección para enviar recordatorios manuales de turno por WhatsApp — esto sí era 100% nuevo (sin integración de WhatsApp previa en el repo). Decisión de producto confirmada con el usuario: envío **manual** vía link `wa.me` (sin API de pago, sin cuenta de negocio, sin nueva dependencia) — el admin ve el chat pre-cargado y aprieta "Enviar" a mano.
+
+* **Decisiones de producto confirmadas con el usuario (vía `AskUserQuestion`, tras hallazgos del `explorer`):**
+  - Normalización de teléfono: heurística best-effort (dígitos → quita `0` inicial → quita `54` si ya está → antepone `9` si falta → prefija `54`), riesgo aceptado de fallar con el formato viejo "código de área + 15 + número" porque el envío es manual (el admin revisa antes de mandar).
+  - Acceso a la vista: sin restricción de rol, igual que `/turnos` hoy — visible para ADMIN, PROFESSIONAL y RECEPTIONIST, ubicada en el sidebar junto a "Turnos" (no dentro de "Configuración", que es ADMIN-only).
+
+* **Cambios Backend (1 línea, único archivo tocado):**
+  - `apps/server/src/controllers/appointmentController.ts::getAppointments` — `.populate('client', 'firstName lastName')` → `.populate('client', 'firstName lastName phone')`. Confirmado sin impacto en otros consumidores (`getAppointmentById`/`getClientAppointments` tienen sus propios populates; `getUpcomingAppointments` ya traía `phone`; el tipo frontend `Appointment.client.phone?: string` ya era opcional).
+
+* **Cambios Frontend:**
+  - `apps/client/src/utils/phone.ts` (nuevo) — `toWhatsAppPhone(rawPhone)`, heurística acordada, promovida a `docs/patterns-frontend.md` § P17.
+  - `apps/client/src/views/Recordatorios.tsx` (nuevo) — vista con los 4 estados obligatorios; turnos de HOY (`status` pending/confirmed filtrado client-side, `GET /api/turnos` solo acepta `status` como valor único, no `$in`); botón `wa.me` por fila con mensaje pre-cargado (`formatFullDateTime` + `getTenant()` deduplicado con `Negocio.tsx`); botón deshabilitado con trifecta completa (`FiPhoneOff` + texto "Sin teléfono") cuando falta el teléfono.
+  - `apps/client/src/router.tsx` — ruta `/recordatorios` sin `ProtectedRoute`, dentro de `AppLayout`.
+  - `apps/client/src/layouts/AppLayout.tsx` — entrada de sidebar entre "Turnos" e "Historial de Visitas".
+
+* **Patrones/documentación promovidos:**
+  - `docs/patterns-frontend.md` § P17 — link `wa.me` manual + heurística de normalización de teléfono AR, con el gotcha del formato viejo "15" documentado.
+  - `docs/patterns-backend.md` § exenciones de paginación — nueva categoría "vistas acotadas a un día calendario" (dataset ya acotado por el filtro de fecha, mismo criterio que los widgets de dashboard).
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados). `pnpm --filter @estetica/server test`: mismos 4 fallos preexistentes de `tenantIsolation.test.ts` (deuda documentada, sin relación al cambio de esta feature). Sin dependencias nuevas. Reviewer: **APPROVED** → `progress/reviews/review_UX-78.md`. UX-78 → **done**.
+
+* **Pendiente para el usuario:** confirmar en la app real (login) que el link `wa.me` abre correctamente con números reales de la base antes de mergear a `development`/`main`; probar al menos un número en formato viejo "15" para decidir si vale la pena una migración de datos de `Client.phone` a futuro.

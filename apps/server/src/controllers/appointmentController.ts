@@ -148,7 +148,7 @@ export const getAppointments = async (req: Request, res: Response) => {
         if (status) filter.status = status;
 
         const appointments = await Appointment.find(filter)
-            .populate('client', 'firstName lastName')
+            .populate('client', 'firstName lastName phone')
             .populate('service', 'name duration')
             .populate('professional', 'name color')
             .sort({ startTime: 1 });

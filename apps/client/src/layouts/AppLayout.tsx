@@ -149,6 +149,7 @@ export default function AppLayout() {
                     )}
 
                     <SidebarNavLink to="/turnos" onClick={closeMenu}>Turnos</SidebarNavLink>
+                    <SidebarNavLink to="/recordatorios" onClick={closeMenu}>Recordatorios</SidebarNavLink>
                     <SidebarNavLink to="/historial" onClick={closeMenu}>Historial de Visitas</SidebarNavLink>
                     <SidebarNavLink to="/guia" onClick={closeMenu}>Guía</SidebarNavLink>
 

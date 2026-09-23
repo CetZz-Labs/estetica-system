@@ -583,4 +583,35 @@ const closeDetail = () => { setSelected(null); setIsEditingX(false); };
 
 ---
 
+## P17 — Link `wa.me` manual con normalización best-effort de teléfono AR
+
+> **Origen:** UX-78 (Sección de recordatorios manuales de turnos por WhatsApp, 2026-09-23).
+
+**Cuándo usarlo:** cualquier botón que abra un chat de WhatsApp pre-cargado con un mensaje, sin enviarlo automáticamente (el usuario humano revisa y aprieta "Enviar" a mano) — no requiere API de pago, cuenta de negocio ni nueva dependencia.
+
+```ts
+// apps/client/src/utils/phone.ts
+export function toWhatsAppPhone(rawPhone: string): string | null {
+  const digits = rawPhone.replace(/\D/g, '');
+  if (!digits) return null;
+  let d = digits;
+  if (d.startsWith('0')) d = d.slice(1);
+  if (d.startsWith('54')) {
+    d = d.slice(2);
+    if (d.startsWith('0')) d = d.slice(1);
+  }
+  if (!d.startsWith('9')) d = '9' + d;
+  return '54' + d;
+}
+
+// Uso:
+window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encodeURIComponent(mensaje), '_blank');
+```
+
+**Gotcha (limitación conocida, riesgo aceptado):** `Client.phone` se guarda como texto libre sin formato estándar (`Client.ts`, sin regex). La heurística no puede detectar de forma confiable un "15" infijo del formato viejo argentino (código de área + `15` + número, ej. `011 15 1234-5678`) porque el largo del código de área varía (2 a 4 dígitos) — un teléfono cargado en ese formato produce un link `wa.me` incorrecto. Aceptable porque el envío es manual: el admin ve el chat (o el error "número no válido" de WhatsApp) antes de mandar nada, nunca se envía a ciegas.
+
+**Trifecta obligatoria cuando `toWhatsAppPhone` devuelve `null`:** el botón debe quedar `disabled` con color apagado + ícono (ej. `FiPhoneOff`) + texto visible ("Sin teléfono") en la misma fila — no alcanza con un `title`/tooltip (GOV-ACCESS).
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

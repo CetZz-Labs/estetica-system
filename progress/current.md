@@ -1,14 +1,15 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-08-24
+- **Última actualización:** 2026-09-23
 - **Sesión:** activa
-- **Feature en curso:** ninguna — UX-76 y UX-77 cerradas esta sesión (ver `progress/history.md`)
+- **Feature en curso:** ninguna — UX-78 cerrada esta sesión (ver `progress/history.md`)
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
+- UX-78 (sección de recordatorios manuales de turnos por WhatsApp, rama `feature/UX-78-recordatorios-whatsapp`) → done, ver `progress/history.md`
 - UX-77 (eliminar por completo la tarjeta "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
 - UX-76 (eliminar gráfico de barras "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
 - UX-72 (eliminar registro de historial con restauración de stock, rol ADMIN) → done, ver `progress/history.md`
@@ -25,6 +26,7 @@ _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 - **xlsx@0.18.5 — riesgo de seguridad aceptado (2026-08-20, SEC-01):** 2 advisories high sin fix publicado en npm (Prototype Pollution, ReDoS). Fix real requiere migrar al CDN de SheetJS. Uso acotado a `CargaMasivaClientesModal.tsx`, solo ADMIN. Candidata a feature futura si se prioriza.
 
 ## Bloqueos y Riesgos Conocidos
+- **UX-78 — pendiente de validación humana antes de merge:** probar en la app real (login) que el link `wa.me` abre correctamente con números reales de la base, en particular al menos uno en formato viejo "código de área + 15 + número" (`docs/patterns-frontend.md` § P17 documenta la limitación conocida de la heurística de normalización).
 - **Deuda de test preexistente (no bloqueante):** `apps/server/src/__tests__/tenantIsolation.test.ts` tiene 4 tests fallando en `POST /api/registros` por no enviar `professional` en el body (obligatorio desde EP-11). Candidata a feature de mantenimiento futura.
 - **UX-68 — simplificación de alcance documentada (no bloqueante):** el cron diario de push (`pushReminderScheduler.ts`) calcula "hoy" con la timezone del proceso servidor, no `tenant.timezone`.
 - Reporte de cliente (2026-07-31): "Productos usados" no se veía en `Historial.tsx` tras crear una visita — **decisión del usuario: no se prioriza el fix.**
