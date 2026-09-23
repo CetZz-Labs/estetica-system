@@ -3,6 +3,7 @@ import { ServiceRecord } from '../models/ServiceRecord';
 import { Service } from '../models/Service';
 import { Product } from '../models/Product';
 import { Client } from '../models/Client';
+import { Appointment } from '../models/Appointment';
 import { Professional } from '../models/Professional';
 import { Tenant } from '../models/Tenant';
 import { isBeforeCalendarDay, toLocalDateString } from '../utils/dateUtils';
@@ -133,6 +134,27 @@ export const createServiceRecord = async (req: Request, res: Response) => {
         });
 
         const savedRecord = await newRecord.save();
+
+        // Auto-create next touchup appointment in calendar
+        if (finalNextTouchupDate) {
+            const touchupStart = new Date(finalNextTouchupDate);
+
+            const duration = foundService.duration || 60;
+            const touchupEnd = new Date(touchupStart.getTime() + duration * 60000);
+
+            await Appointment.create({
+                tenantId,
+                client,
+                service,
+                professional,
+                startTime: touchupStart,
+                endTime: touchupEnd,
+                status: 'pending',
+                notes: 'Retoque programado automáticamente',
+                createdBy: req.adminInfo!._id,
+                isActive: true,
+            });
+        }
 
         return res.status(201).json(savedRecord);
 

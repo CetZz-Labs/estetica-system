@@ -3,13 +3,15 @@
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-09-23
 - **Sesión:** activa
-- **Feature en curso:** ninguna — UX-79 cerrada esta sesión (ver `progress/history.md`)
+- **Feature en curso:** ninguna — UX-79 cerrada esta sesión (ver `progress/history.md`). También reconciliado con el trabajo de Lautaro hecho directo en `main` el 2026-09-18 (UX-78 revert + OPS-01), que no había pasado por `development`.
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
 - UX-79 (sección de recordatorios manuales de turnos por WhatsApp, rama `feature/UX-78-recordatorios-whatsapp` — nombre de rama desactualizado, la feature se renombró a UX-79 tras detectar colisión de ID con el UX-78 de Lautaro ya en `main`) → done, ver `progress/history.md`
+- UX-78 (revertir UX-70: vuelve a crearse el turno automático al registrar un retoque directo) → done, ver `progress/history.md`
+- OPS-01 (endpoint público /api/health para keep-alive de Render vía cron-job.org) → done, ver `progress/history.md`
 - UX-77 (eliminar por completo la tarjeta "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
 - UX-76 (eliminar gráfico de barras "Servicios de la semana" del Dashboard) → done, ver `progress/history.md`
 - UX-72 (eliminar registro de historial con restauración de stock, rol ADMIN) → done, ver `progress/history.md`
@@ -27,6 +29,7 @@ _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Bloqueos y Riesgos Conocidos
 - **UX-79 — pendiente de validación humana antes de merge:** probar en la app real (login) que el link `wa.me` abre correctamente con números reales de la base, en particular al menos uno en formato viejo "código de área + 15 + número" (`docs/patterns-frontend.md` § P17 documenta la limitación conocida de la heurística de normalización).
+- **Nota operativa de entorno (no bloqueante, ver detalle en `progress/history.md` OPS-01):** si en una sesión futura `pnpm --filter @estetica/server build` (o client) falla con `Cannot find module '.../node_modules/<paquete>/...'`, es probablemente el mismo síntoma de symlinks `node_modules` stale tras un rename previo de la carpeta del repo — se resuelve con `CI=true pnpm install` en la raíz del monorepo, previa aprobación humana explícita.
 - **Deuda de test preexistente (no bloqueante):** `apps/server/src/__tests__/tenantIsolation.test.ts` tiene 4 tests fallando en `POST /api/registros` por no enviar `professional` en el body (obligatorio desde EP-11). Candidata a feature de mantenimiento futura.
 - **UX-68 — simplificación de alcance documentada (no bloqueante):** el cron diario de push (`pushReminderScheduler.ts`) calcula "hoy" con la timezone del proceso servidor, no `tenant.timezone`.
 - Reporte de cliente (2026-07-31): "Productos usados" no se veía en `Historial.tsx` tras crear una visita — **decisión del usuario: no se prioriza el fix.**
