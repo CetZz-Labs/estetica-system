@@ -8,7 +8,7 @@ export interface ServiceRecordPayload {
     serviceDate: string;
     notes?: string;
     nextTouchupDate?: string;
-    productsUsed: { product: string; quantity: number }[];
+    productsUsed: { product: string; quantity: number; remainingLevel?: number }[];
     /** Exime la validación de serviceDate >= hoy, y exige que serviceDate sea estrictamente pasada (UX-69). */
     isBackfill?: boolean;
 }

@@ -99,6 +99,15 @@ export const createServiceRecord = async (req: Request, res: Response) => {
                 // Descontamos el stock
                 product.stock -= item.quantity;
                 await product.save();
+
+                // UX-81: espejo informativo, fuera de la aritmética de stock recién auditada
+                // arriba. remainingLevel es opcional; undefined/null significa "sin dato".
+                if (item.remainingLevel !== undefined && item.remainingLevel !== null) {
+                    await Product.updateOne(
+                        { _id: item.product, tenantId },
+                        { $set: { currentUnitLevel: item.remainingLevel } }
+                    );
+                }
             }
         }
 
@@ -373,12 +382,28 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
                         await product.save();
                     }
                 }
+
+                // UX-81: reconciliación del espejo informativo Product.currentUnitLevel.
+                // Independiente de los deltas de stock recién aplicados arriba (no altera esa
+                // lógica) — permite editar retroactivamente el % reportado sin tocar quantity.
+                // Los `product` de este loop ya fueron validados como pertenecientes al tenant
+                // en el fetch de la unión (paso 5), por eso el $set puede ir directo sin
+                // repetir el findOne; se reafirma tenantId en el filtro por defensa en profundidad.
+                for (const item of productsUsed as { product: string; quantity: number; remainingLevel?: number }[]) {
+                    if (item.remainingLevel !== undefined && item.remainingLevel !== null) {
+                        await Product.updateOne(
+                            { _id: item.product, tenantId: req.tenantId },
+                            { $set: { currentUnitLevel: item.remainingLevel } }
+                        );
+                    }
+                }
             }
 
-            // 8. Normalizado a { product, quantity }[], nunca objetos poblados.
-            updateData.productsUsed = productsUsed.map((item: { product: string; quantity: number }) => ({
+            // 8. Normalizado a { product, quantity, remainingLevel }[], nunca objetos poblados.
+            updateData.productsUsed = productsUsed.map((item: { product: string; quantity: number; remainingLevel?: number }) => ({
                 product: item.product,
-                quantity: item.quantity
+                quantity: item.quantity,
+                ...(item.remainingLevel !== undefined && item.remainingLevel !== null ? { remainingLevel: item.remainingLevel } : {})
             }));
         }
 

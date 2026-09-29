@@ -11,6 +11,7 @@ import { handleApiError } from "../api/errorHandler";
 import type { Product, ServiceRecord } from "../types";
 import { formatCalendarDate } from "../utils/dates";
 import Modal from "./ui/Modal";
+import RemainingLevelSlider from "./ui/RemainingLevelSlider";
 
 interface SelectOption {
     value: string;
@@ -26,7 +27,14 @@ interface Props {
 
 interface EditRegistroFormValues {
     notes: string;
-    productsUsed: { product: string; quantity: number }[];
+    /**
+     * `remainingLevelTouched` es un flag interno del formulario (nunca viaja a la API): distingue
+     * "el usuario movió el slider" de "el input <range> nunca tocado, en 0 por defecto en el DOM"
+     * para no enviar `remainingLevel: 0` falso al backend (fix UX-81). Se limpia al construir el
+     * payload de `updateServiceRecord`. Para items con dato histórico, se precarga en `true` en el
+     * `reset()` de abajo, así se re-envía su valor original aunque no se vuelva a tocar el slider.
+     */
+    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean }[];
 }
 
 // Mismo estilo "Maison" que RegistroModal.tsx para mantener consistencia visual entre modales.
@@ -69,7 +77,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
-    const { register, control, handleSubmit, reset } = useForm<EditRegistroFormValues>({
+    const { register, control, handleSubmit, reset, setValue } = useForm<EditRegistroFormValues>({
         defaultValues: {
             notes: '',
             productsUsed: []
@@ -90,7 +98,8 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                 notes: record.notes || '',
                 productsUsed: (record.productsUsed || []).map(p => ({
                     product: typeof p.product === 'object' && p.product !== null ? p.product._id : p.product,
-                    quantity: p.quantity
+                    quantity: p.quantity,
+                    ...(typeof p.remainingLevel === 'number' ? { remainingLevel: p.remainingLevel, remainingLevelTouched: true } : {})
                 }))
             });
         }
@@ -99,7 +108,15 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const { mutate, isPending } = useMutation({
         mutationFn: (data: EditRegistroFormValues) => updateServiceRecord(record!._id, {
             notes: data.notes,
-            productsUsed: data.productsUsed
+            // Omitimos `remainingLevel` de cualquier item que el usuario no haya tocado explícitamente
+            // en esta edición (fix UX-81): un <input type="range"> nunca está "vacío" en el DOM, así
+            // que sin este filtro se reenviaría remainingLevel: 0 falso para cada insumo nunca
+            // reportado. Los items con dato histórico llegan con remainingLevelTouched: true desde el
+            // reset() de arriba, así que su valor original se sigue reenviando sin tocar el slider.
+            productsUsed: data.productsUsed.map(({ remainingLevelTouched, remainingLevel, ...item }) => ({
+                ...item,
+                ...(remainingLevelTouched && typeof remainingLevel === 'number' ? { remainingLevel } : {}),
+            }))
         }),
         onSuccess: () => {
             toast.success('Visita actualizada. Stock reconciliado.');
@@ -192,12 +209,19 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
                                 return (
-                                    <li key={field.id} className="flex justify-between items-center py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
-                                            <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                    <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
+                                                <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                            </div>
+                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
-                                        <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
+                                        <RemainingLevelSlider
+                                            defaultValue={field.remainingLevel}
+                                            registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
+                                            onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
+                                        />
                                     </li>
                                 );
                             })}

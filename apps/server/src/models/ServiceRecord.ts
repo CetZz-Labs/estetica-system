@@ -3,6 +3,9 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 interface IUsedProduct {
     product: Types.ObjectId;
     quantity: number; // Por ejemplo: gramos, ml o unidades
+    // UX-81: estimación libre e informativa de la profesional ("% que quedó en el envase
+    // tras esta visita"). NO participa del descuento/reconciliación de stock (quantity).
+    remainingLevel?: number;
 }
 
 export interface IServiceRecord extends Document {
@@ -32,7 +35,9 @@ const ServiceRecordSchema: Schema = new Schema({
     notes: { type: String, trim: true }, // Ej: "Balayage rubio miel, corte en capas"
     productsUsed: [{
         product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-        quantity: { type: Number, required: true, min: 0 }
+        quantity: { type: Number, required: true, min: 0 },
+        // UX-81: dato puramente informativo, no afecta el descuento de stock (P4/P6/P17).
+        remainingLevel: { type: Number, min: 0, max: 100 }
     }],
 
     // Lógica del Dashboard ("Próximos retoques")

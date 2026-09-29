@@ -16,6 +16,7 @@ import type { BusinessHours } from "../api/disponibilidadApi";
 import { handleApiError } from "../api/errorHandler";
 import type { Product, Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
+import RemainingLevelSlider from "./ui/RemainingLevelSlider";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
 
@@ -58,9 +59,15 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     })
 };
 
-interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate"> {
+interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate" | "productsUsed"> {
     touchupDate: string;
     touchupTime: string;
+    /**
+     * `remainingLevelTouched` es un flag interno del formulario (nunca viaja a la API): distingue
+     * "el usuario movió el slider" de "el input <range> nunca tocado, en 0 por defecto en el DOM"
+     * para no enviar `remainingLevel: 0` falso al backend (fix UX-81). Se limpia en `onSubmit`.
+     */
+    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean }[];
 }
 
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
@@ -230,12 +237,19 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     });
 
     const onSubmit = (data: RegistroFormValues) => {
-        const { touchupDate, touchupTime, ...rest } = data;
+        const { touchupDate, touchupTime, productsUsed, ...rest } = data;
         const nextTouchupDate = touchupDate && touchupTime
             ? new Date(`${touchupDate}T${touchupTime}`).toISOString()
             : undefined;
         const payload: ServiceRecordPayload = {
             ...rest,
+            // Omitimos `remainingLevel` de cualquier item que el usuario no haya tocado explícitamente
+            // (fix UX-81): un <input type="range"> nunca está "vacío" en el DOM, así que sin este filtro
+            // se enviaría remainingLevel: 0 falso para cada insumo nunca reportado.
+            productsUsed: productsUsed.map(({ remainingLevelTouched, remainingLevel, ...item }) => ({
+                ...item,
+                ...(remainingLevelTouched && typeof remainingLevel === 'number' ? { remainingLevel } : {}),
+            })),
             ...(nextTouchupDate ? { nextTouchupDate } : {}),
             ...(pastVisitMode ? { isBackfill: true } : {}),
         };
@@ -437,12 +451,19 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
                                 return (
-                                    <li key={field.id} className="flex justify-between items-center py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
-                                            <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                    <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
+                                                <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                            </div>
+                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
-                                        <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
+                                        <RemainingLevelSlider
+                                            defaultValue={field.remainingLevel}
+                                            registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
+                                            onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
+                                        />
                                     </li>
                                 );
                             })}

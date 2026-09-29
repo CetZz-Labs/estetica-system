@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
-import { FiScissors, FiCheck, FiX, FiAlertTriangle, FiTrash2, FiUser, FiClock, FiExternalLink, FiEdit2, FiPackage, FiCheckCircle } from 'react-icons/fi';
+import { FiCheck, FiX, FiAlertTriangle, FiTrash2, FiPackage, FiCheckCircle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
@@ -9,13 +9,14 @@ import { getPendingRegistration, cancelAppointment, getUpcomingAppointments } fr
 import { getProducts } from '../api/productApi';
 import type { ServiceRecord, Appointment, Product } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
-import { formatDate, getTimelineStatus, formatDateTime, getTodayDateString } from '../utils/dates';
+import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
 import { useTopbar } from '../layouts/TopbarContext';
 import RegistroModal from '../components/RegistroModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import Modal from '../components/ui/Modal';
 import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
+import ServiceRecordDetail from '../components/ServiceRecordDetail';
 import { Link } from 'react-router';
 
 const getGreeting = (): string => {
@@ -609,132 +610,20 @@ export default function Dashboard() {
                 )}
             >
                 {selectedRetoqueDetail && (
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-3 p-3 bg-bg rounded-ctrl border border-border">
-                            <div className="p-2 bg-surface rounded-full border border-border text-muted">
-                                <FiUser className="text-lg" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-text">{`${selectedRetoqueDetail.client.firstName} ${selectedRetoqueDetail.client.lastName ?? ''}`.trim()}</p>
-                                {selectedRetoqueDetail.client.phone && (
-                                    <p className="text-xs text-muted mt-0.5">{selectedRetoqueDetail.client.phone}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-bg rounded-ctrl border border-border">
-                            <div className="p-2 bg-surface rounded-full border border-border text-muted">
-                                <FiScissors className="text-lg" />
-                            </div>
-                            <p className="text-sm font-semibold text-text">{selectedRetoqueDetail.service.name}</p>
-                        </div>
-
-                        {selectedRetoqueDetail.professional && (
-                            <div className="flex items-center gap-3 p-3 bg-bg rounded-ctrl border border-border">
-                                <div className="p-2 bg-surface rounded-full border border-border text-muted">
-                                    <FiUser className="text-lg" />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-3 w-3 rounded-full border border-border shrink-0" style={{ backgroundColor: selectedRetoqueDetail.professional.color }} aria-hidden />
-                                    <p className="text-sm font-semibold text-text">{selectedRetoqueDetail.professional.name}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {selectedRetoqueDetail.nextTouchupDate && (
-                            <div className="flex items-start gap-3 p-3 bg-bg rounded-ctrl border border-border">
-                                <div className="p-2 bg-surface rounded-full border border-border text-muted shrink-0">
-                                    <FiClock className="text-lg" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    {isEditingTouchupDate ? (
-                                        <div className="space-y-2">
-                                            <div className="flex flex-wrap gap-2">
-                                                <input
-                                                    type="date"
-                                                    min={getTodayDateString()}
-                                                    value={touchupDateInput}
-                                                    onChange={(e) => setTouchupDateInput(e.target.value)}
-                                                    aria-label="Fecha del próximo retoque"
-                                                    className="px-2.5 py-1.5 bg-surface border border-border rounded-ctrl text-sm text-text"
-                                                />
-                                                <input
-                                                    type="time"
-                                                    value={touchupTimeInput}
-                                                    onChange={(e) => setTouchupTimeInput(e.target.value)}
-                                                    aria-label="Hora del próximo retoque"
-                                                    className="px-2.5 py-1.5 bg-surface border border-border rounded-ctrl text-sm text-text"
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveTouchupDate}
-                                                    disabled={!touchupDateInput || !touchupTimeInput || isSavingTouchupDate}
-                                                    className="px-3 py-1.5 bg-accent hover:opacity-90 text-white rounded-ctrl text-xs font-medium flex items-center gap-1.5 transition-opacity cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <FiCheck size={14} /> Guardar
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCancelEditTouchupDate}
-                                                    disabled={isSavingTouchupDate}
-                                                    className="px-3 py-1.5 text-muted hover:text-text rounded-ctrl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm font-semibold text-text">Retoque: {formatDate(selectedRetoqueDetail.nextTouchupDate)}</p>
-                                    )}
-                                    <p className="text-xs text-muted mt-1">Visita original: {formatDate(selectedRetoqueDetail.serviceDate)}</p>
-                                </div>
-                                {!isEditingTouchupDate && (
-                                    <button
-                                        type="button"
-                                        onClick={handleStartEditTouchupDate}
-                                        aria-label="Editar fecha de retoque"
-                                        title="Editar fecha de retoque"
-                                        className="p-1.5 text-muted hover:text-accent transition-colors cursor-pointer shrink-0"
-                                    >
-                                        <FiEdit2 className="text-lg" />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {selectedRetoqueDetail.productsUsed && selectedRetoqueDetail.productsUsed.length > 0 && (
-                            <div>
-                                <h4 className="text-xs font-bold tracking-widest text-muted uppercase mb-2">Productos utilizados</h4>
-                                <ul className="space-y-1.5">
-                                    {selectedRetoqueDetail.productsUsed.map((pu, idx) => {
-                                        const productName = typeof pu.product === 'object' ? pu.product.name : 'Producto';
-                                        return (
-                                            <li key={idx} className="flex justify-between items-center text-sm bg-surface-2 border border-border-soft rounded-ctrl px-3 py-2">
-                                                <span className="text-text">{productName}</span>
-                                                <span className="text-muted font-medium">x{pu.quantity}</span>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
-                        {selectedRetoqueDetail.notes && (
-                            <div>
-                                <h4 className="text-xs font-bold tracking-widest text-muted uppercase mb-2">Notas</h4>
-                                <p className="text-sm text-text-2 bg-surface-2 p-3 rounded-ctrl border border-border-soft">{selectedRetoqueDetail.notes}</p>
-                            </div>
-                        )}
-
-                        <Link
-                            to={`/clientes/${selectedRetoqueDetail.client._id}`}
-                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
-                        >
-                            <FiExternalLink /> Ir a ficha del cliente
-                        </Link>
-                    </div>
+                    <ServiceRecordDetail
+                        record={selectedRetoqueDetail}
+                        touchupEdit={{
+                            isEditing: isEditingTouchupDate,
+                            dateInput: touchupDateInput,
+                            timeInput: touchupTimeInput,
+                            isSaving: isSavingTouchupDate,
+                            onDateChange: setTouchupDateInput,
+                            onTimeChange: setTouchupTimeInput,
+                            onStartEdit: handleStartEditTouchupDate,
+                            onSave: handleSaveTouchupDate,
+                            onCancel: handleCancelEditTouchupDate,
+                        }}
+                    />
                 )}
             </Modal>
 

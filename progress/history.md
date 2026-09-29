@@ -309,6 +309,74 @@
 * **ADRs:**
   - `acceptInvitation` NO crea un nuevo Tenant — la Profesional ya tiene `tenantId`. Esto diferencia el flujo de invitación del onboarding estándar.
   - Email del invitado se obtiene de Clerk (no del body) y se compara en lowercase con `pendingInviteEmail` almacenado — previene suplantación vía body manipulation.
+
+---
+
+## 2026-09-29 — UX-80: Ver detalle completo de una visita desde el historial (global y de cliente)
+
+* **Agente:** Claude (Leader) + explorer + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** el cliente del sistema pidió poder entrar a ver el detalle completo de una visita (fecha, productos usados, descripción completa) desde el historial. Diagnóstico del explorer (`progress/explores/_archive/explore_UX-80.md`) confirmó que NO faltaba backend ni faltaba en `ProfileClient.tsx` (perfil del cliente, que ya mostraba todo sin truncar) — el corte real estaba en el listado global `Historial.tsx` (columnas truncadas sin tooltip, única acción era "Editar"). Decisión de alcance confirmada con el usuario vía `AskUserQuestion`: agregar el botón "Ver detalle" en AMBAS pantallas (Historial global + perfil del cliente), no solo donde se cortaba el texto, por consistencia entre las tres superficies que muestran `ServiceRecord`.
+
+* **Cambios Frontend (100% frontend, backend intacto):**
+  - `apps/client/src/components/ServiceRecordDetail.tsx` (nuevo) — extraído del bloque inline "Detalle del Retoque" que vivía en `Dashboard.tsx` (mismo patrón que `AppointmentDetail.tsx` de UX-16). Componente presentacional puro (sin `useMutation`/`useQuery`/`fetch` propio); la edición inline de `nextTouchupDate` (P12, origen UX-28) se preservó vía un bundle de props opcional `touchupEdit`, con el estado/mutation real siguiendo 100% en `Dashboard.tsx` — patrón nuevo documentado en `docs/patterns-frontend.md` § P18.
+  - `apps/client/src/views/Dashboard.tsx` — JSX inline reemplazado por `<ServiceRecordDetail>`, cero cambio de comportamiento verificado (estado/mutation/handlers/footer del modal intactos, modal de turnos `AppointmentDetail` sin tocar).
+  - `apps/client/src/views/Historial.tsx` — botón "Ver detalle" (`FiEye`) por fila, coexiste con el botón "Editar" (`FiEdit2`) existente, abre `ServiceRecordDetail` en el `<Modal>` compartido.
+  - `apps/client/src/views/ProfileClient.tsx` — mismo botón "Ver detalle" en cada ítem del timeline, sin gate de `isAdmin` (acción de solo lectura).
+  - `docs/patterns-frontend.md` — nueva § P18: cómo extraer un bloque de detalle inline con mutation propia a un componente compartido sin mover la mutation ni duplicar JSX.
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0 (verificado por implementer y de nuevo, independientemente, por el reviewer). `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes en archivos no tocados). Diff acotado a los 4 archivos esperados, cero archivos de `apps/server/`. Reviewer verificó contra el código real del backend (`getUpcomingTouchups`) que las ramas nuevas del componente extraído (badge de estado, fallback sin `nextTouchupDate`) nunca se ejercen en `Dashboard.tsx`, en vez de asumir la afirmación del implementer. Sin secretos, sin `console.log`/`debugger`/TODO, `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_UX-80.md`. UX-80 → **done**.
+
+* **Contexto de sesión:** misma sesión del usuario (2026-09-29) que originó también UX-81 (indicador de consumo parcial de productos, diseño ya cerrado, pendiente de implementar) y UX-82 (reponer nav "Mi Negocio" en el sidebar — hallazgo del leader al diagnosticar el reporte de "las notificaciones push no funcionan": la página sigue existiendo pero quedó sin link desde UX-36). Rama de trabajo: `feature/UX-80-detalle-visita-consumo-productos`, creada desde `development` (sincronizada con `main` en `b14fdb0`).
+
+---
+
+## 2026-09-29 — UX-81: Indicador de consumo parcial de productos por visita
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (2 rondas, la 1ª CHANGES_REQUESTED).
+* **Objetivo:** el cliente del sistema pidió reflejar que un producto (ej. shampoo) no siempre se termina en una visita — se consume una fracción ("media botella"). Diseño confirmado por explorer (`progress/explores/_archive/explore_UX-81.md`) — Opción C+: campo puramente informativo, CERO cambio en la aritmética de stock existente (P4/P6/P17/GOV-STOCK intactos). Decisiones de UX confirmadas con el usuario: granularidad porcentual libre (no cuartos), editable retroactivamente, `adjustStock` no resetea el dato.
+
+* **Cambios Backend:**
+  - `apps/server/src/models/ServiceRecord.ts` — `productsUsed[].remainingLevel` (Number, min 0, max 100, opcional).
+  - `apps/server/src/models/Product.ts` — `currentUnitLevel` (Number, min 0, max 100, opcional).
+  - `apps/server/src/controllers/serviceRecordController.ts::createServiceRecord`/`updateServiceRecord` — tras el descuento/reconciliación de stock ya auditados (sin tocarlos), `$set` tenant-scoped de `Product.currentUnitLevel` cuando el item trae `remainingLevel`. `deleteServiceRecord`/`adjustStock` sin cambios.
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — validators hermanos `productsUsed.*.remainingLevel` en POST/PUT.
+  - `docs/db-schema.md`/`docs/governance-rules.md` (GOV-STOCK) — los dos campos documentados como informativos, fuera de los mandatos 1-4.
+
+* **Cambios Frontend:**
+  - `apps/client/src/components/ui/RemainingLevelSlider.tsx` (nuevo) — slider 0-100 reusado por `RegistroModal.tsx`/`EditRegistroModal.tsx`.
+  - `apps/client/src/views/Inventario.tsx` — barra Trifecta ("Envase abierto: N%") junto a la columna Stock cuando `currentUnitLevel` está definido.
+  - `apps/client/src/components/ServiceRecordDetail.tsx` (UX-80) — agregado aditivo "Quedó al N%" por producto.
+  - `apps/client/src/types/index.ts` / `apps/client/src/api/serviceRecordApi.ts` — campos opcionales nuevos.
+
+* **Bug bloqueante encontrado en la 1ª ronda de review (CHANGES_REQUESTED) y corregido en la 2ª:** un `<input type="range">` nativo no puede representar "sin valor" — sin un flag de "tocado", cualquier item de `productsUsed` sin `remainingLevel` histórico se enviaba igual con `remainingLevel: 0`, y el backend lo trataba como dato informado real, fijando `Product.currentUnitLevel = 0` (rojo/crítico en Inventario) de forma masiva y falsa para casi cualquier producto usado en cualquier visita — contradecía el diseño acordado ("informativo, opcional, sin ruido"). Fix: flag interno `remainingLevelTouched` (nunca enviado a la API) que distingue "usuario movió el slider" de "valor por defecto del DOM", con precarga correcta en edición para no perder datos ya guardados. Patrón nuevo documentado en `docs/patterns-frontend.md` § P19.
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0 (ambas rondas), `pnpm --filter @estetica/client build`/`lint` Exit 0 (ambas rondas, mismos 4 warnings preexistentes). Server tests: 31 passed / 4 failed (deuda preexistente conocida de `tenantIsolation.test.ts`, sin fallas nuevas). Reviewer verificó línea por línea (no autoevaluación) las 4 transiciones del fix contra el guard real del backend. `git stash list` vacío, sin secretos/`console.log`/TODO. Reviewer: **APPROVED** (2ª ronda) → `progress/reviews/review_UX-81.md`. UX-81 → **done**.
+
+* **Follow-ups nacidos de esta feature (mismo día, mismo pedido del usuario ampliado en vivo):** UX-83 (elegir usar el envase ya abierto vs. abrir uno nuevo — cambia la aritmética de stock, a diferencia de esta feature; diseño ya cerrado, pendiente de implementar), UX-84 (simplificar Mi Negocio) y UX-85 (notificación push más completa) — ver entradas en `feature_list.json`, `pending`.
+
+---
+
+## 2026-09-29 — UX-84: Simplificar vista Mi Negocio (quitar Ajustes generales y Recordatorio de turno)
+
+* **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** al reactivar el acceso a Mi Negocio (UX-82), el usuario pidió quitar dos de sus tres secciones — "Ajustes generales" (nombre/logo/zona horaria/moneda, EP-10) y "Recordatorio de turno" (horas de anticipación del mail, EP-17-b) — dejando solo la sección de notificaciones. Decisión confirmada con el usuario (vía `AskUserQuestion`): los datos NO se borran de la base, solo se retira la UI para editarlos. En el mismo pedido, el usuario notó que la palabra "push" en la sección restante no se entendía.
+
+* **Cambio Frontend (único archivo tocado):**
+  - `apps/client/src/views/Negocio.tsx` — eliminadas por completo las interfaces `NegocioFormData`/`RecordatorioFormData`, constantes `TIMEZONES`/`CURRENCIES`, los `useQuery`/`useForm`/`useMutation`/`useEffect` de ambas secciones, sus bloques JSX, y los imports/bloques de loading-error que quedaron huérfanos. La sección de notificaciones (`pushState`, `handleTogglePush`, useEffect de suscripción) quedó intacta funcionalmente, renombrada de "Notificaciones push" a "Notificaciones" y sin la palabra "push" en ningún texto visible ni `aria-label` (los nombres internos de variables/funciones no se tocaron).
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` Exit 0 — bajó de 4 a 3 warnings preexistentes (el que vivía en `Negocio.tsx` por `watch()` de react-hook-form desapareció al sacar ese `useForm`, confirmado por el reviewer como esperado, no una regresión). `git diff --stat`: único archivo tocado. Backend y capas de API (`tenantApi.ts`, `notificationSettingsApi.ts`) intactos — solo se retiró la UI, los datos siguen en la base. Reviewer: **APPROVED** → `progress/reviews/review_UX-84.md`. UX-84 → **done**.
+
+---
+
+## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
+
+* **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** el usuario reportó que "las notificaciones no funcionan"; el diagnóstico del leader reveló que la página `Negocio.tsx` (`/configuracion/negocio`, con el toggle de notificaciones push de UX-68) sigue existiendo y funcional, pero su link fue retirado del sidebar en UX-36 (2026-07-21, limpieza visual pedida por el usuario) — en ese momento el toggle de push todavía no existía (se agregó después, UX-68, 2026-08-04), así que la página quedó huérfana sin que nadie lo notara. El usuario confirmó reponer el link.
+
+* **Cambio Frontend (único archivo tocado, 1 línea):**
+  - `apps/client/src/layouts/AppLayout.tsx` — agregado `<SidebarNavLink to="/configuracion/negocio" onClick={closeMenu}>Mi Negocio</SidebarNavLink>` dentro del bloque `role === 'ADMIN'` de la sección "Configuración", junto a "Disponibilidad". Mismo componente/props/gating de rol que el resto de la sección. Ruta y componente `Negocio.tsx` sin cambios (ya existían).
+
+* **Verificación:** `pnpm --filter @estetica/client build` Exit 0, `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados, mismos 4 archivos de siempre). `git diff --stat`: 1 archivo, 1 inserción. Reviewer: **APPROVED** → `progress/reviews/review_UX-82.md`. UX-82 → **done**.
   - Opción considerada: filtrar admins ya vinculados en `getLinkableAdmins` para UX proactiva. Descartada por complejidad del edge case (admin vinculado al profesional actual desaparece en edit). La validación 409 del backend con mensaje descriptivo es suficiente.
 
 * **Observación no bloqueante (reviewer):** `GET /api/profesionales` devuelve `inviteToken` e `inviteTokenExpiry` en el documento completo. Solo accesible a admins autenticados del mismo tenant. Candidato a `select('-inviteToken -inviteTokenExpiry')` en listados futuros.

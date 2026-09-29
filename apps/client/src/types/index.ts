@@ -27,6 +27,8 @@ export interface Product {
     stock: number;
     description?: string;
     isActive: boolean;
+    /** % (0-100) del último nivel reportado en una visita para este producto. undefined = sin dato (legado o nunca reportado). Informativo, no participa del control de stock (UX-81). */
+    currentUnitLevel?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -34,6 +36,8 @@ export interface Product {
 export interface UsedProduct {
     product: Product | string; // Puede venir el ID (string) o el objeto populado (Product)
     quantity: number;
+    /** % (0-100) estimado por la profesional de cuánto quedó del envase tras esta visita. Opcional, informativo (UX-81). */
+    remainingLevel?: number;
 }
 
 // Interfaz para el Cliente poblado (reducido a los campos que devuelve el endpoint de retoques)

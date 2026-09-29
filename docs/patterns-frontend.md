@@ -614,4 +614,37 @@ window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encode
 
 ---
 
+## P18 — Extraer un bloque de detalle inline a componente compartido sin perder la mutation que ya tenía (bundle de props "edit" opcional)
+
+> **Origen:** UX-80 (2026-09-29) — el modal "Detalle del Retoque" vivía inline en `Dashboard.tsx` con edición inline de un campo (P12, origen UX-28). Al reusar ese mismo detalle en `Historial.tsx`/`ProfileClient.tsx`, no se podía copiar el JSX (duplicación) ni mover la mutation al componente extraído (los otros dos consumidores no la necesitan y el AC pedía un componente "de solo lectura"). Mismo problema que resolvió `AppointmentDetail.tsx` en UX-16, pero ahí el bloque original ya era 100% de solo lectura — UX-80 es el primer caso con una mutation viva adentro.
+
+**Cuándo usarlo:** vas a extraer un bloque de detalle (candidato a `<Modal>` compartido) que hoy vive inline en una sola vista, para reusarlo en otras vistas, y ese bloque tiene un campo editable con su propia mutation en el dueño original.
+
+**Mandato:**
+1. El componente extraído NUNCA importa `useMutation`/`useQuery`/funciones de `src/api/` — es puro presentacional, recibe la entidad completa por props.
+2. La porción editable se modela como un bundle de props opcional (ej. `touchupEdit?: { isEditing, dateInput, ..., onStartEdit, onSave, onCancel }`), no como un flag booleano suelto — agrupa estado + callbacks en una sola interfaz para que sea obvio que es "todo o nada".
+3. El estado (`useState`), la mutation (`useMutation`) y los handlers siguen viviendo 100% en la vista dueña original (ej. `Dashboard.tsx`) — el componente extraído solo lee el bundle y dispara los callbacks recibidos.
+4. Los consumidores nuevos (`Historial.tsx`/`ProfileClient.tsx` en UX-80) simplemente NO pasan el prop `touchupEdit` → el JSX condicional del control editable no se renderiza, quedando de solo-lectura puro sin ninguna rama de código muerta ni prop opcional sin usar.
+5. Si el bloque original tenía ramas condicionales que en el dueño original nunca se ejercían (ej. un estado que ese dueño siempre filtra en su query, ver P-relacionado GOV-STOCK/queries acotadas), pero SÍ pueden ocurrir en los nuevos consumidores, agregalas al componente extraído y verificá contra el query real del backend que el dueño original nunca las ejerce (no lo asumas) — así no hay pixel-diff en la vista ya auditada.
+
+**Gotcha:** no alcanza con revisar visualmente que "se ve igual" en el dueño original — grepeá los identificadores de estado/mutation/handlers en el diff para confirmar que sigan declarados en el archivo dueño y no se movieron al componente compartido; y verificá en el controller real (no en la memoria del proyecto) qué estados/campos puede o no traer el query que alimenta al dueño original, antes de asumir que una rama nueva del componente extraído "nunca se ejerce" ahí.
+
+---
+
+## P19 — Gotcha: un `<input type="range">`/`type="number"` registrado con RHF no puede representar "sin dato" — necesita un flag `touched` explícito
+
+> **Origen:** UX-81 (2026-09-29) — un slider 0-100 opcional (`remainingLevel`, "% restante estimado") enviaba `0` en el payload de POST/PUT aunque el usuario nunca lo tocara, porque el `<input type="range">` nativo siempre tiene un valor numérico en el DOM (nunca está "vacío" como un `<input type="text">`). El backend trataba ese `0` como un dato informado real (`!== undefined && !== null`), ensuciando el campo opcional de forma silenciosa y masiva. Encontrado por el `reviewer` en la primera ronda (CHANGES_REQUESTED), no por el implementer.
+
+**Cuándo aplica:** cualquier control numérico opcional (`range`, `number` con `valueAsNumber`) donde "el usuario no tocó nada" debe significar "no enviar el campo", distinto de "el usuario eligió activamente el valor mínimo/0".
+
+**Mandato:**
+1. Un input `range`/`number` nativo no puede modelar "sin valor" — no alcanza con chequear `value === 0` en el submit para decidir si omitir el campo, porque `0` real (elegido a propósito) y `0` por defecto del DOM son indistinguibles en ese punto.
+2. Agregar un flag local `xTouched` (booleano, nunca se envía a la API) que se pone en `true` únicamente en el handler `onChange` real del control — no en el `register()`/valor inicial.
+3. Al construir el payload de submit, incluir la clave del campo solo si `xTouched` es `true` (o si venía precargado con un valor histórico, ver punto 4) — si no, omitir la clave por completo (no enviar `undefined` explícito si el serializador la conserva igual).
+4. En un modal de EDICIÓN que precarga datos existentes (`reset()`), inicializar `xTouched: true` para los items que ya traían un valor guardado — así se sigue reenviando ese dato aunque el usuario no vuelva a tocar el control en esa edición puntual. Sin este paso, cada PUT sin interacción borraría silenciosamente el dato ya guardado.
+
+**Gotcha adicional:** verificar con `typeof valor === 'number'` (no truthiness) en el backend al distinguir "informado" de "no informado" — necesario pero no suficiente: el backend puede hacer todo bien y el bug sigue existiendo si el frontend nunca deja de mandar el `0` del punto 1.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.
