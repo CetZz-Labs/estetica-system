@@ -4,13 +4,14 @@
 - **Última actualización:** 2026-09-29
 - **Sesión:** activa
 - **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, confirmado sincronizada con `main` en `b14fdb0` antes de ramificar)
-- **Feature en curso:** UX-85 (`in_progress`) — UX-80, UX-81, UX-82 y UX-84 cerradas esta sesión (ver `progress/history.md`).
+- **Feature en curso:** UX-83 backend (`in_progress`) — UX-80, UX-81, UX-82, UX-84 y UX-85 cerradas esta sesión (ver `progress/history.md`). Commit `650df3a` ya incluye UX-80/81/82/84; UX-85 (`sw.js` + `pushReminderScheduler.ts`) pendiente de commitear.
 
 ## Plan de Acción
-1. [DONE] UX-80, UX-82, UX-81, UX-84: ver `progress/history.md`.
+1. [DONE] UX-80, UX-82, UX-81, UX-84, UX-85: ver `progress/history.md`.
 2. [DONE] Diseño de UX-83 cerrado por explorer (`progress/explores/explore_UX-83.md`) — reclasificada "Compleja" (stacked PRs: backend primero, con su reviewer, después frontend). AC completo ya en `feature_list.json`.
-3. [EN CURSO] UX-85 marcada `in_progress`. Próximo paso: implementer backend (`pushReminderScheduler.ts`: título con `tenant.name`, cuerpo con nombres de clientes; `sw.js`: fallback sin marca vieja).
-4. [PENDIENTE] UX-83 backend (stacked, reviewer enfocado en las 4 transiciones del delta P17 + fix de `deleteServiceRecord`) → luego UX-83 frontend.
+3. [EN CURSO] UX-83 backend marcada `in_progress` — próximo paso: lanzar implementer backend (modelo + rutas + create/update/delete) con el diseño ya cerrado del explorer.
+4. [PENDIENTE] Reviewer de UX-83 backend, enfocado específicamente en las 4 transiciones del delta P17 + el fix de `deleteServiceRecord` (hallazgo del explorer, no estaba en el pedido original).
+5. [PENDIENTE] Solo tras cerrar el backend: implementer frontend de UX-83 (checkbox en RegistroModal/EditRegistroModal + badge en ServiceRecordDetail) → reviewer → cerrar.
 
 ## Estado del Backlog
 - UX-80 (ver detalle completo de visita, ambas pantallas) → **done**, ver `progress/history.md`

@@ -1574,7 +1574,7 @@
       "name": "Notificaciones push más completas: marca actualizada + nombres de clientes del día",
       "module": "Notifications",
       "phase": "Fase 2",
-      "status": "in_progress",
+      "status": "done",
       "description": "Pedido directo del usuario (2026-09-29): la notificación push diaria (`pushReminderScheduler.ts`, UX-68) hoy tiene título hardcodeado `'Maison CRM'` (marca vieja, la app ya se renombró a Shear en UX-04) y cuerpo genérico solo con conteos ('Hoy: 3 turnos, 2 retoques pendientes'), sin ningún nombre. Decisión confirmada con el usuario (vía AskUserQuestion): (1) corregir el título a la marca/nombre real del negocio (`tenant.name`, mismo criterio que `mailService.ts` usa como fromName — GOV-NOTIFY), y (2) enriquecer el cuerpo con los nombres de los clientes que tienen turno/retoque ese día, no solo el conteo.",
       "acceptance_criteria": [
         "apps/server/src/services/pushReminderScheduler.ts — el `title` del payload usa `tenant.name` en vez del literal `'Maison CRM'`",

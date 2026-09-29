@@ -368,6 +368,22 @@
 
 ---
 
+## 2026-09-29 — UX-85: Notificaciones push más completas (marca actualizada + nombres de clientes del día)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Objetivo:** la notificación push diaria (UX-68) tenía título hardcodeado `'Maison CRM'` (marca vieja, la app se renombró a Shear en UX-04) y cuerpo genérico solo con conteos. El usuario pidió corregir la marca y agregar nombres de clientes del día.
+* **Nota operativa:** el primer intento de esta feature falló a mitad de camino por un rate-limit de sesión (no relacionado con el código); se relanzaron ambos implementers tras el reset y se completó sin pérdida de trabajo relevante (el fix de `sw.js` ya había quedado aplicado en disco antes del fallo).
+
+* **Cambios Backend:**
+  - `apps/server/src/services/pushReminderScheduler.ts` — `title` del payload usa `tenant.name` (antes `'Maison CRM'`). Los `countDocuments` de turnos/retoques se reemplazaron por `find(...).populate('client', 'firstName lastName').sort(...)`, tenant-scoped como antes; el `body` lista nombres de clientes ("Turnos hoy: Ana Gómez 15:00, ... . Retoques pendientes: ..."), truncando cada lista a 6 nombres + sufijo "y N más". Cron (08:00), elegibilidad de tenants y limpieza de suscripciones caducadas (410/404) sin cambios.
+
+* **Cambios Frontend:**
+  - `apps/client/public/sw.js` — fallback `data.title || 'Maison CRM'` → `'Shear'` (marca actual; el service worker no tiene acceso a `tenant.name` en runtime, es solo defensivo para el caso raro de payload sin título).
+
+* **Verificación:** `pnpm --filter @estetica/server build` Exit 0, `pnpm --filter @estetica/client build`/`lint` Exit 0 (3 warnings preexistentes, sin nuevos). Tests server: 31 passed / 4 failed (misma deuda preexistente de `tenantIsolation.test.ts`, sin relación con este cambio). Reviewer verificó el truncado de nombres y el tenant-scoping de las nuevas queries `find` contra el código real. `git stash list` vacío, sin secretos/`console.log`/TODO. Reviewer: **APPROVED** → `progress/reviews/review_UX-85.md`. UX-85 → **done**.
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).
