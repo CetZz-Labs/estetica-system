@@ -645,6 +645,8 @@ window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encode
 
 **Gotcha adicional:** verificar con `typeof valor === 'number'` (no truthiness) en el backend al distinguir "informado" de "no informado" — necesario pero no suficiente: el backend puede hacer todo bien y el bug sigue existiendo si el frontend nunca deja de mandar el `0` del punto 1.
 
+> **Nota (UX-90, 2026-09-30):** el caso que originó este patrón (`remainingLevel` opcional) dejó de existir — el consumo de insumos ahora siempre envía `usedPercent` explícito y el valor visible de la barra ES el enviado (ver [P21](#p21--barra-de-consumo-por-pool-de-puntos-default-visible--valor-enviado-edición-por-delta)). P19 sigue vigente para cualquier OTRO control numérico opcional.
+
 ---
 
 ## P20 — Gotcha: texto largo desborda una fila flex (ícono + texto) aunque el CONTENEDOR tenga `min-w-0`
@@ -668,6 +670,24 @@ window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encode
 ```
 
 **Gotcha:** este problema es indistinguible a simple vista de "falta scroll" — un modal/contenedor puede tener `overflow-y-auto` perfecto y el texto igual desbordar horizontalmente por este motivo, llevando a buscar la causa en el lugar equivocado (el scroll del modal, no el flex item).
+
+---
+
+## P21 — Barra de consumo por pool de puntos: default visible = valor enviado, edición por delta
+
+> **Origen:** UX-90 (2026-09-30) — consumo de insumos con envase abierto. El stock de un producto son envases CERRADOS (`stock`) más un único envase abierto (`currentUnitLevel`, 1..99); el consumo de una visita se expresa como `usedPercent` entero (100 = un envase entero, puede superar 100).
+
+**Cuándo aplica:** un control numérico que representa consumo contra un pool (`P = 100*stock + (L ?? 0)`) en un formulario de alta y de edición.
+
+**Mandato:**
+1. **Helpers enteros espejo del server** en `src/utils/stockPool.ts` (`poolOf`, `fromPool`, `maxUsable(stock, L, k)`), con comentario de sync con `apps/server/src/utils/stockPool.ts`. Sin floats. La fórmula está duplicada a propósito (no hay código compartido entre apps): cualquier cambio se hace en ambos lados.
+2. **El valor por defecto visible ES el valor enviado** (no hay "sin dato"): inicializarlo en el `append` (100 sin abierto; `L` con abierto, para terminarlo) y enviar siempre `usedPercent`. Un producto con `stock === 0` pero con envase abierto es utilizable — solo se deshabilita si no tiene cerrados ni abierto.
+3. **Tope de la barra** = `maxUsable(stock, L, k)` con `k` = envases nuevos permitidos (input "Cant.", no viaja al server). Bajar `k` recorta el valor en el handler (`setValue`) y el submit vuelve a recortar; el clamp del label va en el render, sin `useEffect` + `setState`.
+4. **Edición por delta:** el modal de edición precarga el `usedPercent` guardado (registro legacy sin `usedPercent`: `usedExistingUnit ? 0 : quantity*100`), y sin tocar la barra reenvía el MISMO valor (delta 0). Tope de la barra al editar = pool actual + puntos que ese mismo item ya había consumido (el server devuelve puntos y exige `P >= delta`). El `reset()` del formulario NO debe depender del refetch de productos: un refetch pisaría lo editado.
+5. **Vista previa con trifecta:** icono + texto (+ `aria-live`) que describe el resultado ("queda el envase abierto al 50%", "termina el abierto y abre uno nuevo") y el stock cerrado resultante; el color nunca es el único canal.
+6. Lecturas de historial tolerantes a `quantity` ausente (`formatUsedShort`, `formatStock`): legacy muestra `(xN)`/"Quedó al X%", lo nuevo `(N%)`.
+
+**Gotcha:** un item legacy con consumo efectivo 0 (envase reutilizado) se precarga en 1 porque el server exige `usedPercent >= 1`; guardar sin tocar suma 1 punto — el hint de pantalla debe decirlo.
 
 ---
 
