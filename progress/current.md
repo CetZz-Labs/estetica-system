@@ -4,10 +4,10 @@
 - **Última actualización:** 2026-09-29
 - **Sesión:** activa
 - **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, confirmado sincronizada con `main` en `b14fdb0` antes de ramificar)
-- **Feature en curso:** ninguna — UX-80 a UX-87 (8 features) cerradas esta sesión (ver `progress/history.md`).
+- **Feature en curso:** ninguna cerrada pendiente — UX-80 a UX-88 (9 features) cerradas esta sesión (ver `progress/history.md`). Nuevo pedido del usuario (2026-09-29) en curso: rango dinámico del slider — ver abajo.
 
 ## Plan de Acción
-_(sin feature activa — plantilla vacía hasta la próxima tarea)_
+1. [EN CURSO] Nuevo pedido del usuario tras probar UX-88: cuando se tilda "usar envase ya abierto" (ej. queda 30%), el slider "% usado" debería limitar su rango a 0–30 (lo que efectivamente hay disponible) en vez de seguir yendo 0–100 — hoy es matemáticamente correcto (la fórmula `available - usado` ya clampea a 0) pero visualmente confuso dejar arrastrar hasta "100" cuando ya no queda 100 para usar. Registrar como feature nueva y despachar.
 
 ## Estado del Backlog
 - UX-80 (ver detalle completo de visita, ambas pantallas) → **done**, ver `progress/history.md`

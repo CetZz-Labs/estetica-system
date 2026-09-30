@@ -63,11 +63,14 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
     touchupDate: string;
     touchupTime: string;
     /**
-     * `remainingLevelTouched` es un flag interno del formulario (nunca viaja a la API): distingue
-     * "el usuario movió el slider" de "el input <range> nunca tocado, en 0 por defecto en el DOM"
-     * para no enviar `remainingLevel: 0` falso al backend (fix UX-81). Se limpia en `onSubmit`.
+     * `usedPercent`/`usedPercentTouched` son campos internos del formulario (nunca viajan tal cual a
+     * la API): la barra ahora representa "% usado en esta visita" (UX-88), no el `remainingLevel` que
+     * espera el backend. `usedPercentTouched` distingue "el usuario movió el slider" de "el input
+     * <range> nunca tocado, en 0 por defecto en el DOM" para no enviar un dato falso (fix UX-81).
+     * En `onSubmit` se calcula `remainingLevel = clamp(available - usedPercent, 0, 100)` y se
+     * descartan ambos campos del payload.
      */
-    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean; usedExistingUnit?: boolean }[];
+    productsUsed: { product: string; quantity: number; usedPercent?: number; usedPercentTouched?: boolean; usedExistingUnit?: boolean }[];
 }
 
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
@@ -243,13 +246,22 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             : undefined;
         const payload: ServiceRecordPayload = {
             ...rest,
-            // Omitimos `remainingLevel` de cualquier item que el usuario no haya tocado explícitamente
-            // (fix UX-81): un <input type="range"> nunca está "vacío" en el DOM, así que sin este filtro
-            // se enviaría remainingLevel: 0 falso para cada insumo nunca reportado.
-            productsUsed: productsUsed.map(({ remainingLevelTouched, remainingLevel, ...item }) => ({
-                ...item,
-                ...(remainingLevelTouched && typeof remainingLevel === 'number' ? { remainingLevel } : {}),
-            })),
+            // La barra pide "% usado en esta visita" (UX-88); el backend sigue esperando
+            // `remainingLevel` (% que queda). Convertimos acá, justo antes de armar el payload:
+            // available = envase ya abierto conocido (currentUnitLevel) o 100% si es un envase nuevo.
+            // Omitimos la clave si el usuario nunca tocó el slider (fix UX-81, mismo criterio de siempre).
+            productsUsed: productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
+                const available = item.usedExistingUnit === true
+                    ? (inventoryProducts?.find(p => p._id === item.product)?.currentUnitLevel ?? 100)
+                    : 100;
+                const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
+                    ? Math.max(0, Math.min(100, available - usedPercent))
+                    : undefined;
+                return {
+                    ...item,
+                    ...(remainingLevel !== undefined ? { remainingLevel } : {}),
+                };
+            }),
             ...(nextTouchupDate ? { nextTouchupDate } : {}),
             ...(pastVisitMode ? { isBackfill: true } : {}),
         };
@@ -450,6 +462,15 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
+                                // Preview en vivo de "→ queda X%" con la misma fórmula del onSubmit — se
+                                // recalcula solo cuando el usuario toca el slider o el checkbox de este item
+                                // (watch() devuelve undefined hasta el primer touch, igual que el flag P19).
+                                const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
+                                const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
+                                const previewAvailable = watchedUsedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
+                                const remainingPreview = typeof watchedUsedPercent === 'number' && !Number.isNaN(watchedUsedPercent)
+                                    ? Math.max(0, Math.min(100, previewAvailable - watchedUsedPercent))
+                                    : undefined;
                                 return (
                                     <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
                                         <div className="flex justify-between items-center">
@@ -460,10 +481,13 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                             <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
                                         <RemainingLevelSlider
-                                            defaultValue={field.remainingLevel}
-                                            registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
-                                            onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
+                                            defaultValue={field.usedPercent}
+                                            registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
+                                            onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
                                         />
+                                        {typeof remainingPreview === 'number' && (
+                                            <p className="text-[11px] text-gray-400 -mt-1">→ queda {remainingPreview}%</p>
+                                        )}
                                         {typeof det?.currentUnitLevel === 'number' && (
                                             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
                                                 <input

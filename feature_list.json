@@ -1614,6 +1614,24 @@
         "Escenario de verificación: un texto de notas largo y sin espacios (ej. una URL larga) debe quedar contenido dentro del ancho de la card del timeline, sin desbordar horizontalmente ni cortar el borde derecho del contenedor",
         "pnpm --filter @estetica/client build y lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-88",
+      "name": "Invertir el sentido de la barra de consumo: '% usado' en vez de '% restante'",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Reporte del usuario (2026-09-29) probando UX-81/83: la barra '% RESTANTE ESTIMADO' pide directamente el % que queda, pero el usuario espera cargar cuánto USÓ en la visita (ej. 'gasté 70%') y que el sistema calcule el restante solo (100% − usado = 30%, no 70%). Confirmado con el usuario (2 preguntas vía AskUserQuestion + 1 intercambio de aclaración): (1) la barra pasa a representar '% usado en esta visita', con el restante calculado automáticamente; (2) la barra queda SIEMPRE habilitada (sirve tanto para sembrar el primer dato como para actualizar un envase ya conocido), tildar o no el checkbox 'usar envase ya abierto' solo cambia la BASE del cálculo: si no se tilda, se asume que se parte de un envase 100% lleno (restante = 100 − usado); si se tilda, se parte de lo que quedaba conocido (`Product.currentUnitLevel`) y el restante = ese valor − usado (nunca negativo, clamp a 0). IMPORTANTE: esto es un cambio de UI/cálculo puramente frontend — el contrato de backend (`ServiceRecord.productsUsed[].remainingLevel`, ya revisado y aprobado en UX-81/83) NO cambia de significado ni de validación, solo cambia lo que el frontend calcula antes de enviarlo.",
+      "acceptance_criteria": [
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — el label visible pasa de '% restante estimado (opcional)' a '% usado en esta visita (opcional)'; el JSDoc del componente se actualiza para reflejar que ahora representa consumo, no remanente. El componente en sí sigue siendo genérico (0-100, touched flag) — la transformación a `remainingLevel` ocurre en el formulario dueño, no acá",
+        "apps/client/src/components/RegistroModal.tsx y apps/client/src/components/EditRegistroModal.tsx — el campo RHF que alimenta el slider deja de ser directamente `productsUsed.${index}.remainingLevel`; pasa a ser un campo local del formulario `usedPercent`/`usedPercentTouched` (nunca viaja tal cual a la API). En el `onSubmit` (transform de `productsUsed` antes de armar el payload), calcular por cada item: `available = item.usedExistingUnit === true ? (inventoryProducts.find(p => p._id === item.product)?.currentUnitLevel ?? 100) : 100`, y si `usedPercentTouched` es true y `usedPercent` es un número: `remainingLevel = Math.max(0, Math.min(100, available - usedPercent))`, incluido en el payload solo en ese caso (mismo criterio de 'omitir si no se tocó' que ya existía, P19)",
+        "apps/client/src/components/EditRegistroModal.tsx — el `reset()` que precarga items existentes hace el cálculo INVERSO para no perder el dato guardado ni corromperlo en un submit sin cambios: dado `p.remainingLevel` guardado, `available` (misma fórmula de arriba usando `p.usedExistingUnit` y el `currentUnitLevel` actual del producto), `usedPercent = Math.max(0, Math.min(100, available - p.remainingLevel))`, marcado `usedPercentTouched: true` cuando `p.remainingLevel` es un número",
+        "Recomendado (mejora directa de UX para evitar que se repita esta confusión): mostrar junto al slider un texto en vivo tipo '→ queda {remaining}%' calculado con la misma fórmula, actualizado en el `onChange` del slider, para que la profesional vea el resultado antes de guardar",
+        "No se modifica ningún archivo de `apps/server/` — el contrato de `remainingLevel` (validación, persistencia, `$set` de `currentUnitLevel`) queda exactamente igual, ya aprobado en UX-81/83",
+        "El checkbox 'Usar el envase ya abierto (queda X%) — no descuenta stock' no cambia de comportamiento (sigue controlando el descuento de stock, UX-83) — solo pasa a ser también la señal de qué base usar para el cálculo del restante",
+        "Verificación manual/de código con el ejemplo del usuario: sin tildar el checkbox, cargar 70 en la barra debe resultar en `remainingLevel: 30` en el payload enviado; con el checkbox tildado y `currentUnitLevel` previo de 70, cargar 70 en la barra debe resultar en `remainingLevel: 0`",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
     }
   ]
 }

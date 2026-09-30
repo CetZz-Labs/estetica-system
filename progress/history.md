@@ -436,6 +436,20 @@
 
 ---
 
+## 2026-09-29 — UX-88: Invertir el sentido de la barra de consumo ("% usado" en vez de "% restante")
+
+* **Agente:** Claude (Leader) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** el usuario, probando UX-81/83, reportó que la barra "% RESTANTE ESTIMADO" pedía directamente el % que queda, pero él naturalmente la usaba para indicar "cuánto usé" — si gastaba el 70% de un producto, esperaba que quedara el 30%, pero el sistema guardaba 70% como lo que queda. Confirmado con el usuario (2 preguntas + 1 intercambio de aclaración vía `AskUserQuestion`): la barra pasa a representar "% usado en esta visita", queda SIEMPRE habilitada, y el restante se calcula según la base correcta: `100 - usado` si se abre un envase nuevo, o `currentUnitLevel - usado` (clamp a 0) si se tilda "usar envase ya abierto". **El backend NO se tocó** — el contrato de `remainingLevel` (ya revisado en UX-81/83) mantiene exactamente el mismo significado y validación; el cambio es 100% de cálculo en el frontend, antes de armar el payload.
+
+* **Cambios Frontend (3 archivos):**
+  - `apps/client/src/components/ui/RemainingLevelSlider.tsx` — label/JSDoc actualizados a "% usado en esta visita".
+  - `apps/client/src/components/RegistroModal.tsx` — campo local del form renombrado a `usedPercent`/`usedPercentTouched` (nunca viaja tal cual a la API); en `onSubmit` se calcula `remainingLevel = clamp(available - usedPercent, 0, 100)` con `available` según `usedExistingUnit`; agregado texto en vivo "→ queda X%" junto al slider (vía `watch()`, que el archivo ya usaba).
+  - `apps/client/src/components/EditRegistroModal.tsx` — mismo renombre; el `reset()` hace el cálculo INVERSO (`usedPercent = available - remainingLevel guardado`) para preservar el round-trip de edición sin corromper el dato si no se vuelve a tocar el slider. Sin el texto en vivo (el archivo no usaba `watch()` antes; agregarlo sumaba un warning nuevo de lint — omitido, el AC lo marcaba como recomendado no bloqueante).
+
+* **Verificación:** `pnpm --filter @estetica/client build`/`lint` Exit 0 (3 warnings preexistentes, sin nuevos). Reviewer reconstruyó línea por línea los 3 escenarios de `RegistroModal.tsx` y el round-trip completo de `EditRegistroModal.tsx` (100-30=70 precarga, resubmit sin tocar recalcula 30 de nuevo) con los números reales del usuario. `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_UX-88.md`. UX-88 → **done**.
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).

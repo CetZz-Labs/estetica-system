@@ -28,13 +28,16 @@ interface Props {
 interface EditRegistroFormValues {
     notes: string;
     /**
-     * `remainingLevelTouched` es un flag interno del formulario (nunca viaja a la API): distingue
-     * "el usuario movió el slider" de "el input <range> nunca tocado, en 0 por defecto en el DOM"
-     * para no enviar `remainingLevel: 0` falso al backend (fix UX-81). Se limpia al construir el
-     * payload de `updateServiceRecord`. Para items con dato histórico, se precarga en `true` en el
-     * `reset()` de abajo, así se re-envía su valor original aunque no se vuelva a tocar el slider.
+     * `usedPercent`/`usedPercentTouched` son campos internos del formulario (nunca viajan tal cual a
+     * la API): la barra representa "% usado en esta visita" (UX-88), no el `remainingLevel` que
+     * espera el backend. `usedPercentTouched` distingue "el usuario movió el slider" de "el input
+     * <range> nunca tocado, en 0 por defecto en el DOM" para no enviar un dato falso (fix UX-81). Se
+     * limpia al construir el payload de `updateServiceRecord`, donde se recalcula `remainingLevel`.
+     * Para items con dato histórico, `reset()` hace el cálculo INVERSO (`usedPercent = available -
+     * remainingLevel guardado`) y precarga `usedPercentTouched: true`, así se re-envía el valor
+     * original aunque no se vuelva a tocar el slider en esta edición.
      */
-    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean; usedExistingUnit?: boolean }[];
+    productsUsed: { product: string; quantity: number; usedPercent?: number; usedPercentTouched?: boolean; usedExistingUnit?: boolean }[];
 }
 
 // Mismo estilo "Maison" que RegistroModal.tsx para mantener consistencia visual entre modales.
@@ -96,28 +99,49 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
         if (isOpen && record) {
             reset({
                 notes: record.notes || '',
-                productsUsed: (record.productsUsed || []).map(p => ({
-                    product: typeof p.product === 'object' && p.product !== null ? p.product._id : p.product,
-                    quantity: p.quantity,
-                    usedExistingUnit: p.usedExistingUnit ?? false,
-                    ...(typeof p.remainingLevel === 'number' ? { remainingLevel: p.remainingLevel, remainingLevelTouched: true } : {})
-                }))
+                // Cálculo INVERSO (UX-88): el `remainingLevel` guardado (% que queda) se convierte de
+                // vuelta a "% usado" para precargar la barra, con la misma fórmula de `available` que
+                // usa el onSubmit — así un submit sin tocar el slider recalcula el mismo remainingLevel
+                // original (round-trip sin corromper el dato).
+                productsUsed: (record.productsUsed || []).map(p => {
+                    const productId = typeof p.product === 'object' && p.product !== null ? p.product._id : p.product;
+                    const det = inventoryProducts?.find(prod => prod._id === productId);
+                    const available = p.usedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
+                    const usedPercent = typeof p.remainingLevel === 'number'
+                        ? Math.max(0, Math.min(100, available - p.remainingLevel))
+                        : undefined;
+                    return {
+                        product: productId,
+                        quantity: p.quantity,
+                        usedExistingUnit: p.usedExistingUnit ?? false,
+                        ...(typeof usedPercent === 'number' ? { usedPercent, usedPercentTouched: true } : {}),
+                    };
+                })
             });
         }
-    }, [isOpen, record, reset]);
+    }, [isOpen, record, reset, inventoryProducts]);
 
     const { mutate, isPending } = useMutation({
         mutationFn: (data: EditRegistroFormValues) => updateServiceRecord(record!._id, {
             notes: data.notes,
-            // Omitimos `remainingLevel` de cualquier item que el usuario no haya tocado explícitamente
-            // en esta edición (fix UX-81): un <input type="range"> nunca está "vacío" en el DOM, así
-            // que sin este filtro se reenviaría remainingLevel: 0 falso para cada insumo nunca
-            // reportado. Los items con dato histórico llegan con remainingLevelTouched: true desde el
-            // reset() de arriba, así que su valor original se sigue reenviando sin tocar el slider.
-            productsUsed: data.productsUsed.map(({ remainingLevelTouched, remainingLevel, ...item }) => ({
-                ...item,
-                ...(remainingLevelTouched && typeof remainingLevel === 'number' ? { remainingLevel } : {}),
-            }))
+            // La barra pide "% usado en esta visita" (UX-88); el backend sigue esperando
+            // `remainingLevel` (% que queda). Convertimos acá, justo antes de armar el payload, con la
+            // misma fórmula que el reset() inverso de arriba. Omitimos la clave si el usuario no tocó
+            // el slider en esta edición (fix UX-81): los items con dato histórico llegan con
+            // usedPercentTouched: true desde el reset(), así que su valor original se sigue reenviando.
+            productsUsed: data.productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
+                const det = inventoryProducts?.find(p => p._id === item.product);
+                const available = item.usedExistingUnit === true
+                    ? (det?.currentUnitLevel ?? 100)
+                    : 100;
+                const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
+                    ? Math.max(0, Math.min(100, available - usedPercent))
+                    : undefined;
+                return {
+                    ...item,
+                    ...(remainingLevel !== undefined ? { remainingLevel } : {}),
+                };
+            })
         }),
         onSuccess: () => {
             toast.success('Visita actualizada. Stock reconciliado.');
@@ -219,9 +243,9 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                             <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
                                         <RemainingLevelSlider
-                                            defaultValue={field.remainingLevel}
-                                            registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
-                                            onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
+                                            defaultValue={field.usedPercent}
+                                            registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
+                                            onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
                                         />
                                         {typeof det?.currentUnitLevel === 'number' && (
                                             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
