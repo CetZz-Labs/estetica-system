@@ -465,6 +465,15 @@
 
 ---
 
+## 2026-09-29 — Cierre de sesión: 10 features (UX-80 a UX-89), rama lista para mañana
+
+* **Resumen de la sesión:** el usuario pidió dos mejoras (detalle de visita en el historial, indicador de consumo parcial de productos) y una rama nueva partiendo de `development`/`main` sincronizadas (`b14fdb0`). Durante la sesión, probando cada entrega en vivo, el usuario fue encontrando y reportando ajustes reales que se atendieron en el momento, resultando en 10 features cerradas: **UX-80** (detalle de visita compartido), **UX-81** (indicador de consumo parcial, diseño informativo), **UX-82** (reponer nav "Mi Negocio"), **UX-83** (elegir reutilizar envase abierto vs. abrir uno nuevo, con fix de integridad en `deleteServiceRecord`), **UX-84** (simplificar Mi Negocio), **UX-85** (notificación push con nombre del negocio y clientes del día), **UX-86**/**UX-87** (bug de overflow de texto, 2 rondas hasta dar con la causa raíz de flexbox), **UX-88**/**UX-89** (invertir el sentido de la barra de consumo a "% usado" + rango dinámico, tras feedback del usuario probando la feature).
+* **Patrones nuevos documentados** (reutilizables para futuras sesiones): `docs/patterns-frontend.md` § P18 (extraer detalle con mutation propia sin romperla), § P19 (flag "touched" para inputs numéricos opcionales con RHF), § P20 (min-w-0 va en el flex ITEM de texto, no en el contenedor); `docs/patterns-backend.md` § P17 ampliado con la extensión de "cantidad efectiva" para flags que determinan si un ítem toca stock.
+* **Verificación final de cierre:** `pnpm --filter @estetica/server build` Exit 0, `pnpm --filter @estetica/client build` Exit 0 (mismo warning preexistente de chunk size, no relacionado). Todas las features comiteadas individualmente (9 commits sobre `feature/UX-80-detalle-visita-consumo-productos`, desde `650df3a` hasta `007ec81`), working tree limpio. Rama NO mergeada a `development`/`main` todavía — queda pendiente de decisión del usuario (probar en un entorno real antes del merge, dado el volumen de cambios sobre `ServiceRecords`/stock).
+* **Pendiente para la próxima sesión:** ninguna feature abierta. Si el usuario prueba la app y encuentra más ajustes, seguir el mismo flujo (explorer si hay ambigüedad de diseño → implementer → reviewer). Sugerido: antes de mergear, probar en vivo el flujo completo de UX-83 (reutilizar envase abierto) y UX-88/89 (barra de consumo) con datos reales, ya que fueron los más iterados y son los de mayor riesgo (tocan stock).
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).
