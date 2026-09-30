@@ -1600,6 +1600,20 @@
         "Verificación manual/de código: un texto largo sin espacios (ej. una URL larga) y un texto largo con espacios normales deben ambos quedar contenidos dentro del ancho del popup/timeline, sin desbordar horizontalmente",
         "pnpm --filter @estetica/client build y lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-87",
+      "name": "Bug (residual de UX-86): la descripción sigue saliéndose del contenedor en el historial del cliente",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "El usuario reportó (2026-09-29) que el bug de UX-86 persiste específicamente en el timeline de historial del cliente (`ProfileClient.tsx`). Diagnóstico del leader: el fix de UX-86 le agregó `min-w-0` al `<div>` CONTENEDOR flex del bloque de notas (línea ~282), pero no al `<p>` en sí — y el `<p>` es el verdadero flex ITEM dentro de esa fila (`flex gap-2 ...`) que necesita `min-w-0` para poder encogerse por debajo del ancho de su contenido. Un flex item sin `min-w-0` explícito tiene `min-width: auto` por default (CSS spec), que en la práctica de varios navegadores puede seguir forzando el ancho mínimo por el contenido de texto aunque el CONTENEDOR ya tenga `min-w-0` — hay que ponérselo al item que efectivamente necesita achicarse, no solo a su padre. El bloque de 'Insumos' (línea ~285-296) NO tiene este problema porque ahí el flex item es un `<div>` intermedio que YA tiene `min-w-0` aplicado directamente (UX-86 lo hizo bien en ese caso, mal en el de notas).",
+      "acceptance_criteria": [
+        "apps/client/src/views/ProfileClient.tsx — el `<p className=\"break-words whitespace-pre-wrap\">{registro.notes}</p>` (línea ~282, dentro de `<div className=\"flex gap-2 text-sm text-gray-600 min-w-0\">`) gana `min-w-0` directamente en el propio `<p>` (además de conservar `break-words whitespace-pre-wrap` ya aplicado) — puede combinarse con `flex-1` si ayuda a que ocupe el espacio disponible de forma prolija, a criterio del implementer",
+        "Revisar con el mismo criterio el `<p>` de notas en apps/client/src/components/ServiceRecordDetail.tsx (línea ~182) — el reviewer de UX-86 confirmó que ese contenedor NO es flex (es un `<div>` de bloque simple), así que no debería tener este problema, pero confirmarlo de nuevo mirando el render real antes de descartarlo",
+        "Escenario de verificación: un texto de notas largo y sin espacios (ej. una URL larga) debe quedar contenido dentro del ancho de la card del timeline, sin desbordar horizontalmente ni cortar el borde derecho del contenedor",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
     }
   ]
 }

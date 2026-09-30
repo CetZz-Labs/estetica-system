@@ -422,6 +422,20 @@
 
 ---
 
+## 2026-09-29 — UX-87: Corrección residual de UX-86 (la descripción seguía saliéndose del contenedor)
+
+* **Agente:** Claude (Leader, diagnóstico propio) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** el usuario reportó que el bug de UX-86 persistía específicamente en el timeline de historial del cliente. Diagnóstico del leader: el fix de UX-86 le había puesto `min-w-0` al `<div>` CONTENEDOR de la fila flex (ícono + notas), pero no al `<p>` en sí — el `<p>` es el flex ITEM real que necesita `min-w-0` propio para poder encogerse por debajo del ancho de su contenido; el contenedor teniéndolo no alcanza (gotcha de spec CSS: `min-width: auto` por defecto en un flex item).
+
+* **Cambio Frontend (1 línea, único archivo tocado):**
+  - `apps/client/src/views/ProfileClient.tsx` — el `<p>` de notas del timeline gana `min-w-0 flex-1` (sumado a `break-words whitespace-pre-wrap` ya puesto en UX-86). `ServiceRecordDetail.tsx` confirmado por segunda vez que no lo necesita (su `<p>` de notas vive en un `<div>` de bloque simple, no flex).
+
+* **Verificación:** `pnpm --filter @estetica/client build`/`lint` Exit 0 (3 warnings preexistentes, sin nuevos). Reviewer reconstruyó el razonamiento CSS completo antes de aprobar. `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_UX-87.md`. UX-87 → **done**.
+
+* **Patrón nuevo promovido:** `docs/patterns-frontend.md` § P20 — "texto largo desborda una fila flex (ícono + texto) aunque el CONTENEDOR tenga `min-w-0`" — el `min-w-0` va en el flex ITEM de texto, no en su padre. Gotcha que llevó 2 rondas de fix porque es indistinguible a simple vista de "falta scroll".
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).

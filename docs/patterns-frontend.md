@@ -647,4 +647,28 @@ window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encode
 
 ---
 
+## P20 — Gotcha: texto largo desborda una fila flex (ícono + texto) aunque el CONTENEDOR tenga `min-w-0`
+
+> **Origen:** UX-86/UX-87 (2026-09-29) — un `<div className="flex gap-2 ...">` con un ícono (`shrink-0`) y un `<p>{texto}</p>` mostraba texto largo desbordando el contenedor. El primer fix (UX-86) le puso `min-w-0` y `break-words` al `<div>` contenedor y al `<p>` respectivamente, pero el bug seguía — hizo falta una segunda ronda (UX-87) para encontrar la causa real.
+
+**Cuándo aplica:** cualquier fila `flex` con un ícono de ancho fijo (`shrink-0`) seguido de texto de longitud variable (notas, descripciones, nombres concatenados) que debe envolver en vez de desbordar.
+
+**El error común:** poner `min-w-0` en el `<div>` CONTENEDOR de la fila flex, asumiendo que eso alcanza. **No alcanza.** El elemento que necesita `min-w-0` es el flex ITEM que contiene el texto (el `<p>`/`<span>` en sí, hijo directo del contenedor `flex`), no su padre. Por spec CSS, un flex item tiene `min-width: auto` por defecto, que en la práctica lo ancla al ancho de su contenido (o de la palabra más larga) — `min-w-0` en el contenedor no cambia el `min-width` calculado de sus propios hijos.
+
+**Mandato:**
+1. En una fila `flex` con ícono + texto, el elemento de texto (no el contenedor) necesita `min-w-0` (y usualmente `flex-1`, para que ocupe el espacio restante en vez de encogerse a su contenido).
+2. Sumarle `break-words` (corta palabras/URLs largas sin espacios) y, si el texto viene de un campo libre del usuario (no generado programáticamente), `whitespace-pre-wrap` (preserva saltos de línea reales sin colapsar espacios).
+3. Verificar el fix con un caso concreto: un texto largo SIN espacios (ej. una URL) dentro de la fila — si sigue desbordando, el `min-w-0` no está en el nodo correcto.
+
+```tsx
+<div className="flex gap-2">
+  <FiIcon className="shrink-0" />
+  <p className="min-w-0 flex-1 break-words whitespace-pre-wrap">{texto}</p>
+</div>
+```
+
+**Gotcha:** este problema es indistinguible a simple vista de "falta scroll" — un modal/contenedor puede tener `overflow-y-auto` perfecto y el texto igual desbordar horizontalmente por este motivo, llevando a buscar la causa en el lugar equivocado (el scroll del modal, no el flex item).
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.

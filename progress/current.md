@@ -4,13 +4,10 @@
 - **Última actualización:** 2026-09-29
 - **Sesión:** activa
 - **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, confirmado sincronizada con `main` en `b14fdb0` antes de ramificar)
-- **Feature en curso:** ninguna — UX-80 a UX-86 (7 features) cerradas esta sesión (ver `progress/history.md`).
+- **Feature en curso:** ninguna — UX-80 a UX-87 (8 features) cerradas esta sesión (ver `progress/history.md`).
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
-
-## Pendiente de commitear
-UX-86 (`ServiceRecordDetail.tsx`, `ProfileClient.tsx` — fix de wrap de texto) + este archivo/`history.md`/`feature_list.json`.
 
 ## Estado del Backlog
 - UX-80 (ver detalle completo de visita, ambas pantallas) → **done**, ver `progress/history.md`

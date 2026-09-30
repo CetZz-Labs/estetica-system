@@ -279,7 +279,7 @@ export default function PerfilCliente() {
                                         {(registro.notes || registro.productsUsed) && (
                                             <div className="mt-4 pt-4 border-t border-border space-y-3">
                                                 {registro.notes && (
-                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p className="break-words whitespace-pre-wrap">{registro.notes}</p></div>
+                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p className="min-w-0 flex-1 break-words whitespace-pre-wrap">{registro.notes}</p></div>
                                                 )}
                                                 {registro.productsUsed && registro.productsUsed.length > 0 && (
                                                     <div className="flex gap-2 text-sm text-gray-600 min-w-0">
