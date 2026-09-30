@@ -179,7 +179,7 @@ export default function ServiceRecordDetail({ record, touchupEdit }: Props) {
             {record.notes && (
                 <div>
                     <h4 className="text-xs font-bold tracking-widest text-muted uppercase mb-2">Notas</h4>
-                    <p className="text-sm text-text-2 bg-surface-2 p-3 rounded-ctrl border border-border-soft">{record.notes}</p>
+                    <p className="text-sm text-text-2 bg-surface-2 p-3 rounded-ctrl border border-border-soft break-words whitespace-pre-wrap">{record.notes}</p>
                 </div>
             )}
 

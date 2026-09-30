@@ -409,6 +409,19 @@
 
 ---
 
+## 2026-09-29 — UX-86: Bug de overflow de texto sin wrap en descripciones/notas
+
+* **Agente:** Claude (Leader, diagnóstico propio) + implementer (frontend) + reviewer (1 ronda).
+* **Objetivo:** el usuario reportó, tras usar las features recién cerradas de esta sesión, que la descripción/notas de una visita se salía del contenedor sin generar scroll, tanto en el timeline de historial del cliente como en el popup de detalle de visita. Diagnóstico del leader: el `<Modal>` compartido ya tenía scroll vertical correcto (`overflow-y-auto`/`max-h-[90vh]`) — el bug real era falta de wrap de palabras largas (`break-words`) combinado, en un caso, con un contenedor `flex` sin `min-w-0` (gotcha clásico: un flex item con texto no se encoge por debajo de su contenido por defecto).
+
+* **Cambios Frontend (2 archivos, ambos ya tocados en features previas de esta sesión):**
+  - `apps/client/src/components/ServiceRecordDetail.tsx` — `break-words whitespace-pre-wrap` en el `<p>` de `record.notes` (contenedor padre es bloque simple, no necesitaba `min-w-0`).
+  - `apps/client/src/views/ProfileClient.tsx` — `min-w-0` en los contenedores `flex` de notas e insumos del timeline + `break-words`/`whitespace-pre-wrap` en sus textos (el bloque de insumos se corrigió por consistencia del mismo bug de raíz, no era el reporte explícito del usuario).
+
+* **Verificación:** `pnpm --filter @estetica/client build`/`lint` Exit 0 (3 warnings preexistentes, sin nuevos). Reviewer confirmó que `break-words` es una utilidad real de Tailwind v4 (no inventada) y que `components/ui/Modal.tsx` no fue tocado (no era la causa). `git stash list` vacío. Reviewer: **APPROVED** → `progress/reviews/review_UX-86.md`. UX-86 → **done**.
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).

@@ -4,11 +4,13 @@
 - **Última actualización:** 2026-09-29
 - **Sesión:** activa
 - **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, confirmado sincronizada con `main` en `b14fdb0` antes de ramificar)
-- **Feature en curso:** ninguna cerrada pendiente — UX-80, UX-81, UX-82, UX-83, UX-84 y UX-85 cerradas esta sesión (ver `progress/history.md`), todas comiteadas. Nuevo reporte del usuario (2026-09-29) en curso: overflow de texto sin scroll en descripciones/notas — ver abajo.
+- **Feature en curso:** ninguna — UX-80 a UX-86 (7 features) cerradas esta sesión (ver `progress/history.md`).
 
 ## Plan de Acción
-1. [DONE] UX-80, UX-81, UX-82, UX-83, UX-84, UX-85: ver `progress/history.md`. Todas comiteadas (`650df3a`, `805112a`, `0c4721f`, + commit pendiente del frontend de UX-83).
-2. [EN CURSO] Nuevo bug reportado por el usuario: en el historial del cliente (`ProfileClient.tsx`) y en el popup de detalle de visita (`ServiceRecordDetail.tsx`, UX-80) el texto de la descripción/notas se sale del contenedor sin generar scroll. Registrar como feature nueva y despachar a implementer frontend.
+_(sin feature activa — plantilla vacía hasta la próxima tarea)_
+
+## Pendiente de commitear
+UX-86 (`ServiceRecordDetail.tsx`, `ProfileClient.tsx` — fix de wrap de texto) + este archivo/`history.md`/`feature_list.json`.
 
 ## Estado del Backlog
 - UX-80 (ver detalle completo de visita, ambas pantallas) → **done**, ver `progress/history.md`

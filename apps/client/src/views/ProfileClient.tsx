@@ -279,14 +279,14 @@ export default function PerfilCliente() {
                                         {(registro.notes || registro.productsUsed) && (
                                             <div className="mt-4 pt-4 border-t border-border space-y-3">
                                                 {registro.notes && (
-                                                    <div className="flex gap-2 text-sm text-gray-600"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p>{registro.notes}</p></div>
+                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p className="break-words whitespace-pre-wrap">{registro.notes}</p></div>
                                                 )}
                                                 {registro.productsUsed && registro.productsUsed.length > 0 && (
-                                                    <div className="flex gap-2 text-sm text-gray-600">
+                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0">
                                                         <FiBox className="text-gray-400 mt-0.5 shrink-0" />
-                                                        <div>
+                                                        <div className="min-w-0">
                                                             <span className="font-medium text-gray-700">Insumos: </span>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-gray-600 break-words">
                                                                 {registro.productsUsed.map(item => {
                                                                     const productName = typeof item.product === 'object' && item.product !== null ? item.product.name : 'Insumo';
                                                                     return `${productName} (${item.quantity > 0 ? item.quantity : '0'})`;

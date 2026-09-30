@@ -1584,6 +1584,22 @@
         "No se modifica la cadencia del cron (diario 08:00, hora del proceso), ni el criterio de elegibilidad de tenants/suscripciones, ni la limpieza de suscripciones caducadas (410/404) ya existente",
         "pnpm --filter @estetica/server build pasa con exit code 0"
       ]
+    },
+    {
+      "id": "UX-86",
+      "name": "Bug: descripción/notas se salen del contenedor sin scroll (historial de cliente y popup de detalle)",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Reporte directo del usuario (2026-09-29) tras UX-80/81/83: cuando la descripción/notas de una visita es larga, el texto se sale visualmente del contenedor en vez de ajustarse o generar scroll — tanto en el timeline de historial del cliente (`ProfileClient.tsx`) como en el popup de detalle de visita (`ServiceRecordDetail.tsx`, componente compartido de UX-80 usado también desde el botón 'Ver detalle' de `Historial.tsx` y desde `Dashboard.tsx`). Diagnóstico del leader: el `<Modal>` compartido (`components/ui/Modal.tsx`) YA tiene `overflow-y-auto`/`max-h-[90vh]` en su body, así que el problema no es falta de scroll vertical del modal en sí, sino que el `<p>` que renderiza las notas no tiene wrap de palabras largas (`break-words`) y el contenedor flex que lo envuelve no tiene `min-w-0` — un texto largo sin cortes desborda horizontalmente el contenedor en vez de ajustarse al ancho disponible, un gotcha clásico de flexbox (los flex items no se encogen por debajo de su contenido por defecto).",
+      "acceptance_criteria": [
+        "apps/client/src/components/ServiceRecordDetail.tsx — el `<p>` que renderiza `record.notes` (línea ~182) envuelve correctamente palabras largas sin desbordar el contenedor (`break-words`/`overflow-wrap` + `whitespace-pre-wrap` para preservar saltos de línea del texto original)",
+        "apps/client/src/views/ProfileClient.tsx — el bloque de notas del timeline (línea ~282, `<div className=\"flex gap-2 ...\">...<p>{registro.notes}</p></div>`) recibe el mismo tratamiento: el contenedor flex gana `min-w-0` (para que el `<p>` pueda encogerse y envolver en vez de forzar el ancho del padre) y el `<p>` gana `break-words`/`whitespace-pre-wrap`",
+        "Revisar si el mismo patrón (flex sin `min-w-0` + texto sin `break-words`) se repite en otro bloque de notas/descripción visible del mismo componente (ej. el bloque de 'Insumos' en ProfileClient.tsx, línea ~284) y aplicar el mismo fix si corresponde",
+        "No se modifica el `<Modal>` compartido (`components/ui/Modal.tsx`) — su scroll vertical ya funciona correctamente, el bug es específico del wrap de texto dentro del contenido",
+        "Verificación manual/de código: un texto largo sin espacios (ej. una URL larga) y un texto largo con espacios normales deben ambos quedar contenidos dentro del ancho del popup/timeline, sin desbordar horizontalmente",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
     }
   ]
 }
