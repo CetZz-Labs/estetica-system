@@ -6,6 +6,12 @@ interface IUsedProduct {
     // UX-81: estimación libre e informativa de la profesional ("% que quedó en el envase
     // tras esta visita"). NO participa del descuento/reconciliación de stock (quantity).
     remainingLevel?: number;
+    // UX-83: elección explícita "usar envase ya abierto" (true) vs "abrir uno nuevo" (false).
+    // A diferencia de remainingLevel (opcional, "sin dato" = undefined), este campo SIEMPRE se
+    // persiste explícito (default false) — la reconciliación por delta de P17 en
+    // updateServiceRecord necesita conocer el estado histórico exacto de cada item guardado,
+    // no puede inferirlo de "sin dato".
+    usedExistingUnit: boolean;
 }
 
 export interface IServiceRecord extends Document {
@@ -37,7 +43,9 @@ const ServiceRecordSchema: Schema = new Schema({
         product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
         quantity: { type: Number, required: true, min: 0 },
         // UX-81: dato puramente informativo, no afecta el descuento de stock (P4/P6/P17).
-        remainingLevel: { type: Number, min: 0, max: 100 }
+        remainingLevel: { type: Number, min: 0, max: 100 },
+        // UX-83: default false, siempre persistido explícito (ver comentario de la interfaz).
+        usedExistingUnit: { type: Boolean, default: false }
     }],
 
     // Lógica del Dashboard ("Próximos retoques")
