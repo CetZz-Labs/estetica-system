@@ -1474,6 +1474,183 @@
         "No se modifica pushReminderScheduler.ts, reminderScheduler.ts, ni ninguna otra funcionalidad de notificaciones existente (UX-68, EP-17) — feature aditiva y aislada",
         "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-80",
+      "name": "Ver detalle completo de una visita desde el historial (global y de cliente)",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del cliente del sistema (2026-09-29). Diagnóstico confirmado por explorer (`progress/explores/explore_UX-80.md`, 2026-09-29): NO falta backend — `getClientRecords`/`getServiceRecords` ya popula service/professional/productsUsed.product/notes completos. `ProfileClient.tsx` (perfil del cliente) YA muestra todo sin truncar, ese AC ya estaba cumplido ahí. El corte real está en el listado global `Historial.tsx` (columnas 'Productos usados'/'Notas' con `truncate max-w-[220px]`, sin tooltip, única acción es el lápiz de 'Editar' — un formulario, no una vista de solo lectura). Ya existe un patrón hermano sin extraer: el modal inline 'Detalle del Retoque' en `Dashboard.tsx:585-739` renderiza exactamente el mismo shape de ServiceRecord (cliente/servicio/profesional/productsUsed/notes) de forma read-only, análogo a `AppointmentDetail.tsx` (extraído en UX-16 para turnos). Decisión de alcance confirmada con el usuario (2026-09-29, vía AskUserQuestion): agregar el botón 'Ver detalle' en AMBAS pantallas (Historial global Y perfil del cliente), no solo donde se corta el texto, por consistencia visual entre las tres superficies que muestran ServiceRecords.",
+      "acceptance_criteria": [
+        "Extraer el bloque inline 'Detalle del Retoque' de Dashboard.tsx:611-737 a un componente compartido de solo lectura `ServiceRecordDetail.tsx` (mismo patrón que AppointmentDetail.tsx: children del <Modal> compartido, sin lógica de mutación), y reusarlo en Dashboard.tsx reemplazando el JSX inline SIN cambiar su comportamiento actual (UX-16 no debe romperse)",
+        "Historial.tsx: agregar un botón 'Ver detalle' (ícono FiEye, <button type=\"button\">, HTML semántico, cursor-pointer) por fila que abra ServiceRecordDetail en el <Modal> compartido, sin reemplazar el botón existente de 'Editar' (FiEdit2 → EditRegistroModal), ambas acciones coexisten",
+        "ProfileClient.tsx: agregar el mismo botón 'Ver detalle' en cada ítem del timeline de historial, abriendo el mismo ServiceRecordDetail compartido, por consistencia visual (decisión de alcance del usuario, no por gap funcional — este componente ya mostraba todo sin truncar)",
+        "No se modifica ningún endpoint de backend — el dato ya viaja completo",
+        "No se duplica JSX/lógica entre Dashboard.tsx, Historial.tsx y ProfileClient.tsx — las tres consumen el mismo ServiceRecordDetail",
+        "4 estados obligatorios donde aplique (.claude/rules/frontend.md §3), trifecta de accesibilidad si hay estados críticos",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-81",
+      "name": "Indicador de consumo parcial de productos por visita",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del cliente del sistema (2026-09-29): en la práctica real un producto (ej. shampoo) muchas veces no se termina en una sola visita — se consume una fracción (ej. 'media botella'). Diseño confirmado por explorer (`progress/explores/explore_UX-81.md`, 2026-09-29) — Opción C+ recomendada y aceptada: NO se reinterpreta `stock`/`quantity` (siguen en unidades enteras, sin tocar P4/P6/P17 ni GOV-STOCK), NO se auto-gestiona una 'unidad abierta' (exigiría agregar capacidad/unit a Product, inexistente hoy). En cambio se agrega un campo puramente informativo: `ServiceRecord.productsUsed[].remainingLevel` (0-100, opcional, estimación libre de la profesional sobre cuánto quedó del envase tras la visita) + espejo `Product.currentUnitLevel` (0-100, opcional, actualizado por `set` simple, no aritmética de stock) para mostrar una barra 'en vivo' en Inventario. Decisiones de UX confirmadas con el usuario (2026-09-29, vía AskUserQuestion): (1) granularidad = porcentaje libre 0-100 (slider), no cuartos fijos; (2) el nivel debe poder editarse retroactivamente desde el modal de edición de visita, no solo al crearla; (3) `adjustStock` (carga manual de stock) NO resetea `currentUnitLevel` en esta primera iteración — se revisa a futuro si genera confusión real. Complejidad 'Media' (no 'Compleja' como se estimó inicialmente): no requiere stacked PRs, pero sí 2 implementers en sandboxes aislados (backend + frontend) por tocar ambos lados.",
+      "acceptance_criteria": [
+        "apps/server/src/models/ServiceRecord.ts — subschema productsUsed gana remainingLevel (Number, min 0, max 100, opcional/no required). quantity NO cambia de tipo ni de semántica.",
+        "apps/server/src/models/Product.ts — nuevo campo currentUnitLevel (Number, min 0, max 100, opcional, default null/undefined).",
+        "apps/server/src/controllers/serviceRecordController.ts::createServiceRecord — tras el loop de descuento de stock existente (sin modificarlo), si un item de productsUsed trae remainingLevel, hacer un `Product.updateOne`/`set` de currentUnitLevel para ese producto (tenant-scoped). No debe tocarse la lógica de validación/descuento de stock ya auditada (P4).",
+        "apps/server/src/controllers/serviceRecordController.ts::updateServiceRecord — dentro de la reconciliación por delta existente (P17), permitir actualizar remainingLevel de cada item (edición retroactiva confirmada por el usuario) y reflejar el último valor en Product.currentUnitLevel del producto correspondiente, sin alterar la reconciliación de stock por delta ya auditada.",
+        "apps/server/src/controllers/serviceRecordController.ts::deleteServiceRecord — sin cambios (no hace falta revertir un dato informativo).",
+        "apps/server/src/controllers/productController.ts::adjustStock — sin cambios funcionales en esta iteración (decisión confirmada: no resetea currentUnitLevel).",
+        "docs/db-schema.md y docs/governance-rules.md (GOV-STOCK) — documentar los dos campos nuevos como informativos, explícitamente fuera de los mandatos 1-4 de GOV-STOCK.",
+        "apps/client/src/components/RegistroModal.tsx — junto al selector de insumo/cantidad, agregar un control opcional de '% restante estimado' (slider 0-100, no botones de cuartos) por cada item de productsUsed.",
+        "apps/client/src/components/EditRegistroModal.tsx — mismo control que RegistroModal, permitiendo editar remainingLevel de items ya guardados (requisito confirmado de edición retroactiva).",
+        "apps/client/src/views/Inventario.tsx — mostrar una barra/indicador junto a la columna de stock cuando currentUnitLevel no sea null, con Trifecta de Accesibilidad completa (color + ícono + texto, ej. 'Envase abierto: 40%'), reusando el patrón de badges ya existente (FiAlertTriangle/FiCheckCircle) sin duplicar lógica",
+        "apps/client/src/types/index.ts — agregar remainingLevel (ProductsUsed) y currentUnitLevel (Product) como campos opcionales",
+        "Sinergia con UX-80: si UX-80 ya está implementada, el componente ServiceRecordDetail muestra remainingLevel por producto en la lista de insumos usados de la visita",
+        "No debe romper el control de stock existente (validación de stock no negativo, descuento automático al registrar visita, reconciliación por delta P17, carga masiva)",
+        "Multi-tenancy y soft-delete existentes se preservan sin cambios de comportamiento",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-82",
+      "name": "Reponer entrada \"Mi Negocio\" en el menú lateral",
+      "module": "Settings",
+      "phase": "Fase 2",
+      "status": "done",
+      "description": "Hallazgo del leader (2026-09-29) durante diagnóstico del reporte del usuario de que 'las notificaciones push no funcionan': la vista Mi Negocio (`/configuracion/negocio`, EP-10), que contiene la card 'Notificaciones push' (UX-68), sigue existiendo y siendo funcional, pero su entrada en el sidebar fue retirada intencionalmente en UX-36 (2026-07-21) por pedido de limpieza visual del usuario — sin que en ese momento existiera todavía el toggle de notificaciones (agregado después, UX-68, 2026-08-04), por lo que quedó huérfana sin que nadie lo notara hasta ahora. Decisión confirmada con el usuario (2026-09-29): reponer el link en el sidebar, sección Configuración, junto a Disponibilidad.",
+      "acceptance_criteria": [
+        "apps/client/src/layouts/AppLayout.tsx — agregar de nuevo `<SidebarNavLink to=\"/configuracion/negocio\">Mi Negocio</SidebarNavLink>` dentro del bloque `role === 'ADMIN'` de la sección 'Configuración', junto a Disponibilidad (mismo gating de rol que ya tenía antes de UX-36)",
+        "No se modifica la ruta, el componente Negocio.tsx, ni ningún otro comportamiento — cambio de 1 línea en el nav",
+        "El orden de los links dentro de Configuración queda a criterio del implementer (Mi Negocio antes o después de Disponibilidad), sin requisito funcional específico",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-83",
+      "name": "Elegir usar envase ya abierto vs. abrir uno nuevo al registrar consumo de un producto",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-29), follow-up de UX-81. Diseño cerrado por explorer (`progress/explores/explore_UX-83.md`): nuevo campo `ServiceRecord.productsUsed[].usedExistingUnit` (boolean, default `false`, SIEMPRE persistido explícito — a diferencia de `remainingLevel` que es opcional/sin dato, este campo necesita historial exacto para que la reconciliación por delta de P17 sepa si ese item tocó stock o no). Reclasificada de 'Media' a **'Compleja' (transversal)** — cruza los 3 puntos de control de stock (create/update/delete) y redefine el significado de 'delta' en la reconciliación P17 (ya auditada en UX-67 y UX-81). Hallazgo crítico del explorer, agregado al alcance aunque no estaba en el pedido original: `deleteServiceRecord` restaura stock incondicionalmente hoy — si no se excluyen los items con `usedExistingUnit:true`, borrar una visita infla stock con una unidad que nunca se descontó (bug de integridad). Estrategia de entrega: **stacked PRs** — 1 implementer backend (modelo + rutas + create/update/delete) con su propio reviewer enfocado en las 4 transiciones del delta ANTES de lanzar el implementer frontend (no en paralelo, a diferencia de UX-81).",
+      "acceptance_criteria": [
+        "apps/server/src/models/ServiceRecord.ts — `productsUsed[].usedExistingUnit: boolean` (default false, no opcional-condicional)",
+        "apps/server/src/controllers/serviceRecordController.ts::createServiceRecord — si `usedExistingUnit===true`: validar que `product.currentUnitLevel` no sea undefined/null (400 si lo es, mensaje 'No hay un envase abierto registrado para ese producto; elegí abrir uno nuevo' — NO caer silenciosamente a 'abrir nuevo'); no validar/descontar stock para ese item. Si false: comportamiento actual sin cambios. El `$set` de `currentUnitLevel` vía `remainingLevel` queda fuera del if/else, sin cambios.",
+        "apps/server/src/controllers/serviceRecordController.ts::updateServiceRecord (P17) — oldMap/newMap pasan de indexar `quantity` cruda a indexar 'cantidad efectiva de stock' (0 si `usedExistingUnit`, `quantity` si no); el resto de la mecánica de delta (unionIds, fase validación pura, fase escritura) no cambia. Validar en la fase pura (antes de mutar) que todo item nuevo con `usedExistingUnit:true` tenga `currentUnitLevel` definido, mismo 400 que create. Verificar explícitamente las 4 transiciones: nuevo→nuevo (sin cambios), nuevo→existing (delta negativo, restaura), existing→nuevo (delta positivo, descuenta), existing→existing (delta 0).",
+        "apps/server/src/controllers/serviceRecordController.ts::deleteServiceRecord — el loop de restauración de stock excluye los items con `usedExistingUnit===true` (no se les restaura nada, porque nunca se les descontó)",
+        "apps/server/src/routes/serviceRecordRoutes.ts — `body('productsUsed.*.usedExistingUnit').optional().isBoolean()` en POST y PUT (mirror literal)",
+        "apps/client/src/components/RegistroModal.tsx — checkbox condicionado a `det.currentUnitLevel` definido, junto al slider de `remainingLevel`, label tipo 'Usar el envase ya abierto (queda X%) — no descuenta stock'; `handleAddProduct` agrega `usedExistingUnit: false` por defecto",
+        "apps/client/src/components/EditRegistroModal.tsx — mismo checkbox; el `reset()` precarga `usedExistingUnit` de cada item guardado (fallback false)",
+        "apps/client/src/components/ServiceRecordDetail.tsx — badge/texto 'Envase reutilizado' cuando `usedExistingUnit===true` en un item (mismo criterio que `remainingLevel`: solo anunciar el caso no-default)",
+        "apps/client/src/types/index.ts y apps/client/src/api/serviceRecordApi.ts — `usedExistingUnit?: boolean` en los tipos correspondientes",
+        "Multi-tenancy y validación de stock no negativo existentes se preservan en los 3 controllers tocados",
+        "pnpm --filter @estetica/server build y pnpm --filter @estetica/client build + lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-84",
+      "name": "Simplificar vista Mi Negocio: quitar Ajustes generales y Recordatorio de turno",
+      "module": "Settings",
+      "phase": "Fase 2",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-29): al reactivar el acceso a Mi Negocio (UX-82), pidió quitar dos de las tres secciones de esa vista — 'Ajustes generales' (nombre del negocio, logo, zona horaria, moneda — formulario de EP-10) y 'Recordatorio de turno' (horas de anticipación del recordatorio por mail — EP-17-b) — dejando SOLO la sección de notificaciones. Decisión confirmada con el usuario (vía AskUserQuestion): los datos NO se borran de la base (Tenant.name/logo/timezone/currency/reminderHoursBefore quedan como estén, sin UI para editarlos de ahí en más); si hace falta cambiarlos en el futuro, se hace directo en la base de datos o se repone el formulario más adelante. Además, en el mismo pedido, el usuario notó que la palabra 'push' en la sección restante no se entiende — ver UX-85 para el contenido de las notificaciones; esta feature (UX-84) solo cubre el renombrado del título de esa sección y el retiro de las otras dos.",
+      "acceptance_criteria": [
+        "apps/client/src/views/Negocio.tsx — se elimina por completo el `<form>` de 'Ajustes generales' (nombre/logo/zona horaria/moneda) y todo su código asociado (useForm, mutation, imports huérfanos como TIMEZONES/CURRENCIES si quedan sin uso)",
+        "apps/client/src/views/Negocio.tsx — se elimina por completo el `<form>` de 'Recordatorio de turno' (reminderHoursBefore) y todo su código asociado (useForm, mutation, imports huérfanos)",
+        "Solo queda en la vista la sección de notificaciones (renombrada, ver AC siguiente), con el resto del layout (título 'Mi Negocio', breadcrumb 'Configuración') sin cambios",
+        "El h2 'Notificaciones push' pasa a decir simplemente 'Notificaciones' (o equivalente sin la palabra 'push'), y cualquier aria-label/texto visible que mencione 'push' ('Activar notificaciones push', 'Desactivar notificaciones push', etc.) se reescribe sin esa palabra mantiendo el significado",
+        "No se toca el backend (`tenantController`/`notificationSettingsController` o equivalente) ni las rutas — los datos siguen existiendo, solo se retira la UI de esas dos secciones",
+        "No se rompe el toggle de notificaciones existente (UX-68) ni su lógica de permisos del navegador",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-85",
+      "name": "Notificaciones push más completas: marca actualizada + nombres de clientes del día",
+      "module": "Notifications",
+      "phase": "Fase 2",
+      "status": "done",
+      "description": "Pedido directo del usuario (2026-09-29): la notificación push diaria (`pushReminderScheduler.ts`, UX-68) hoy tiene título hardcodeado `'Maison CRM'` (marca vieja, la app ya se renombró a Shear en UX-04) y cuerpo genérico solo con conteos ('Hoy: 3 turnos, 2 retoques pendientes'), sin ningún nombre. Decisión confirmada con el usuario (vía AskUserQuestion): (1) corregir el título a la marca/nombre real del negocio (`tenant.name`, mismo criterio que `mailService.ts` usa como fromName — GOV-NOTIFY), y (2) enriquecer el cuerpo con los nombres de los clientes que tienen turno/retoque ese día, no solo el conteo.",
+      "acceptance_criteria": [
+        "apps/server/src/services/pushReminderScheduler.ts — el `title` del payload usa `tenant.name` en vez del literal `'Maison CRM'`",
+        "El `body` del payload incluye los nombres de los clientes con turno o retoque pendiente ese día (ej. 'Turnos hoy: Ana Gómez 15:00, Lucía Díaz 17:00. Retoques: ...'), requiriendo poblar `client` (firstName/lastName) en las queries de `Appointment`/`ServiceRecord` que hoy solo hacen `countDocuments`",
+        "Si la lista de nombres es muy larga (definir un límite razonable, ej. 5-8 nombres), truncar con un sufijo tipo 'y N más' para no exceder el límite de longitud útil de una notificación push del sistema operativo",
+        "apps/client/public/sw.js — el fallback `data.title || 'Maison CRM'` se actualiza a un fallback genérico sin la marca vieja (ej. 'Shear' o el nombre de la app actual, ya que el service worker no tiene acceso a `tenant.name` en runtime)",
+        "No se modifica la cadencia del cron (diario 08:00, hora del proceso), ni el criterio de elegibilidad de tenants/suscripciones, ni la limpieza de suscripciones caducadas (410/404) ya existente",
+        "pnpm --filter @estetica/server build pasa con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-86",
+      "name": "Bug: descripción/notas se salen del contenedor sin scroll (historial de cliente y popup de detalle)",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Reporte directo del usuario (2026-09-29) tras UX-80/81/83: cuando la descripción/notas de una visita es larga, el texto se sale visualmente del contenedor en vez de ajustarse o generar scroll — tanto en el timeline de historial del cliente (`ProfileClient.tsx`) como en el popup de detalle de visita (`ServiceRecordDetail.tsx`, componente compartido de UX-80 usado también desde el botón 'Ver detalle' de `Historial.tsx` y desde `Dashboard.tsx`). Diagnóstico del leader: el `<Modal>` compartido (`components/ui/Modal.tsx`) YA tiene `overflow-y-auto`/`max-h-[90vh]` en su body, así que el problema no es falta de scroll vertical del modal en sí, sino que el `<p>` que renderiza las notas no tiene wrap de palabras largas (`break-words`) y el contenedor flex que lo envuelve no tiene `min-w-0` — un texto largo sin cortes desborda horizontalmente el contenedor en vez de ajustarse al ancho disponible, un gotcha clásico de flexbox (los flex items no se encogen por debajo de su contenido por defecto).",
+      "acceptance_criteria": [
+        "apps/client/src/components/ServiceRecordDetail.tsx — el `<p>` que renderiza `record.notes` (línea ~182) envuelve correctamente palabras largas sin desbordar el contenedor (`break-words`/`overflow-wrap` + `whitespace-pre-wrap` para preservar saltos de línea del texto original)",
+        "apps/client/src/views/ProfileClient.tsx — el bloque de notas del timeline (línea ~282, `<div className=\"flex gap-2 ...\">...<p>{registro.notes}</p></div>`) recibe el mismo tratamiento: el contenedor flex gana `min-w-0` (para que el `<p>` pueda encogerse y envolver en vez de forzar el ancho del padre) y el `<p>` gana `break-words`/`whitespace-pre-wrap`",
+        "Revisar si el mismo patrón (flex sin `min-w-0` + texto sin `break-words`) se repite en otro bloque de notas/descripción visible del mismo componente (ej. el bloque de 'Insumos' en ProfileClient.tsx, línea ~284) y aplicar el mismo fix si corresponde",
+        "No se modifica el `<Modal>` compartido (`components/ui/Modal.tsx`) — su scroll vertical ya funciona correctamente, el bug es específico del wrap de texto dentro del contenido",
+        "Verificación manual/de código: un texto largo sin espacios (ej. una URL larga) y un texto largo con espacios normales deben ambos quedar contenidos dentro del ancho del popup/timeline, sin desbordar horizontalmente",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-87",
+      "name": "Bug (residual de UX-86): la descripción sigue saliéndose del contenedor en el historial del cliente",
+      "module": "ServiceRecords",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "El usuario reportó (2026-09-29) que el bug de UX-86 persiste específicamente en el timeline de historial del cliente (`ProfileClient.tsx`). Diagnóstico del leader: el fix de UX-86 le agregó `min-w-0` al `<div>` CONTENEDOR flex del bloque de notas (línea ~282), pero no al `<p>` en sí — y el `<p>` es el verdadero flex ITEM dentro de esa fila (`flex gap-2 ...`) que necesita `min-w-0` para poder encogerse por debajo del ancho de su contenido. Un flex item sin `min-w-0` explícito tiene `min-width: auto` por default (CSS spec), que en la práctica de varios navegadores puede seguir forzando el ancho mínimo por el contenido de texto aunque el CONTENEDOR ya tenga `min-w-0` — hay que ponérselo al item que efectivamente necesita achicarse, no solo a su padre. El bloque de 'Insumos' (línea ~285-296) NO tiene este problema porque ahí el flex item es un `<div>` intermedio que YA tiene `min-w-0` aplicado directamente (UX-86 lo hizo bien en ese caso, mal en el de notas).",
+      "acceptance_criteria": [
+        "apps/client/src/views/ProfileClient.tsx — el `<p className=\"break-words whitespace-pre-wrap\">{registro.notes}</p>` (línea ~282, dentro de `<div className=\"flex gap-2 text-sm text-gray-600 min-w-0\">`) gana `min-w-0` directamente en el propio `<p>` (además de conservar `break-words whitespace-pre-wrap` ya aplicado) — puede combinarse con `flex-1` si ayuda a que ocupe el espacio disponible de forma prolija, a criterio del implementer",
+        "Revisar con el mismo criterio el `<p>` de notas en apps/client/src/components/ServiceRecordDetail.tsx (línea ~182) — el reviewer de UX-86 confirmó que ese contenedor NO es flex (es un `<div>` de bloque simple), así que no debería tener este problema, pero confirmarlo de nuevo mirando el render real antes de descartarlo",
+        "Escenario de verificación: un texto de notas largo y sin espacios (ej. una URL larga) debe quedar contenido dentro del ancho de la card del timeline, sin desbordar horizontalmente ni cortar el borde derecho del contenedor",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-88",
+      "name": "Invertir el sentido de la barra de consumo: '% usado' en vez de '% restante'",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Reporte del usuario (2026-09-29) probando UX-81/83: la barra '% RESTANTE ESTIMADO' pide directamente el % que queda, pero el usuario espera cargar cuánto USÓ en la visita (ej. 'gasté 70%') y que el sistema calcule el restante solo (100% − usado = 30%, no 70%). Confirmado con el usuario (2 preguntas vía AskUserQuestion + 1 intercambio de aclaración): (1) la barra pasa a representar '% usado en esta visita', con el restante calculado automáticamente; (2) la barra queda SIEMPRE habilitada (sirve tanto para sembrar el primer dato como para actualizar un envase ya conocido), tildar o no el checkbox 'usar envase ya abierto' solo cambia la BASE del cálculo: si no se tilda, se asume que se parte de un envase 100% lleno (restante = 100 − usado); si se tilda, se parte de lo que quedaba conocido (`Product.currentUnitLevel`) y el restante = ese valor − usado (nunca negativo, clamp a 0). IMPORTANTE: esto es un cambio de UI/cálculo puramente frontend — el contrato de backend (`ServiceRecord.productsUsed[].remainingLevel`, ya revisado y aprobado en UX-81/83) NO cambia de significado ni de validación, solo cambia lo que el frontend calcula antes de enviarlo.",
+      "acceptance_criteria": [
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — el label visible pasa de '% restante estimado (opcional)' a '% usado en esta visita (opcional)'; el JSDoc del componente se actualiza para reflejar que ahora representa consumo, no remanente. El componente en sí sigue siendo genérico (0-100, touched flag) — la transformación a `remainingLevel` ocurre en el formulario dueño, no acá",
+        "apps/client/src/components/RegistroModal.tsx y apps/client/src/components/EditRegistroModal.tsx — el campo RHF que alimenta el slider deja de ser directamente `productsUsed.${index}.remainingLevel`; pasa a ser un campo local del formulario `usedPercent`/`usedPercentTouched` (nunca viaja tal cual a la API). En el `onSubmit` (transform de `productsUsed` antes de armar el payload), calcular por cada item: `available = item.usedExistingUnit === true ? (inventoryProducts.find(p => p._id === item.product)?.currentUnitLevel ?? 100) : 100`, y si `usedPercentTouched` es true y `usedPercent` es un número: `remainingLevel = Math.max(0, Math.min(100, available - usedPercent))`, incluido en el payload solo en ese caso (mismo criterio de 'omitir si no se tocó' que ya existía, P19)",
+        "apps/client/src/components/EditRegistroModal.tsx — el `reset()` que precarga items existentes hace el cálculo INVERSO para no perder el dato guardado ni corromperlo en un submit sin cambios: dado `p.remainingLevel` guardado, `available` (misma fórmula de arriba usando `p.usedExistingUnit` y el `currentUnitLevel` actual del producto), `usedPercent = Math.max(0, Math.min(100, available - p.remainingLevel))`, marcado `usedPercentTouched: true` cuando `p.remainingLevel` es un número",
+        "Recomendado (mejora directa de UX para evitar que se repita esta confusión): mostrar junto al slider un texto en vivo tipo '→ queda {remaining}%' calculado con la misma fórmula, actualizado en el `onChange` del slider, para que la profesional vea el resultado antes de guardar",
+        "No se modifica ningún archivo de `apps/server/` — el contrato de `remainingLevel` (validación, persistencia, `$set` de `currentUnitLevel`) queda exactamente igual, ya aprobado en UX-81/83",
+        "El checkbox 'Usar el envase ya abierto (queda X%) — no descuenta stock' no cambia de comportamiento (sigue controlando el descuento de stock, UX-83) — solo pasa a ser también la señal de qué base usar para el cálculo del restante",
+        "Verificación manual/de código con el ejemplo del usuario: sin tildar el checkbox, cargar 70 en la barra debe resultar en `remainingLevel: 30` en el payload enviado; con el checkbox tildado y `currentUnitLevel` previo de 70, cargar 70 en la barra debe resultar en `remainingLevel: 0`",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
+    },
+    {
+      "id": "UX-89",
+      "name": "Rango dinámico del slider: limitar a 0–lo disponible cuando se reutiliza un envase abierto",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Follow-up directo del usuario a UX-88 (2026-09-29): con la fórmula ya correcta (`remainingLevel = clamp(available - usado, 0, 100)`), sigue siendo confuso que la barra '% usado' vaya siempre de 0 a 100 incluso cuando se tilda 'usar envase ya abierto' con solo, por ejemplo, 30% disponible — no tiene sentido dejar arrastrar hasta un 'usado: 90' si ya no hay 90% para usar. El usuario propuso (y se confirmó en la conversación) que la MISMA barra cambie su rango máximo a 0–{disponible} cuando el checkbox está tildado (no una segunda barra separada), volviendo a 0–100 cuando no está tildado o no hay `currentUnitLevel` conocido. Con el rango ya acotado al disponible, la fórmula de UX-88 sigue siendo válida (el `clamp` a 0 pasa a ser redundante en el caso feliz, pero se mantiene como red de seguridad). **Ampliación pedida en vivo por el usuario mientras esta feature estaba en curso:** el valor inicial de la barra (cuando el item se agrega y nadie la tocó todavía) debe mostrarse en 100% (no en 0%) — el caso normal es usar el producto completo, el caso de excepción es que sobre algo, así que el default visual debe comunicar 'asumimos 100% usado, arrastrá hacia abajo solo si sobró'. Esto es puramente visual/de default: el mecanismo de 'no enviar `remainingLevel` si nadie tocó el control' (P19) no cambia, sigue dependiendo exclusivamente de la interacción real del usuario, no del valor por defecto mostrado.",
+      "acceptance_criteria": [
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — nuevo prop opcional `max` (default 100) que se pasa al atributo `max` del `<input type=\"range\">`; el label/texto sigue siendo genérico, no hace falta que el componente sepa por qué cambió el máximo",
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — el fallback de `defaultValue` (hoy `0` cuando no hay valor histórico) pasa a ser `100`; el `useState` inicial de `displayValue` (hoy `undefined` cuando no hay histórico) pasa a mostrar `100` visualmente por default — sin marcar el campo como 'tocado' (el criterio de omitir `remainingLevel` del payload si nadie interactuó con el control sigue dependiendo únicamente del flag `usedPercentTouched`, no de este valor visual)",
+        "Si al montar un item el checkbox 'usar envase ya abierto' ya viene tildado (ej. editando un registro existente) y el `max` calculado es menor a 100, el valor inicial de 100 debe quedar acotado a ese `max` (verificar que el navegador lo clampea solo en el render inicial; si no, aplicar el mismo mecanismo de recorte que el punto siguiente usa para el caso dinámico)",
+        "apps/client/src/components/RegistroModal.tsx y apps/client/src/components/EditRegistroModal.tsx — el `max` pasado a cada `RemainingLevelSlider` de un item se calcula dinámicamente: `det.currentUnitLevel` cuando el checkbox `usedExistingUnit` de ESE item está tildado Y `det?.currentUnitLevel` es un número; `100` en cualquier otro caso (checkbox destildado, o no hay `currentUnitLevel` conocido para ese producto)",
+        "El cálculo debe reaccionar EN VIVO al tildar/destildar el checkbox de cada item (no solo al montar el formulario) — evaluar si usar `watch()` puntual del campo `usedExistingUnit` de ese item es aceptable (ya hay precedente de `watch()` en RegistroModal.tsx desde UX-88; para EditRegistroModal.tsx, que hoy lo evita por un warning de lint, usar tu criterio: este es un requisito funcional central de esta feature, no un nice-to-have, así que aceptar el mismo warning ya presente en otros 3 archivos del proyecto es una opción válida si no hay alternativa más limpia)",
+        "Si al tildar el checkbox el valor actual del slider queda por encima del nuevo `max` (ej. estaba en 90 y el nuevo tope es 30), el valor debe recortarse al nuevo máximo (`setValue` correspondiente) para no dejar un slider en un estado visualmente inconsistente (valor mostrado mayor al máximo permitido)",
+        "La fórmula de cálculo de `remainingLevel` en el `onSubmit` (UX-88, `available - usado` con clamp) NO cambia — sigue siendo la misma, ahora simplemente el `usado` que llega del slider nunca puede exceder `available` gracias al rango acotado",
+        "Verificación manual/de código: con `currentUnitLevel` previo de 30% y el checkbox tildado, la barra debe ir de 0 a 30 (no hasta 100); destildar el checkbox debe volver el rango a 0-100",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
     }
   ]
 }

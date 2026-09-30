@@ -79,6 +79,8 @@
 3. El descuento de stock ocurre en la misma transacción lógica que la creación de `servicerecord`.
 4. Carga masiva: identificar producto por `tenantId + name + brand` combinados para upsert (con `tenantId` también en `$setOnInsert`).
 
+**Nota (UX-81, 2026-09-29):** `servicerecords.productsUsed[].remainingLevel` y `products.currentUnitLevel` son campos **puramente informativos** (estimación libre de "% que queda en el envase abierto") y quedan **explícitamente fuera de los mandatos 1-4 de esta sección**: no participan de la validación de no-negatividad, del descuento/reconciliación de stock (`quantity`), ni de la carga masiva. Se actualizan con un `set` simple (nunca aritmética) y `adjustStock` no los resetea.
+
 **Auditado por:** `CHECKPOINTS.md` C3 (Control de Stock).
 
 ---

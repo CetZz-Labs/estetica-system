@@ -18,6 +18,27 @@ interface WebPushError {
     statusCode?: number;
 }
 
+// UX-85: cuántos nombres se listan como máximo en el body de la notificación antes de truncar con "y N más".
+const MAX_NAMES_IN_BODY = 6;
+
+const formatClientName = (client: { firstName?: string; lastName?: string } | null | undefined): string => {
+    if (!client) return 'Cliente';
+    return `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() || 'Cliente';
+};
+
+const formatTime = (date: Date): string => {
+    return new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' }).format(date);
+};
+
+// Junta las entradas de turnos y retoques en una lista de nombres truncada a MAX_NAMES_IN_BODY,
+// agregando el sufijo "y N más" cuando corresponda (UX-85).
+const buildTruncatedList = (entries: string[]): string => {
+    if (entries.length <= MAX_NAMES_IN_BODY) return entries.join(', ');
+    const visible = entries.slice(0, MAX_NAMES_IN_BODY);
+    const remaining = entries.length - MAX_NAMES_IN_BODY;
+    return `${visible.join(', ')} y ${remaining} más`;
+};
+
 export const runPushReminderCheck = async (): Promise<void> => {
     if (!isPushConfigured()) {
         console.warn('pushReminderScheduler: claves VAPID no configuradas, se omite el envío de notificaciones push.');
@@ -39,28 +60,40 @@ export const runPushReminderCheck = async (): Promise<void> => {
 
         try {
             const [turnosHoy, retoquesPendientes] = await Promise.all([
-                Appointment.countDocuments({
+                Appointment.find({
                     tenantId,
                     isActive: true,
                     status: { $in: ['pending', 'confirmed'] },
                     startTime: { $gte: startOfDay, $lte: endOfDay }
-                }),
-                ServiceRecord.countDocuments({
+                }).populate<{ client: { firstName?: string; lastName?: string } | null }>('client', 'firstName lastName').sort({ startTime: 1 }),
+                ServiceRecord.find({
                     tenantId,
                     touchupStatus: 'pending',
                     nextTouchupDate: { $lte: endOfDay }
-                })
+                }).populate<{ client: { firstName?: string; lastName?: string } | null }>('client', 'firstName lastName').sort({ nextTouchupDate: 1 })
             ]);
 
-            const total = turnosHoy + retoquesPendientes;
+            const total = turnosHoy.length + retoquesPendientes.length;
             if (total === 0) continue;
 
             const subscriptions = await PushSubscription.find({ tenantId });
             if (subscriptions.length === 0) continue;
 
+            // UX-85: cuerpo legible con nombres de clientes en vez de solo el total, truncado a MAX_NAMES_IN_BODY.
+            const turnosEntries = turnosHoy.map((appointment) => `${formatClientName(appointment.client)} ${formatTime(appointment.startTime)}`);
+            const retoquesEntries = retoquesPendientes.map((record) => formatClientName(record.client));
+
+            const bodyParts: string[] = [];
+            if (turnosEntries.length > 0) {
+                bodyParts.push(`Turnos hoy: ${buildTruncatedList(turnosEntries)}.`);
+            }
+            if (retoquesEntries.length > 0) {
+                bodyParts.push(`Retoques pendientes: ${buildTruncatedList(retoquesEntries)}.`);
+            }
+
             const payload = JSON.stringify({
-                title: 'Maison CRM',
-                body: `Hoy: ${turnosHoy} turno${turnosHoy === 1 ? '' : 's'}, ${retoquesPendientes} retoque${retoquesPendientes === 1 ? '' : 's'} pendiente${retoquesPendientes === 1 ? '' : 's'}`
+                title: tenant.name,
+                body: bodyParts.join(' ')
             });
 
             for (const subscription of subscriptions) {

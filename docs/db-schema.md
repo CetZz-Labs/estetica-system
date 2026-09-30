@@ -120,6 +120,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 | `stock` | `Number` | Sí, default `0` | - | Cantidad disponible. `min: 0` (no negativo) |
 | `description` | `String` | No | - | Descripción opcional. `trim` |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
+| `currentUnitLevel` | `Number` | No, sin default | - | **UX-81, informativo.** `min: 0, max: 100`. Espejo del último `servicerecords.productsUsed[].remainingLevel` reportado para este producto. `undefined` = sin dato (producto legado o nunca se reportó consumo parcial). NO participa de la aritmética de stock ni se resetea en `adjustStock` |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
@@ -128,6 +129,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 - Validación de stock negativo: `min: [0, 'El stock no puede ser negativo']`.
 - Carga masiva desde Excel/CSV usa `upsert` por nombre + marca para evitar duplicados.
 - Umbrales visuales en UI: `stock === 0` → rojo, `stock <= 5` → naranja, `stock > 5` → verde.
+- `currentUnitLevel` (UX-81) es puramente informativo (ej. "envase abierto al 40%"): se actualiza con un `set` simple desde `createServiceRecord`/`updateServiceRecord` cuando la visita reporta `remainingLevel`, fuera de los mandatos 1-4 de GOV-STOCK.
 
 ---
 
@@ -142,7 +144,7 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 | `service` | `ObjectId` (ref: Service) | Sí | - | Servicio realizado. `ref: 'Service'` |
 | `serviceDate` | `Date` | Sí | Indexado | Fecha del servicio |
 | `notes` | `String` | No | - | Notas del servicio. Ej: "Balayage rubio miel". `trim` |
-| `productsUsed` | `[{ product: ObjectId (ref: Product), quantity: Number }]` | No, default `[]` | - | Array de insumos consumidos. `quantity: { min: 0 }` |
+| `productsUsed` | `[{ product: ObjectId (ref: Product), quantity: Number, remainingLevel?: Number }]` | No, default `[]` | - | Array de insumos consumidos. `quantity: { min: 0 }`. `remainingLevel` (**UX-81, informativo**): `min: 0, max: 100`, opcional, sin default — estimación libre de la profesional sobre cuánto quedó del envase tras esta visita. NO afecta el descuento de stock (`quantity`) |
 | `nextTouchupDate` | `Date` | No | Indexado | Fecha del próximo retoque calculada automáticamente |
 | `touchupStatus` | `String` (enum) | No, default `'pending'` | Indexado | `'pending'`, `'completed'`, `'cancelled'` |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |

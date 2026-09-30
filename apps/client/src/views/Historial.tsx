@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import Select, { type StylesConfig } from "react-select";
 import { toast } from "sonner";
-import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 import { getServiceRecords, deleteServiceRecord as deleteServiceRecordApi } from "../api/serviceRecordApi";
 import { getClients } from "../api/clientApi";
@@ -14,7 +14,9 @@ import type { Client, Service, Professional, ServiceRecord, Paginated, AdminInfo
 import { formatCalendarDate } from "../utils/dates";
 import Pagination from "../components/ui/Pagination";
 import EditRegistroModal from "../components/EditRegistroModal";
+import ServiceRecordDetail from "../components/ServiceRecordDetail";
 import ConfirmModal from "../components/ui/ConfirmModal";
+import Modal from "../components/ui/Modal";
 import { useTopbar } from "../layouts/TopbarContext";
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
@@ -55,6 +57,7 @@ export default function Historial() {
     const [dateFrom, setDateFrom] = useState<string>('');
     const [dateTo, setDateTo] = useState<string>('');
     const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null);
+    const [detailRecord, setDetailRecord] = useState<ServiceRecord | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
 
     const queryClient = useQueryClient();
@@ -319,6 +322,15 @@ export default function Historial() {
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     type="button"
+                                                    onClick={() => setDetailRecord(registro)}
+                                                    aria-label="Ver detalle de la visita"
+                                                    title="Ver detalle de la visita"
+                                                    className="p-2 text-muted hover:text-text-2 hover:bg-surface-2 rounded-ctrl transition-colors cursor-pointer"
+                                                >
+                                                    <FiEye size={16} />
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={() => setEditingRecord(registro)}
                                                     aria-label="Editar visita"
                                                     title="Editar visita"
@@ -359,6 +371,15 @@ export default function Historial() {
                 record={editingRecord}
                 onClose={() => setEditingRecord(null)}
             />
+
+            <Modal
+                isOpen={detailRecord !== null}
+                onClose={() => setDetailRecord(null)}
+                title="Detalle de la Visita"
+                maxWidth="max-w-lg"
+            >
+                {detailRecord && <ServiceRecordDetail record={detailRecord} />}
+            </Modal>
 
             <ConfirmModal
                 isOpen={confirmDelete !== null}

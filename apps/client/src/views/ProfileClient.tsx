@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEdit2, FiTrash2, FiUser, FiPlus } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiFileText, FiBox, FiAlertCircle, FiEye, FiEdit2, FiTrash2, FiUser, FiPlus } from 'react-icons/fi';
 
 import { getClientById, deleteClient as deleteClientApi } from '../api/clientApi';
 import { getClientRecords, deleteServiceRecord as deleteServiceRecordApi } from '../api/serviceRecordApi';
@@ -14,6 +14,8 @@ import ClienteModal from '../components/ClienteModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import RegistroModal from '../components/RegistroModal';
 import Pagination from '../components/ui/Pagination';
+import ServiceRecordDetail from '../components/ServiceRecordDetail';
+import Modal from '../components/ui/Modal';
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
 
@@ -29,6 +31,7 @@ export default function PerfilCliente() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [confirmDeleteRecord, setConfirmDeleteRecord] = useState<{ id: string; label: string } | null>(null);
+    const [detailRecord, setDetailRecord] = useState<ServiceRecord | null>(null);
 
     const { data: adminInfo } = useQuery<AdminInfo>({
         queryKey: ['admin-me'],
@@ -248,6 +251,15 @@ export default function PerfilCliente() {
                                                 {registro.touchupStatus === 'cancelled' && (
                                                     <span className="bg-red-50 text-destructive border border-red-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Retoque Cancelado</span>
                                                 )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailRecord(registro)}
+                                                    aria-label="Ver detalle de la visita"
+                                                    title="Ver detalle de la visita"
+                                                    className="p-2 text-gray-400 hover:text-primary hover:bg-background rounded-lg transition-colors cursor-pointer"
+                                                >
+                                                    <FiEye size={15} />
+                                                </button>
                                                 {isAdmin && (
                                                     <button
                                                         type="button"
@@ -267,14 +279,14 @@ export default function PerfilCliente() {
                                         {(registro.notes || registro.productsUsed) && (
                                             <div className="mt-4 pt-4 border-t border-border space-y-3">
                                                 {registro.notes && (
-                                                    <div className="flex gap-2 text-sm text-gray-600"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p>{registro.notes}</p></div>
+                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0"><FiFileText className="text-gray-400 mt-0.5 shrink-0" /><p className="min-w-0 flex-1 break-words whitespace-pre-wrap">{registro.notes}</p></div>
                                                 )}
                                                 {registro.productsUsed && registro.productsUsed.length > 0 && (
-                                                    <div className="flex gap-2 text-sm text-gray-600">
+                                                    <div className="flex gap-2 text-sm text-gray-600 min-w-0">
                                                         <FiBox className="text-gray-400 mt-0.5 shrink-0" />
-                                                        <div>
+                                                        <div className="min-w-0">
                                                             <span className="font-medium text-gray-700">Insumos: </span>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-gray-600 break-words">
                                                                 {registro.productsUsed.map(item => {
                                                                     const productName = typeof item.product === 'object' && item.product !== null ? item.product.name : 'Insumo';
                                                                     return `${productName} (${item.quantity > 0 ? item.quantity : '0'})`;
@@ -303,6 +315,14 @@ export default function PerfilCliente() {
                 preselectedClientId={id}
                 pastVisitMode
             />
+            <Modal
+                isOpen={detailRecord !== null}
+                onClose={() => setDetailRecord(null)}
+                title="Detalle de la Visita"
+                maxWidth="max-w-lg"
+            >
+                {detailRecord && <ServiceRecordDetail record={detailRecord} />}
+            </Modal>
             <ConfirmModal
                 isOpen={isDeleteConfirmOpen}
                 onClose={() => setIsDeleteConfirmOpen(false)}

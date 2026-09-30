@@ -76,6 +76,10 @@ router.post(
         body('productsUsed.*.quantity')
             .isNumeric().withMessage('La cantidad debe ser un número')
             .custom(value => value > 0).withMessage('La cantidad debe ser mayor a 0'),
+        // UX-81: estimación informativa opcional (% que quedó en el envase tras la visita).
+        body('productsUsed.*.remainingLevel').optional().isFloat({ min: 0, max: 100 }).withMessage('remainingLevel debe ser un número entre 0 y 100'),
+        // UX-83: elección "usar envase ya abierto" (true) vs "abrir uno nuevo" (false/ausente).
+        body('productsUsed.*.usedExistingUnit').optional().isBoolean().withMessage('usedExistingUnit debe ser booleano'),
 
         body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'canceled']).withMessage('Estado de retoque no válido'),
@@ -100,6 +104,10 @@ router.put(
         body('productsUsed.*.quantity')
             .isNumeric().withMessage('La cantidad debe ser un número')
             .custom(value => value > 0).withMessage('La cantidad debe ser mayor a 0'),
+        // UX-81: edición retroactiva del % estimado restante, mismo validator que en el POST.
+        body('productsUsed.*.remainingLevel').optional().isFloat({ min: 0, max: 100 }).withMessage('remainingLevel debe ser un número entre 0 y 100'),
+        // UX-83: mismo validator que en el POST, mirror literal.
+        body('productsUsed.*.usedExistingUnit').optional().isBoolean().withMessage('usedExistingUnit debe ser booleano'),
 
         body('nextTouchupDate').optional({ checkFalsy: true }).isISO8601().withMessage('La fecha del próximo retoque no es válida').toDate(),
         body('touchupStatus').optional().isIn(['pending', 'completed', 'cancelled']).withMessage('Estado de retoque no válido'),

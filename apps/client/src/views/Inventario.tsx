@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FiBox, FiAlertTriangle, FiEdit2, FiTrash2, FiLayers, FiActivity, FiUploadCloud, FiSearch, FiCheckCircle } from 'react-icons/fi';
+import { FiBox, FiAlertTriangle, FiEdit2, FiTrash2, FiLayers, FiActivity, FiUploadCloud, FiSearch, FiCheckCircle, FiDroplet } from 'react-icons/fi';
 import { toast } from 'sonner';
 
 import { getProducts, deleteProduct as deleteProductApi } from '../api/productApi';
@@ -11,6 +11,17 @@ import AjusteStockModal from '../components/AjusteStockModal';
 import CargaMasivaModal from '../components/CargaMasivaModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { useTopbar } from '../layouts/TopbarContext';
+
+/**
+ * Tono Trifecta para el indicador "en vivo" de `currentUnitLevel` (UX-81): informativo,
+ * no participa del control de stock. Umbrales alineados a los tokens de estado ya usados
+ * en esta vista (sage = buen nivel, gold = medio, alert = crítico).
+ */
+const getUnitLevelTone = (level: number): { badgeText: string; barFill: string } => {
+    if (level > 50) return { badgeText: 'text-sage-text', barFill: 'bg-sage' };
+    if (level >= 20) return { badgeText: 'text-gold-text', barFill: 'bg-gold' };
+    return { badgeText: 'text-alert-text', barFill: 'bg-alert-text' };
+};
 
 export default function Inventario() {
 
@@ -199,6 +210,8 @@ export default function Inventario() {
                                     const isOutOfStock = product.stock === 0;
                                     const isLowStock = product.stock > 0 && product.stock <= 5;
                                     const isReponer = isOutOfStock || isLowStock;
+                                    const hasUnitLevel = typeof product.currentUnitLevel === 'number';
+                                    const unitLevelTone = hasUnitLevel ? getUnitLevelTone(product.currentUnitLevel as number) : null;
                                     return (
                                         <tr key={product._id} className="border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors">
                                             <td className="px-5 py-[13px]">
@@ -214,6 +227,24 @@ export default function Inventario() {
                                                 <span className={`text-[13.5px] font-semibold ${isReponer ? 'text-alert-text' : 'text-text'}`}>
                                                     {product.stock} {product.stock === 1 ? 'u.' : 'u.'}
                                                 </span>
+                                                {hasUnitLevel && unitLevelTone && (
+                                                    <div className="mt-1.5 flex flex-col items-center gap-1">
+                                                        <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold ${unitLevelTone.badgeText}`}>
+                                                            <FiDroplet aria-hidden size={11} />
+                                                            Envase abierto: {product.currentUnitLevel}%
+                                                        </span>
+                                                        <div
+                                                            className="w-16 h-1 rounded-pill bg-dotted overflow-hidden"
+                                                            role="progressbar"
+                                                            aria-valuenow={product.currentUnitLevel}
+                                                            aria-valuemin={0}
+                                                            aria-valuemax={100}
+                                                            aria-label={`Nivel del envase abierto: ${product.currentUnitLevel}%`}
+                                                        >
+                                                            <div className={`h-full rounded-pill ${unitLevelTone.barFill}`} style={{ width: `${product.currentUnitLevel}%` }} />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-5 py-[13px]">
                                                 {isReponer ? (

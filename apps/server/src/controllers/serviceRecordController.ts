@@ -90,15 +90,33 @@ export const createServiceRecord = async (req: Request, res: Response) => {
                     return res.status(404).json({ error: `Producto con ID ${item.product} no encontrado` });
                 }
 
-                if (product.stock < item.quantity) {
-                    return res.status(400).json({
-                        error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido: ${item.quantity}`
-                    });
+                // UX-83: "usar envase ya abierto" nunca toca stock — defensa en profundidad,
+                // no cae silenciosamente a "abrir nuevo" si no hay envase abierto conocido.
+                if (item.usedExistingUnit === true) {
+                    if (product.currentUnitLevel === undefined || product.currentUnitLevel === null) {
+                        return res.status(400).json({ error: 'No hay un envase abierto registrado para ese producto; elegí abrir uno nuevo.' });
+                    }
+                } else {
+                    if (product.stock < item.quantity) {
+                        return res.status(400).json({
+                            error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido: ${item.quantity}`
+                        });
+                    }
+
+                    // Descontamos el stock
+                    product.stock -= item.quantity;
+                    await product.save();
                 }
 
-                // Descontamos el stock
-                product.stock -= item.quantity;
-                await product.save();
+                // UX-81: espejo informativo, fuera de la aritmética de stock recién auditada
+                // arriba (queda fuera del if/else de usedExistingUnit — se actualiza en ambos
+                // casos). remainingLevel es opcional; undefined/null significa "sin dato".
+                if (item.remainingLevel !== undefined && item.remainingLevel !== null) {
+                    await Product.updateOne(
+                        { _id: item.product, tenantId },
+                        { $set: { currentUnitLevel: item.remainingLevel } }
+                    );
+                }
             }
         }
 
@@ -324,15 +342,19 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
                 seenIds.add(productIdStr);
             }
 
-            // 2-4. oldMap (registro previo) / newMap (body) / unionIds.
+            // 2-4. oldMap (registro previo) / newMap (body) / unionIds. UX-83: indexan la
+            // cantidad EFECTIVA de stock (0 si el item usó el envase ya abierto, la quantity
+            // normal si abrió uno nuevo) — no la quantity nominal cruda. El resto de la mecánica
+            // de delta (unionIds, fases 6-7 más abajo) no cambia: sigue siendo correcta porque
+            // el delta ahora representa el movimiento de stock real.
             const oldMap = new Map<string, number>();
             for (const item of existingRecord.productsUsed) {
-                oldMap.set(item.product.toString(), item.quantity);
+                oldMap.set(item.product.toString(), item.usedExistingUnit === true ? 0 : item.quantity);
             }
 
             const newMap = new Map<string, number>();
             for (const item of productsUsed) {
-                newMap.set(String(item.product), item.quantity);
+                newMap.set(String(item.product), item.usedExistingUnit === true ? 0 : item.quantity);
             }
 
             const unionIds = [...new Set([...oldMap.keys(), ...newMap.keys()])];
@@ -348,7 +370,21 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
 
                 const productsById = new Map(products.map(p => [p._id.toString(), p]));
 
-                // 6. Fase de validación pura (solo lectura): comprobar suficiencia de stock
+                // 6.a Fase de validación pura (solo lectura) — UX-83: todo item NUEVO del body
+                // que declara usar el envase ya abierto debe tener currentUnitLevel conocido.
+                // Misma defensa en profundidad que createServiceRecord, aplicada ANTES de mutar
+                // cualquier stock. Solo se revisan los items del body nuevo (no los viejos: ya
+                // pasaron esta validación en su momento).
+                for (const item of productsUsed as { product: string; usedExistingUnit?: boolean }[]) {
+                    if (item.usedExistingUnit === true) {
+                        const product = productsById.get(String(item.product))!;
+                        if (product.currentUnitLevel === undefined || product.currentUnitLevel === null) {
+                            return res.status(400).json({ error: 'No hay un envase abierto registrado para ese producto; elegí abrir uno nuevo.' });
+                        }
+                    }
+                }
+
+                // 6.b Fase de validación pura (solo lectura): comprobar suficiencia de stock
                 // para cada delta positivo. Si falla, cortar sin haber mutado nada todavía.
                 for (const productId of unionIds) {
                     const delta = (newMap.get(productId) ?? 0) - (oldMap.get(productId) ?? 0);
@@ -373,12 +409,32 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
                         await product.save();
                     }
                 }
+
+                // UX-81: reconciliación del espejo informativo Product.currentUnitLevel.
+                // Independiente de los deltas de stock recién aplicados arriba (no altera esa
+                // lógica) — permite editar retroactivamente el % reportado sin tocar quantity.
+                // Los `product` de este loop ya fueron validados como pertenecientes al tenant
+                // en el fetch de la unión (paso 5), por eso el $set puede ir directo sin
+                // repetir el findOne; se reafirma tenantId en el filtro por defensa en profundidad.
+                for (const item of productsUsed as { product: string; quantity: number; remainingLevel?: number }[]) {
+                    if (item.remainingLevel !== undefined && item.remainingLevel !== null) {
+                        await Product.updateOne(
+                            { _id: item.product, tenantId: req.tenantId },
+                            { $set: { currentUnitLevel: item.remainingLevel } }
+                        );
+                    }
+                }
             }
 
-            // 8. Normalizado a { product, quantity }[], nunca objetos poblados.
-            updateData.productsUsed = productsUsed.map((item: { product: string; quantity: number }) => ({
+            // 8. Normalizado a { product, quantity, remainingLevel, usedExistingUnit }[], nunca
+            // objetos poblados. UX-83: usedExistingUnit se persiste booleano explícito
+            // (=== true, no spread condicional) — a diferencia de remainingLevel, el estado
+            // histórico exacto es obligatorio para la próxima reconciliación por delta.
+            updateData.productsUsed = productsUsed.map((item: { product: string; quantity: number; remainingLevel?: number; usedExistingUnit?: boolean }) => ({
                 product: item.product,
-                quantity: item.quantity
+                quantity: item.quantity,
+                ...(item.remainingLevel !== undefined && item.remainingLevel !== null ? { remainingLevel: item.remainingLevel } : {}),
+                usedExistingUnit: item.usedExistingUnit === true
             }));
         }
 
@@ -414,7 +470,10 @@ export const deleteServiceRecord = async (req: Request, res: Response) => {
         // UX-72: restaurar el stock consumido por esta visita antes de borrar el registro.
         // Si un producto referenciado ya no existe (fue borrado en el ínterin), se ignora ese
         // item — nunca debe quedar un registro imposible de eliminar por un producto huérfano.
+        // UX-83: un item con usedExistingUnit:true nunca descontó stock al crearse/editarse —
+        // restaurarlo aquí inflaría el stock con una unidad fantasma, así que se excluye.
         for (const item of existingRecord.productsUsed) {
+            if (item.usedExistingUnit === true) continue;
             await Product.updateOne(
                 { _id: item.product, tenantId: req.tenantId },
                 { $inc: { stock: item.quantity } }

@@ -16,6 +16,7 @@ import type { BusinessHours } from "../api/disponibilidadApi";
 import { handleApiError } from "../api/errorHandler";
 import type { Product, Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
+import RemainingLevelSlider from "./ui/RemainingLevelSlider";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
 
@@ -58,9 +59,18 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     })
 };
 
-interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate"> {
+interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate" | "productsUsed"> {
     touchupDate: string;
     touchupTime: string;
+    /**
+     * `usedPercent`/`usedPercentTouched` son campos internos del formulario (nunca viajan tal cual a
+     * la API): la barra ahora representa "% usado en esta visita" (UX-88), no el `remainingLevel` que
+     * espera el backend. `usedPercentTouched` distingue "el usuario movió el slider" de "el input
+     * <range> nunca tocado, en 0 por defecto en el DOM" para no enviar un dato falso (fix UX-81).
+     * En `onSubmit` se calcula `remainingLevel = clamp(available - usedPercent, 0, 100)` y se
+     * descartan ambos campos del payload.
+     */
+    productsUsed: { product: string; quantity: number; usedPercent?: number; usedPercentTouched?: boolean; usedExistingUnit?: boolean }[];
 }
 
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
@@ -230,12 +240,28 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     });
 
     const onSubmit = (data: RegistroFormValues) => {
-        const { touchupDate, touchupTime, ...rest } = data;
+        const { touchupDate, touchupTime, productsUsed, ...rest } = data;
         const nextTouchupDate = touchupDate && touchupTime
             ? new Date(`${touchupDate}T${touchupTime}`).toISOString()
             : undefined;
         const payload: ServiceRecordPayload = {
             ...rest,
+            // La barra pide "% usado en esta visita" (UX-88); el backend sigue esperando
+            // `remainingLevel` (% que queda). Convertimos acá, justo antes de armar el payload:
+            // available = envase ya abierto conocido (currentUnitLevel) o 100% si es un envase nuevo.
+            // Omitimos la clave si el usuario nunca tocó el slider (fix UX-81, mismo criterio de siempre).
+            productsUsed: productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
+                const available = item.usedExistingUnit === true
+                    ? (inventoryProducts?.find(p => p._id === item.product)?.currentUnitLevel ?? 100)
+                    : 100;
+                const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
+                    ? Math.max(0, Math.min(100, available - usedPercent))
+                    : undefined;
+                return {
+                    ...item,
+                    ...(remainingLevel !== undefined ? { remainingLevel } : {}),
+                };
+            }),
             ...(nextTouchupDate ? { nextTouchupDate } : {}),
             ...(pastVisitMode ? { isBackfill: true } : {}),
         };
@@ -249,7 +275,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
             return;
         }
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd) });
+        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
         setSelectedProductOption(null);
         setQuantityToAdd('');
     };
@@ -436,13 +462,61 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
+                                // Preview en vivo de "→ queda X%" con la misma fórmula del onSubmit — se
+                                // recalcula solo cuando el usuario toca el slider o el checkbox de este item
+                                // (watch() devuelve undefined hasta el primer touch, igual que el flag P19).
+                                const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
+                                const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
+                                const previewAvailable = watchedUsedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
+                                const remainingPreview = typeof watchedUsedPercent === 'number' && !Number.isNaN(watchedUsedPercent)
+                                    ? Math.max(0, Math.min(100, previewAvailable - watchedUsedPercent))
+                                    : undefined;
+                                // Rango dinámico del slider (UX-89): si se tilda "usar envase abierto" y
+                                // se conoce currentUnitLevel, no tiene sentido que la barra siga yendo
+                                // hasta 100 — se acota a lo que efectivamente queda disponible.
+                                const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
+                                    ? det.currentUnitLevel
+                                    : 100;
                                 return (
-                                    <li key={field.id} className="flex justify-between items-center py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
-                                            <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                    <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
+                                                <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                            </div>
+                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
-                                        <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
+                                        <RemainingLevelSlider
+                                            defaultValue={field.usedPercent}
+                                            registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
+                                            onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
+                                            max={maxUsable}
+                                            value={watchedUsedPercent}
+                                        />
+                                        {typeof remainingPreview === 'number' && (
+                                            <p className="text-[11px] text-gray-400 -mt-1">→ queda {remainingPreview}%</p>
+                                        )}
+                                        {typeof det?.currentUnitLevel === 'number' && (
+                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    defaultChecked={field.usedExistingUnit}
+                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    {...register(`productsUsed.${index}.usedExistingUnit`, {
+                                                        onChange: (e) => {
+                                                            // Al tildar, si el % usado ya cargado supera el nuevo tope
+                                                            // disponible (det.currentUnitLevel), se recorta para no dejar
+                                                            // el slider en un estado visualmente inconsistente (UX-89).
+                                                            if (e.target.checked && typeof det?.currentUnitLevel === 'number'
+                                                                && typeof watchedUsedPercent === 'number' && watchedUsedPercent > det.currentUnitLevel) {
+                                                                setValue(`productsUsed.${index}.usedPercent`, det.currentUnitLevel);
+                                                            }
+                                                        },
+                                                    })}
+                                                />
+                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
+                                            </label>
+                                        )}
                                     </li>
                                 );
                             })}

@@ -168,6 +168,7 @@ export default function AppLayout() {
                                 <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">Configuración</p>
                             </div>
                             <SidebarNavLink to="/configuracion/disponibilidad" onClick={closeMenu}>Disponibilidad</SidebarNavLink>
+                            <SidebarNavLink to="/configuracion/negocio" onClick={closeMenu}>Mi Negocio</SidebarNavLink>
                         </>
                     )}
                 </nav>

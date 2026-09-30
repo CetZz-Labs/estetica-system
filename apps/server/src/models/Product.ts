@@ -7,6 +7,9 @@ export interface IProduct extends Document {
     stock: number;
     description?: string;
     isActive: boolean;
+    // UX-81: espejo informativo del último remainingLevel reportado en una visita para este
+    // producto. NO participa de la aritmética de stock (GOV-STOCK mandatos 1-4).
+    currentUnitLevel?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -41,6 +44,13 @@ const ProductSchema: Schema = new Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    // UX-81: informativo, actualizado con `set` simple desde servicerecords.productsUsed[].remainingLevel.
+    // No participa del control de stock (GOV-STOCK mandatos 1-4) ni se resetea en adjustStock.
+    currentUnitLevel: {
+        type: Number,
+        min: 0,
+        max: 100
     }
 }, {
     timestamps: true
