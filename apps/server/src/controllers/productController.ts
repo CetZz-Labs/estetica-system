@@ -89,6 +89,9 @@ export const adjustStock = async (req: Request, res: Response) => {
         }
 
         product.stock = newStock;
+        // UX-90: el stock incluye el envase abierto; sin envases no puede haber abierto vigente.
+        // Ajustar envases enteros (+/-) no altera el nivel del abierto.
+        if (newStock === 0) product.currentUnitLevel = undefined;
         await product.save();
 
         return res.status(200).json({

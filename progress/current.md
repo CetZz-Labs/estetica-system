@@ -1,27 +1,25 @@
 # Plan y Estado de la Sesión Actual
 
 ## Metadatos de la Sesión
-- **Última actualización:** 2026-09-29
-- **Sesión:** cerrada — dada por finalizada a pedido del usuario, continúa mañana
-- **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, sincronizada con `main` en `b14fdb0` al ramificar). NO mergeada todavía — pendiente de que el usuario la pruebe en un entorno real antes de decidir el merge a `development`.
-- **Feature en curso:** ninguna
+- **Última actualización:** 2026-09-30
+- **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (sin mergear; el usuario la probó en entorno real y pidió el rediseño UX-90 sobre ella)
+- **Feature en curso:** UX-90 — Gestión de stock con envase abierto (`in_progress`)
 
-## Plan de Acción
-_(sin feature activa — plantilla vacía hasta la próxima tarea)_
+## Plan de Acción (UX-90)
+Diseño completo: `progress/explores/explore_UX-90.md`. Decisiones del usuario: stock incluye el abierto (Opción B, pool de puntos enteros 1 envase = 100); un solo envase abierto por producto; barra con abierto arranca en lo que queda del abierto; se elimina el checkbox "usar envase abierto"; `adjustStock` a 0 descarta el abierto; update condicional con reintento/409.
+- [ ] PR1 backend (`impl_UX-90-backend.md`): `utils/stockPool.ts` + tests, `services/stockService.ts`, modelo `usedPercent`, create/update/delete + `completeAppointment` unificados, duplicados rechazados, `adjustStock`, validators, docs.
+- [ ] Reviewer PR1.
+- [ ] PR1b script de migración (+1 stock por producto con abierto) — requiere confirmación del usuario con datos reales; dry-run primero.
+- [ ] PR2 frontend (2a/2b si excede 400 líneas) — recién después del backend.
 
-## Estado del Backlog
-- UX-80 a UX-89 (10 features, ver resumen completo en `progress/history.md` — sección "Cierre de sesión: 10 features") → **done**, todas comiteadas en la rama de esta sesión.
+## Pendientes de decisión del usuario
+- "Cant." multi-envase (recomendado: mantener como tope k de envases nuevos, default 1) — afecta solo el frontend.
+- Confirmar migración +1 con datos reales antes de aplicar.
 
-### Pendientes (sin cambios respecto a sesiones anteriores)
-- UX-34 Rediseño Shear Etapa 4 (Agenda, Servicios, Config, perfiles)
-- UX-35 Rediseño Shear Etapa 5 (limpieza de alias-puente + cierre)
-- EP-18 a EP-22 Reportes (Fase 5)
-- EP-23 a EP-25 Pagos (Fase 6)
-- **xlsx@0.18.5 — riesgo de seguridad aceptado (2026-08-20, SEC-01):** sin cambios, ver `progress/history.md`.
+## Backlog sin cambios
+- UX-34, UX-35, EP-18 a EP-25; xlsx@0.18.5 riesgo aceptado (SEC-01); deuda de test `tenantIsolation.test.ts` (4 fallos preexistentes).
 
 ## Bloqueos y Riesgos Conocidos
-- **Rama sin mergear:** antes de mergear `feature/UX-80-detalle-visita-consumo-productos` a `development`, probar en vivo con datos reales el flujo de UX-83 (reutilizar envase abierto) y UX-88/89 (barra de consumo "% usado") — fueron los más iterados en la sesión y son los de mayor riesgo por tocar la aritmética de stock.
-- **UX-79 — pendiente de validación humana antes de merge (heredado, sin cambios):** probar en la app real que el link `wa.me` abre bien con números en formato viejo.
-- **Nota operativa de entorno (heredada, no bloqueante):** si algún build falla con `Cannot find module '.../node_modules/...'`, ver `progress/history.md` OPS-01 (symlinks stale, `CI=true pnpm install` con aprobación humana).
-- **Deuda de test preexistente (heredada, no bloqueante):** `tenantIsolation.test.ts`, 4 tests fallando por falta de `professional` en el body.
-- **Recordatorio operativo (incidente previo, ver memoria `reviewer-git-stash-incident`):** ningún subagente debe usar `git stash` sin acotar a un archivo específico ni dejarlo sin pop. Verificar `git stash list` vacío al cierre de cada revisión.
+- Rama sin mergear; UX-79 pendiente de validación humana (wa.me).
+- Incidente previo `git stash` (memoria `reviewer-git-stash-incident`): ningún subagente usa `git stash` sin acotar y hacer pop; verificar `git stash list` vacío al cierre.
+- Nota OPS-01: si un build falla con `Cannot find module`, ver `progress/history.md`.

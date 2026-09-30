@@ -7,8 +7,9 @@ export interface IProduct extends Document {
     stock: number;
     description?: string;
     isActive: boolean;
-    // UX-81: espejo informativo del último remainingLevel reportado en una visita para este
-    // producto. NO participa de la aritmética de stock (GOV-STOCK mandatos 1-4).
+    // UX-90: nivel (1..99) del ÚNICO envase abierto; undefined = no hay envase abierto.
+    // `stock` INCLUYE ese envase. Participa del pool de puntos (utils/stockPool.ts):
+    // P = level + 100 * (stock - 1). Invariante: level definido => stock >= 1.
     currentUnitLevel?: number;
     createdAt: Date;
     updatedAt: Date;
@@ -45,8 +46,8 @@ const ProductSchema: Schema = new Schema({
         type: Boolean,
         default: true
     },
-    // UX-81: informativo, actualizado con `set` simple desde servicerecords.productsUsed[].remainingLevel.
-    // No participa del control de stock (GOV-STOCK mandatos 1-4) ni se resetea en adjustStock.
+    // UX-90: participa del pool de stock (GOV-STOCK). Se escribe solo vía services/stockService
+    // (canoniza a $unset cuando el resto es 0) y adjustStock (lo descarta si el stock queda en 0).
     currentUnitLevel: {
         type: Number,
         min: 0,

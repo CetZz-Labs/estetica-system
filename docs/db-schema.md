@@ -120,7 +120,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 | `stock` | `Number` | Sí, default `0` | - | Cantidad disponible. `min: 0` (no negativo) |
 | `description` | `String` | No | - | Descripción opcional. `trim` |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
-| `currentUnitLevel` | `Number` | No, sin default | - | **UX-81, informativo.** `min: 0, max: 100`. Espejo del último `servicerecords.productsUsed[].remainingLevel` reportado para este producto. `undefined` = sin dato (producto legado o nunca se reportó consumo parcial). NO participa de la aritmética de stock ni se resetea en `adjustStock` |
+| `currentUnitLevel` | `Number` | No, sin default | - | **UX-90.** `min: 0, max: 100`; valores válidos 1..99. Nivel del ÚNICO envase abierto; ausente = no hay envase abierto. `stock` INCLUYE ese envase (pool: `P = L + 100*(stock-1)`). Invariante: definido ⇒ `stock >= 1`. Se escribe solo vía `services/stockService` (canoniza a `$unset` cuando el resto es 0) y `adjustStock` (lo descarta si el stock queda en 0) |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
@@ -129,7 +129,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 - Validación de stock negativo: `min: [0, 'El stock no puede ser negativo']`.
 - Carga masiva desde Excel/CSV usa `upsert` por nombre + marca para evitar duplicados.
 - Umbrales visuales en UI: `stock === 0` → rojo, `stock <= 5` → naranja, `stock > 5` → verde.
-- `currentUnitLevel` (UX-81) es puramente informativo (ej. "envase abierto al 40%"): se actualiza con un `set` simple desde `createServiceRecord`/`updateServiceRecord` cuando la visita reporta `remainingLevel`, fuera de los mandatos 1-4 de GOV-STOCK.
+- `currentUnitLevel` (UX-90) participa del pool de puntos de GOV-STOCK (mandatos 5-7): 1 envase = 100 puntos; el stock incluye el envase abierto y se descuenta 1 unidad recién cuando el abierto se consume por completo.
 
 ---
 
@@ -144,7 +144,7 @@ Registro de visitas (eje central del sistema). Vincula cliente + servicio + prod
 | `service` | `ObjectId` (ref: Service) | Sí | - | Servicio realizado. `ref: 'Service'` |
 | `serviceDate` | `Date` | Sí | Indexado | Fecha del servicio |
 | `notes` | `String` | No | - | Notas del servicio. Ej: "Balayage rubio miel". `trim` |
-| `productsUsed` | `[{ product: ObjectId (ref: Product), quantity: Number, remainingLevel?: Number }]` | No, default `[]` | - | Array de insumos consumidos. `quantity: { min: 0 }`. `remainingLevel` (**UX-81, informativo**): `min: 0, max: 100`, opcional, sin default — estimación libre de la profesional sobre cuánto quedó del envase tras esta visita. NO afecta el descuento de stock (`quantity`) |
+| `productsUsed` | `[{ product: ObjectId (ref: Product), quantity: Number, usedPercent?: Number, remainingLevel?: Number, usedExistingUnit: Boolean }]` | No, default `[]` | - | Array de insumos consumidos. **UX-90:** `usedPercent` (entero `>= 1`, sin máximo de schema; la API limita a 10000) = total de puntos consumidos del pool en la visita (100 = un envase; puede superar 100); única fuente de verdad para aritmética y reversión. Ausente en registros legacy (puntos efectivos = `quantity*100`, o 0 si `usedExistingUnit`). `quantity` (`min: 0`) es DERIVADA por el server = `ceil(usedPercent/100)`. `remainingLevel` (`0..100`, nivel del abierto tras la visita, 0 = ninguno) y `usedExistingUnit` (había envase abierto al empezar) son derivados/informativos: el server ignora lo que envíe el cliente |
 | `nextTouchupDate` | `Date` | No | Indexado | Fecha del próximo retoque calculada automáticamente |
 | `touchupStatus` | `String` (enum) | No, default `'pending'` | Indexado | `'pending'`, `'completed'`, `'cancelled'` |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |

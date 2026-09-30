@@ -182,6 +182,8 @@ Montaje en `server.ts`: `app.use('/api/clientes', clientRoutes)`.
 
 **Mandato:** validación Mongoose `min: [0, ...]` en el campo `stock`. Toda operación de egreso valida stock suficiente **antes** de descontar. El egreso usa `$inc` negativo dentro de un lookup tenant-scoped.
 
+> **UX-90:** los consumos de insumos de visitas (envases parciales) NO usan este patrón directo: pasan por el pool de puntos de `services/stockService.ts` (ver P6/P17 y GOV-STOCK mandatos 5-7). Este patrón aplica a ajustes manuales de envases enteros (`adjustStock`); con un envase abierto vigente, si el stock queda en `0` se hace `currentUnitLevel = undefined` (`$unset`); los ajustes +/- de envases enteros no tocan el nivel.
+
 ```typescript
 // controllers/productController.ts
 export const adjustStock = async (req: Request, res: Response) => {
@@ -268,7 +270,7 @@ export const createBulkProducts = async (req: Request, res: Response) => {
 **Mandato (orden estricto):**
 1. Validar que `client`, `service` y cada `product` del body pertenecen al tenant del request (anti-IDOR cruzado).
 2. Calcular `nextTouchupDate = serviceDate + service.defaultTouchupDays` (si `> 0` y no se provee manualmente).
-3. Descontar stock de cada insumo (validando suficiente — ver P4).
+3. Descontar stock de cada insumo vía `consumeProducts(tenantId, productsUsed)` de `services/stockService.ts` (UX-90: pool de puntos; valida existencia, duplicados y suficiencia de TODOS los items antes de mutar; devuelve los items a persistir con `quantity`/`remainingLevel`/`usedExistingUnit` derivados). La misma rutina la usa `completeAppointment`. Los controllers capturan `StockError` (`error.status` + `error.message`).
 4. Auto-completar el retoque anterior del mismo `tenantId + client + service` con `touchupStatus: 'pending'`.
 5. Crear el servicerecord nuevo con `touchupStatus: 'pending'`.
 
@@ -332,6 +334,8 @@ export const createServiceRecord = async (req: Request, res: Response) => {
     }
 };
 ```
+
+> **UX-90:** el bloque "3. Descontar stock" del ejemplo de abajo es el esquema previo (`product.stock -= quantity`); el código vigente delega en `consumeProducts` (ver `controllers/serviceRecordController.ts`).
 
 > **Nota de atomicidad:** MongoDB sin réplica no soporta transacciones multi-documento. El orden (validar → descontar → crear) minimiza el riesgo de estado inconsistente. Si en el futuro se habilita un replica set, envolver los pasos 3–5 en una sesión transaccional (`session.withTransaction`).
 
@@ -610,6 +614,10 @@ if (productsUsed !== undefined) { // no truthiness/longitud — [] es "vaciar", 
 **Riesgo aceptado — TOCTOU entre requests concurrentes:** el patrón read-check-save (fases 6-7) no es atómico entre dos requests simultáneos que tocan el mismo producto — ambos pueden leer el mismo `stock` antes de que cualquiera escriba. Es la misma limitación preexistente de P4/P6 (no introducida por este patrón); el segundo `.save()` cae en la validación Mongoose `min: 0` como red de seguridad final, propagándose como 500 en vez de un 400 descriptivo. Mitigación disponible pero **no aplicada por defecto** (evaluar caso a caso si el volumen de escritura concurrente lo justifica): reemplazar el `save()` de la fase de escritura por `findOneAndUpdate({ _id, tenantId, stock: { $gte: delta } }, { $inc: { stock: -delta } })` atómico para los deltas positivos (los negativos/restauración no tienen riesgo de negativo, un `$inc` simple alcanza).
 
 **Extensión — "cantidad efectiva" distinta de la cantidad nominal (UX-83, 2026-09-29):** si un ítem tiene un flag que determina si ese ítem toca stock en absoluto (ej. `usedExistingUnit: boolean` — "reutilizar un envase ya abierto" no descuenta nada, porque esa unidad ya se descontó la primera vez), `oldMap`/`newMap` (mandato 4) NO deben indexar la `quantity` cruda sino la **cantidad efectiva para stock**: `0` cuando el flag indica "no toca stock", `quantity` en caso contrario. El resto del mecanismo (unionIds, fase de validación pura, fase de escritura, fórmula `stock -= delta`) no cambia — el delta sigue representando el movimiento real de stock, ahora correcto también cuando un ítem cambia de "tocaba stock" a "no lo toca" (o viceversa) entre el estado viejo y el nuevo. Mismo criterio debe aplicarse al restaurar stock al borrar el documento completo (`deleteServiceRecord` u homólogo): excluir del restore los ítems cuyo flag indica que nunca descontaron nada.
+
+**UX-90 — Reconciliación por puntos + update condicional (2026-09-30):** el stock de insumos ya no se reconcilia por cantidad nominal sino por **puntos del pool** (GOV-STOCK mandatos 5-7). `oldMap`/`newMap` indexan puntos efectivos (`effectivePoints`: `usedPercent ?? (usedExistingUnit ? 0 : quantity*100)`); `delta = newEff - oldEff` (puntos); producto que desaparece ⇒ `newEff = 0`; delete ⇒ `newEff = 0` para todos los items, ignorando huérfanos. Como el pool es aditivo, se devuelven puntos, no niveles. Implementación única: `reconcileProducts` / `restoreProducts` / `consumeProducts` en `services/stockService.ts`.
+
+**Patrón nuevo — update condicional con reintento (reemplaza la mitigación "no aplicada" del riesgo TOCTOU de arriba):** (1) leer productos y calcular el plan completo (validación pura); (2) escribir producto por producto con `updateOne({ _id, tenantId, stock: S_leído, currentUnitLevel: L_leído ?? null }, { $set/$unset })` — `currentUnitLevel: null` matchea campo inexistente; (3) si `matchedCount !== 1` otro request modificó el producto: revertir lo ya aplicado de esa operación (mejor esfuerzo, mismo filtro condicional al revés) y reintentar releyendo (hasta 3 veces); (4) si persiste, `StockError(409)`. Limitación: sin transacciones multi-documento (sin replica set) un crash del proceso entre escrituras de una misma operación puede dejar un estado parcial, y el rollback mismo puede fallar si un tercero modificó el producto en medio.
 
 ---
 

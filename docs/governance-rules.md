@@ -69,7 +69,7 @@
 
 ## GOV-STOCK — Control de Inventario y Stock
 
-**Regla:** El stock de productos se controla con validación de no negatividad. El stock se descuenta automáticamente al registrar una visita que consume insumos. La carga masiva desde Excel/CSV usa `upsert` por nombre + marca para evitar duplicados.
+**Regla:** El stock de productos se controla con validación de no negatividad y **incluye el envase abierto** (UX-90). El stock se descuenta automáticamente al registrar una visita que consume insumos, medido en un **pool de puntos enteros** (1 envase = 100 puntos = 100%). La carga masiva desde Excel/CSV usa `upsert` por nombre + marca para evitar duplicados.
 
 **Por qué:** El inventario es un activo del centro de estética. Validar stock negativo previene egresos imposibles. El `upsert` en carga masiva evita duplicados cuando se reimporta el mismo archivo.
 
@@ -78,8 +78,11 @@
 2. Las operaciones de egreso validan stock suficiente antes de descontar.
 3. El descuento de stock ocurre en la misma transacción lógica que la creación de `servicerecord`.
 4. Carga masiva: identificar producto por `tenantId + name + brand` combinados para upsert (con `tenantId` también en `$setOnInsert`).
+5. **Pool de puntos (UX-90):** el estado (`stock` S, `currentUnitLevel` L) es función 1:1 del pool P: con envase abierto `P = L + 100*(S-1)`; sin abierto `P = 100*S`. Inversa: `S' = ceil(P'/100)`, `r = P' mod 100`, `L' = r` (1..99) o `$unset` si `r == 0`. Todo entero, sin floats. Invariante: `L` definido ⇒ `S >= 1`. Hay un solo envase abierto por producto; consumir siempre drena primero el abierto, y se descuenta 1 unidad de `stock` recién cuando el abierto se consume por completo.
+6. Un consumo de `U` puntos exige `U <= P` disponible (400 si no). Se valida TODO (existencia, duplicados, suficiencia) antes de mutar cualquier producto. La reversión (update/delete de visita) devuelve **puntos**, no niveles (`usedPercent` es la fuente de verdad; registros legacy: `quantity*100`, o 0 si `usedExistingUnit`).
+7. Las escrituras de stock/nivel usan update condicionado por `{ _id, tenantId, stock, currentUnitLevel }` leídos; ante conflicto se reintenta y, si persiste, 409. `adjustStock` descarta el abierto (`$unset`) si el stock queda en 0.
 
-**Nota (UX-81, 2026-09-29):** `servicerecords.productsUsed[].remainingLevel` y `products.currentUnitLevel` son campos **puramente informativos** (estimación libre de "% que queda en el envase abierto") y quedan **explícitamente fuera de los mandatos 1-4 de esta sección**: no participan de la validación de no-negatividad, del descuento/reconciliación de stock (`quantity`), ni de la carga masiva. Se actualizan con un `set` simple (nunca aritmética) y `adjustStock` no los resetea.
+**Nota (UX-90, 2026-09-30):** reemplaza a la nota informativa de UX-81. `products.currentUnitLevel` y `servicerecords.productsUsed[].usedPercent` **participan** de la aritmética de stock (mandatos 5-7). `remainingLevel` y `usedExistingUnit` quedan como campos derivados/informativos calculados por el server (el cliente no los controla).
 
 **Auditado por:** `CHECKPOINTS.md` C3 (Control de Stock).
 

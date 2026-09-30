@@ -1651,6 +1651,21 @@
         "Verificación manual/de código: con `currentUnitLevel` previo de 30% y el checkbox tildado, la barra debe ir de 0 a 30 (no hasta 100); destildar el checkbox debe volver el rango a 0-100",
         "pnpm --filter @estetica/client build y lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-90",
+      "name": "Gestión de stock con envase abierto: un solo envase abierto por producto, descuento al consumirse completo, combinar abierto + nuevo",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "in_progress",
+      "description": "Pedido del usuario (2026-09-30) tras probar UX-80..89: el flujo actual descuenta stock al ABRIR el envase y permite abrir uno nuevo pisando silenciosamente el abierto. Flujo esperado (decisiones confirmadas): (1) Opción B — el stock incluye el envase abierto; se descuenta 1 unidad recién cuando el envase abierto se consume por completo (0% restante). (2) Un único envase abierto por producto (se mantiene Product.currentUnitLevel, sin cambios mayores de modelo); no se puede abrir uno nuevo mientras el abierto no se haya consumido. (3) En Registrar Visita, cada insumo muestra la barra de % usado (arranca en 100% = envase entero). Si el producto tiene envase abierto, se ofrece consumir ese o uno nuevo; si se elige el abierto la barra va de 0 a lo disponible. (4) Caso combinado: consumir el abierto completo (su % restante) + un xx% de uno nuevo, que queda como nuevo abierto con el resto. (5) Al llegar a 0% el envase abierto se da por cerrado (currentUnitLevel vacío) y se descuenta el stock. Pendiente de definir por el explorer: rol de `quantity`, migración de currentUnitLevel existentes, reversión en edición/borrado (P17/UX-72), compatibilidad con duplicados de producto y con EditRegistroModal/ServiceRecordDetail/Inventario.",
+      "acceptance_criteria": [
+        "Diseño en progress/explores/explore_UX-90.md. Decisiones confirmadas: stock = pool de puntos enteros (1 envase = 100); barra con abierto arranca en lo que queda del abierto; se elimina el checkbox 'usar envase abierto' (consumo FIFO); adjustStock a 0 descarta el abierto y las escrituras de stock usan update condicional con reintento/409",
+        "PR1 backend: utils/stockPool.ts (toPool/fromPool) + tests; services/stockService.ts tenant-scoped usado por create/update/delete de serviceRecordController y completeAppointment; usedPercent entero en ServiceRecord; quantity derivada; duplicados rechazados en create y complete; adjustStock descarta abierto si stock=0; validators; docs GOV-STOCK/db-schema/patterns-backend",
+        "PR1b: script de migración scripts/migrate-ux90-open-unit.ts (dry-run, por tenant, idempotente) — pendiente de confirmación del usuario con datos reales",
+        "PR2 frontend: RegistroModal/EditRegistroModal/slider/Detail/Inventario/types/api — posterior al backend",
+        "pnpm --filter @estetica/server build exit 0 y tests de stockPool verdes"
+      ]
     }
   ]
 }

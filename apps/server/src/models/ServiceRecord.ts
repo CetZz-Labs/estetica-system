@@ -3,14 +3,16 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 interface IUsedProduct {
     product: Types.ObjectId;
     quantity: number; // Por ejemplo: gramos, ml o unidades
-    // UX-81: estimación libre e informativa de la profesional ("% que quedó en el envase
-    // tras esta visita"). NO participa del descuento/reconciliación de stock (quantity).
+    // UX-90: puntos enteros consumidos del pool en esta visita (100 = un envase; puede ser > 100).
+    // Única fuente de verdad para la aritmética y la reversión. Ausente en registros legacy:
+    // ahí los puntos efectivos son quantity * 100 (ver utils/stockPool.effectivePoints).
+    usedPercent?: number;
+    // UX-90: DERIVADO por el server = ceil(usedPercent / 100) (envases tocados, informativo).
+    // quantity: envases enteros en registros legacy.
+    // remainingLevel (nivel del envase abierto tras la visita, 0 = ninguno) y usedExistingUnit
+    // (había un envase abierto al empezar) son derivados/informativos; el server ignora lo que
+    // envíe el cliente en esos campos.
     remainingLevel?: number;
-    // UX-83: elección explícita "usar envase ya abierto" (true) vs "abrir uno nuevo" (false).
-    // A diferencia de remainingLevel (opcional, "sin dato" = undefined), este campo SIEMPRE se
-    // persiste explícito (default false) — la reconciliación por delta de P17 en
-    // updateServiceRecord necesita conocer el estado histórico exacto de cada item guardado,
-    // no puede inferirlo de "sin dato".
     usedExistingUnit: boolean;
 }
 
@@ -42,9 +44,10 @@ const ServiceRecordSchema: Schema = new Schema({
     productsUsed: [{
         product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
         quantity: { type: Number, required: true, min: 0 },
-        // UX-81: dato puramente informativo, no afecta el descuento de stock (P4/P6/P17).
+        // UX-90: entero >= 1 (total de puntos de la visita). Opcional solo por registros legacy.
+        usedPercent: { type: Number, min: 1, validate: { validator: Number.isInteger, message: 'usedPercent debe ser un entero' } },
+        // Derivados por el server (ver comentario de la interfaz).
         remainingLevel: { type: Number, min: 0, max: 100 },
-        // UX-83: default false, siempre persistido explícito (ver comentario de la interfaz).
         usedExistingUnit: { type: Boolean, default: false }
     }],
 
