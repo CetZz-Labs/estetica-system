@@ -225,13 +225,13 @@ export default function Inventario() {
                                             </td>
                                             <td className="px-5 py-[13px] text-center">
                                                 <span className={`text-[13.5px] font-semibold ${isReponer ? 'text-alert-text' : 'text-text'}`}>
-                                                    {hasUnitLevel ? `${product.stock} ${product.stock === 1 ? 'cerrado' : 'cerrados'}` : `${product.stock} u.`}
+                                                    {product.stock} {product.stock === 1 ? 'u.' : 'u.'}
                                                 </span>
                                                 {hasUnitLevel && unitLevelTone && (
                                                     <div className="mt-1.5 flex flex-col items-center gap-1">
                                                         <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold ${unitLevelTone.badgeText}`}>
                                                             <FiDroplet aria-hidden size={11} />
-                                                            + 1 abierto al {product.currentUnitLevel}%
+                                                            Envase abierto: {product.currentUnitLevel}%
                                                         </span>
                                                         <div
                                                             className="w-16 h-1 rounded-pill bg-dotted overflow-hidden"
@@ -239,7 +239,7 @@ export default function Inventario() {
                                                             aria-valuenow={product.currentUnitLevel}
                                                             aria-valuemin={0}
                                                             aria-valuemax={100}
-                                                            aria-label={`Nivel del único envase abierto: ${product.currentUnitLevel}%, además de ${product.stock} cerrados`}
+                                                            aria-label={`Nivel del envase abierto: ${product.currentUnitLevel}%`}
                                                         >
                                                             <div className={`h-full rounded-pill ${unitLevelTone.barFill}`} style={{ width: `${product.currentUnitLevel}%` }} />
                                                         </div>

@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { Appointment } from '../models/Appointment';
 import { Service } from '../models/Service';
 import { ServiceRecord } from '../models/ServiceRecord';
-import { consumeProducts, StockError } from '../services/stockService';
+import { Product } from '../models/Product';
 import { Professional } from '../models/Professional';
 import { Tenant } from '../models/Tenant';
 import { isBeforeCalendarDay } from '../utils/dateUtils';
@@ -317,10 +317,22 @@ export const completeAppointment = async (req: Request, res: Response) => {
             }
         }
 
-        // UX-90: misma rutina de stock que createServiceRecord (pool de puntos, tenant-scoped).
-        const storedProducts = Array.isArray(productsUsed) && productsUsed.length > 0
-            ? await consumeProducts(req.tenantId!, productsUsed)
-            : [];
+        // Stock deduction
+        if (productsUsed && Array.isArray(productsUsed) && productsUsed.length > 0) {
+            for (const item of productsUsed) {
+                const product = await Product.findOne({ _id: item.product, tenantId: req.tenantId });
+                if (!product) {
+                    return res.status(404).json({ error: `Producto con ID ${item.product} no encontrado` });
+                }
+                if (product.stock < item.quantity) {
+                    return res.status(400).json({
+                        error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido: ${item.quantity}`
+                    });
+                }
+                product.stock -= item.quantity;
+                await product.save();
+            }
+        }
 
         // Auto-complete previous pending touchups for this client+service
         // UX-13: solo se auto-completan los retoques cuya fecha (nextTouchupDate) ya fue superada
@@ -344,7 +356,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
             service: effectiveService,
             serviceDate,
             notes,
-            productsUsed: storedProducts,
+            productsUsed: productsUsed || [],
             nextTouchupDate: finalNextTouchupDate,
             touchupStatus: finalNextTouchupDate ? 'pending' : 'completed',
             appointment: appointment._id,
@@ -384,7 +396,6 @@ export const completeAppointment = async (req: Request, res: Response) => {
             touchupAppointment
         });
     } catch (error) {
-        if (error instanceof StockError) return res.status(error.status).json({ error: error.message });
         console.error('Error al completar turno:', error);
         return res.status(500).json({ error: 'Error interno del servidor al completar el turno' });
     }

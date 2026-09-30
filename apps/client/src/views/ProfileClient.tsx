@@ -8,7 +8,6 @@ import { getMe } from '../api/adminApi';
 import { handleApiError } from '../api/errorHandler';
 import type { Client, ServiceRecord, Paginated, AdminInfo } from '../types';
 import { formatDate } from '../utils/dates';
-import { formatUsedShort } from '../utils/stockPool';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ClienteModal from '../components/ClienteModal';
@@ -290,7 +289,7 @@ export default function PerfilCliente() {
                                                             <span className="text-gray-600 break-words">
                                                                 {registro.productsUsed.map(item => {
                                                                     const productName = typeof item.product === 'object' && item.product !== null ? item.product.name : 'Insumo';
-                                                                    return `${productName} (${formatUsedShort(item)})`;
+                                                                    return `${productName} (${item.quantity > 0 ? item.quantity : '0'})`;
                                                                 }).join(', ')}
                                                             </span>
                                                         </div>
