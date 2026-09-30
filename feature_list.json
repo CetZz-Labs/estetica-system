@@ -1632,6 +1632,25 @@
         "Verificación manual/de código con el ejemplo del usuario: sin tildar el checkbox, cargar 70 en la barra debe resultar en `remainingLevel: 30` en el payload enviado; con el checkbox tildado y `currentUnitLevel` previo de 70, cargar 70 en la barra debe resultar en `remainingLevel: 0`",
         "pnpm --filter @estetica/client build y lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-89",
+      "name": "Rango dinámico del slider: limitar a 0–lo disponible cuando se reutiliza un envase abierto",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Follow-up directo del usuario a UX-88 (2026-09-29): con la fórmula ya correcta (`remainingLevel = clamp(available - usado, 0, 100)`), sigue siendo confuso que la barra '% usado' vaya siempre de 0 a 100 incluso cuando se tilda 'usar envase ya abierto' con solo, por ejemplo, 30% disponible — no tiene sentido dejar arrastrar hasta un 'usado: 90' si ya no hay 90% para usar. El usuario propuso (y se confirmó en la conversación) que la MISMA barra cambie su rango máximo a 0–{disponible} cuando el checkbox está tildado (no una segunda barra separada), volviendo a 0–100 cuando no está tildado o no hay `currentUnitLevel` conocido. Con el rango ya acotado al disponible, la fórmula de UX-88 sigue siendo válida (el `clamp` a 0 pasa a ser redundante en el caso feliz, pero se mantiene como red de seguridad). **Ampliación pedida en vivo por el usuario mientras esta feature estaba en curso:** el valor inicial de la barra (cuando el item se agrega y nadie la tocó todavía) debe mostrarse en 100% (no en 0%) — el caso normal es usar el producto completo, el caso de excepción es que sobre algo, así que el default visual debe comunicar 'asumimos 100% usado, arrastrá hacia abajo solo si sobró'. Esto es puramente visual/de default: el mecanismo de 'no enviar `remainingLevel` si nadie tocó el control' (P19) no cambia, sigue dependiendo exclusivamente de la interacción real del usuario, no del valor por defecto mostrado.",
+      "acceptance_criteria": [
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — nuevo prop opcional `max` (default 100) que se pasa al atributo `max` del `<input type=\"range\">`; el label/texto sigue siendo genérico, no hace falta que el componente sepa por qué cambió el máximo",
+        "apps/client/src/components/ui/RemainingLevelSlider.tsx — el fallback de `defaultValue` (hoy `0` cuando no hay valor histórico) pasa a ser `100`; el `useState` inicial de `displayValue` (hoy `undefined` cuando no hay histórico) pasa a mostrar `100` visualmente por default — sin marcar el campo como 'tocado' (el criterio de omitir `remainingLevel` del payload si nadie interactuó con el control sigue dependiendo únicamente del flag `usedPercentTouched`, no de este valor visual)",
+        "Si al montar un item el checkbox 'usar envase ya abierto' ya viene tildado (ej. editando un registro existente) y el `max` calculado es menor a 100, el valor inicial de 100 debe quedar acotado a ese `max` (verificar que el navegador lo clampea solo en el render inicial; si no, aplicar el mismo mecanismo de recorte que el punto siguiente usa para el caso dinámico)",
+        "apps/client/src/components/RegistroModal.tsx y apps/client/src/components/EditRegistroModal.tsx — el `max` pasado a cada `RemainingLevelSlider` de un item se calcula dinámicamente: `det.currentUnitLevel` cuando el checkbox `usedExistingUnit` de ESE item está tildado Y `det?.currentUnitLevel` es un número; `100` en cualquier otro caso (checkbox destildado, o no hay `currentUnitLevel` conocido para ese producto)",
+        "El cálculo debe reaccionar EN VIVO al tildar/destildar el checkbox de cada item (no solo al montar el formulario) — evaluar si usar `watch()` puntual del campo `usedExistingUnit` de ese item es aceptable (ya hay precedente de `watch()` en RegistroModal.tsx desde UX-88; para EditRegistroModal.tsx, que hoy lo evita por un warning de lint, usar tu criterio: este es un requisito funcional central de esta feature, no un nice-to-have, así que aceptar el mismo warning ya presente en otros 3 archivos del proyecto es una opción válida si no hay alternativa más limpia)",
+        "Si al tildar el checkbox el valor actual del slider queda por encima del nuevo `max` (ej. estaba en 90 y el nuevo tope es 30), el valor debe recortarse al nuevo máximo (`setValue` correspondiente) para no dejar un slider en un estado visualmente inconsistente (valor mostrado mayor al máximo permitido)",
+        "La fórmula de cálculo de `remainingLevel` en el `onSubmit` (UX-88, `available - usado` con clamp) NO cambia — sigue siendo la misma, ahora simplemente el `usado` que llega del slider nunca puede exceder `available` gracias al rango acotado",
+        "Verificación manual/de código: con `currentUnitLevel` previo de 30% y el checkbox tildado, la barra debe ir de 0 a 30 (no hasta 100); destildar el checkbox debe volver el rango a 0-100",
+        "pnpm --filter @estetica/client build y lint pasan con exit code 0"
+      ]
     }
   ]
 }

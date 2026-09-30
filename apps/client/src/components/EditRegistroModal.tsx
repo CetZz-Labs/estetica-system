@@ -80,7 +80,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
-    const { register, control, handleSubmit, reset, setValue } = useForm<EditRegistroFormValues>({
+    const { register, control, handleSubmit, reset, setValue, watch } = useForm<EditRegistroFormValues>({
         defaultValues: {
             notes: '',
             productsUsed: []
@@ -233,6 +233,15 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
+                                // Rango dinámico del slider (UX-89): mismo criterio que RegistroModal.tsx —
+                                // usa watch() (acepta el warning de lint react-hooks/incompatible-library,
+                                // ya presente en otros 3 archivos del proyecto) para poder recortar el valor
+                                // al tildar el checkbox sin dejar el slider en un estado inconsistente.
+                                const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
+                                const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
+                                const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
+                                    ? det.currentUnitLevel
+                                    : 100;
                                 return (
                                     <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
                                         <div className="flex justify-between items-center">
@@ -246,6 +255,8 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                             defaultValue={field.usedPercent}
                                             registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
                                             onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
+                                            max={maxUsable}
+                                            value={watchedUsedPercent}
                                         />
                                         {typeof det?.currentUnitLevel === 'number' && (
                                             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
@@ -253,7 +264,17 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
                                                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
-                                                    {...register(`productsUsed.${index}.usedExistingUnit`)}
+                                                    {...register(`productsUsed.${index}.usedExistingUnit`, {
+                                                        onChange: (e) => {
+                                                            // Al tildar, si el % usado ya cargado supera el nuevo tope
+                                                            // disponible (det.currentUnitLevel), se recorta para no dejar
+                                                            // el slider en un estado visualmente inconsistente (UX-89).
+                                                            if (e.target.checked && typeof det?.currentUnitLevel === 'number'
+                                                                && typeof watchedUsedPercent === 'number' && watchedUsedPercent > det.currentUnitLevel) {
+                                                                setValue(`productsUsed.${index}.usedPercent`, det.currentUnitLevel);
+                                                            }
+                                                        },
+                                                    })}
                                                 />
                                                 Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
                                             </label>

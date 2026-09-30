@@ -450,6 +450,21 @@
 
 ---
 
+## 2026-09-29 — UX-89: Rango dinámico del slider (0–disponible) + valor inicial en 100%
+
+* **Agente:** Claude (Leader) + implementer (frontend, 2 rondas: implementación + fix de una ronda de review) + reviewer (2 rondas, la 1ª CHANGES_REQUESTED).
+* **Objetivo:** follow-up directo del usuario a UX-88: (1) la barra "% usado" seguía yendo siempre de 0 a 100 aunque se tildara "usar envase ya abierto" con menos disponible (ej. 30%) — no tiene sentido dejar arrastrar hasta "usado: 90" si ya no hay 90 para usar; la MISMA barra debía cambiar su rango máximo a 0–{disponible} al tildar el checkbox. (2) Pedido sumado en vivo mientras la feature estaba en curso: el valor inicial de la barra debía mostrarse en 100% (no 0%), porque el caso normal es usar el producto completo — el default visual debe comunicar eso, sin afectar el mecanismo de "no enviar el dato si nadie tocó el control" (P19).
+
+* **Cambios Frontend (3 archivos):**
+  - `apps/client/src/components/ui/RemainingLevelSlider.tsx` — nuevo prop `max` (rango dinámico) y `value` (resincroniza el label sin `useEffect`, evitando el lint `react-hooks/set-state-in-effect`); valor inicial `Math.min(hasInitialValue ? defaultValue : 100, effectiveMax)`.
+  - `apps/client/src/components/RegistroModal.tsx` / `EditRegistroModal.tsx` — calculan `maxUsable` por ítem (`currentUnitLevel` si el checkbox de ese item está tildado, 100 si no) y lo pasan al slider; `EditRegistroModal.tsx` aceptó un 4º warning de lint del mismo tipo ya conocido (`react-hooks/incompatible-library` por `watch()`) al ser requisito funcional central, no un nice-to-have.
+
+* **Bug encontrado en la 1ª ronda de review (CHANGES_REQUESTED) y corregido en la 2ª:** un item recién agregado (nunca tocado, arrancando en el nuevo default de 100%) al que se le tildaba el checkbox con un `currentUnitLevel` menor quedaba con el thumb del slider clampeado por el navegador al nuevo `max`, pero el LABEL numérico seguía mostrando "100%" (el navegador recorta el `<input type="range">` sin disparar `onChange` cuando cambia el atributo `max`). Sin corrupción de datos (el payload seguía omitiendo `remainingLevel` correctamente), pero un estado visual inconsistente que el propio AC pedía evitar. Fix: `shownValue` se deriva en cada render como `Math.min(value ?? displayValue, effectiveMax)`, en vez de depender de un `setValue` externo disparado por el checkbox.
+
+* **Verificación:** `pnpm --filter @estetica/client build`/`lint` Exit 0 en ambas rondas (4 warnings del mismo tipo ya conocido, sin ninguno nuevo de otra clase). Reviewer reconstruyó los 3 escenarios críticos (item nuevo+checkbox, slider ya movido manualmente+checkbox, destildar checkbox) con el código real. `git stash list` vacío. Reviewer: **APPROVED** (2ª ronda) → `progress/reviews/review_UX-89.md`. UX-89 → **done**.
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).

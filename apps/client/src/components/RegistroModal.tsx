@@ -471,6 +471,12 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 const remainingPreview = typeof watchedUsedPercent === 'number' && !Number.isNaN(watchedUsedPercent)
                                     ? Math.max(0, Math.min(100, previewAvailable - watchedUsedPercent))
                                     : undefined;
+                                // Rango dinámico del slider (UX-89): si se tilda "usar envase abierto" y
+                                // se conoce currentUnitLevel, no tiene sentido que la barra siga yendo
+                                // hasta 100 — se acota a lo que efectivamente queda disponible.
+                                const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
+                                    ? det.currentUnitLevel
+                                    : 100;
                                 return (
                                     <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
                                         <div className="flex justify-between items-center">
@@ -484,6 +490,8 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                             defaultValue={field.usedPercent}
                                             registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
                                             onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
+                                            max={maxUsable}
+                                            value={watchedUsedPercent}
                                         />
                                         {typeof remainingPreview === 'number' && (
                                             <p className="text-[11px] text-gray-400 -mt-1">→ queda {remainingPreview}%</p>
@@ -494,7 +502,17 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
                                                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
-                                                    {...register(`productsUsed.${index}.usedExistingUnit`)}
+                                                    {...register(`productsUsed.${index}.usedExistingUnit`, {
+                                                        onChange: (e) => {
+                                                            // Al tildar, si el % usado ya cargado supera el nuevo tope
+                                                            // disponible (det.currentUnitLevel), se recorta para no dejar
+                                                            // el slider en un estado visualmente inconsistente (UX-89).
+                                                            if (e.target.checked && typeof det?.currentUnitLevel === 'number'
+                                                                && typeof watchedUsedPercent === 'number' && watchedUsedPercent > det.currentUnitLevel) {
+                                                                setValue(`productsUsed.${index}.usedPercent`, det.currentUnitLevel);
+                                                            }
+                                                        },
+                                                    })}
                                                 />
                                                 Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
                                             </label>
