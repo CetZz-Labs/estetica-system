@@ -8,7 +8,8 @@ export interface ServiceRecordPayload {
     serviceDate: string;
     notes?: string;
     nextTouchupDate?: string;
-    productsUsed: { product: string; quantity: number; remainingLevel?: number; usedExistingUnit?: boolean }[];
+    /** UX-90: `usedPercent` entero >= 1 = total de puntos consumidos (100 = un envase). El server deriva quantity/remainingLevel/usedExistingUnit. */
+    productsUsed: { product: string; usedPercent: number }[];
     /** Exime la validación de serviceDate >= hoy, y exige que serviceDate sea estrictamente pasada (UX-69). */
     isBackfill?: boolean;
 }

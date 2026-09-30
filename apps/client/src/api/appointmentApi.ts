@@ -48,7 +48,7 @@ export const getClientAppointments = async (clientId: string, status?: string): 
 
 export const completeAppointment = async (id: string, data: {
     notes?: string;
-    productsUsed?: { product: string; quantity: number }[];
+    productsUsed?: { product: string; usedPercent: number }[];
     nextTouchupDate?: string;
 }): Promise<{ serviceRecord: ServiceRecord; appointment: Appointment; touchupAppointment?: Appointment }> => {
     const { data: result } = await api.post(`/turnos/${id}/complete`, data);

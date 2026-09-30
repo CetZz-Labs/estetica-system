@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FiPlus, FiTrash2, FiBox, FiUser, FiCalendar } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBox, FiUser, FiCalendar, FiInfo, FiAlertTriangle } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select";
 
 import { getProducts } from "../api/productApi";
@@ -10,6 +10,7 @@ import { updateServiceRecord } from "../api/serviceRecordApi";
 import { handleApiError } from "../api/errorHandler";
 import type { Product, ServiceRecord } from "../types";
 import { formatCalendarDate } from "../utils/dates";
+import { defaultUsed, effectiveUsed, formatStock, fromPool, openLevelOf, poolOf } from "../utils/stockPool";
 import Modal from "./ui/Modal";
 import RemainingLevelSlider from "./ui/RemainingLevelSlider";
 
@@ -28,16 +29,12 @@ interface Props {
 interface EditRegistroFormValues {
     notes: string;
     /**
-     * `usedPercent`/`usedPercentTouched` son campos internos del formulario (nunca viajan tal cual a
-     * la API): la barra representa "% usado en esta visita" (UX-88), no el `remainingLevel` que
-     * espera el backend. `usedPercentTouched` distingue "el usuario movió el slider" de "el input
-     * <range> nunca tocado, en 0 por defecto en el DOM" para no enviar un dato falso (fix UX-81). Se
-     * limpia al construir el payload de `updateServiceRecord`, donde se recalcula `remainingLevel`.
-     * Para items con dato histórico, `reset()` hace el cálculo INVERSO (`usedPercent = available -
-     * remainingLevel guardado`) y precarga `usedPercentTouched: true`, así se re-envía el valor
-     * original aunque no se vuelva a tocar el slider en esta edición.
+     * UX-90 (Opción A): `usedPercent` es el TOTAL de puntos consumidos por el item (100 = un envase) y
+     * es lo único que viaja al server por insumo (quantity/remainingLevel/usedExistingUnit los deriva él).
+     * El server reconcilia por delta contra el consumo previo del registro, así que se precarga el
+     * `usedPercent` guardado (legacy: estimado con `effectiveUsed`) y reenviarlo intacto = delta 0.
      */
-    productsUsed: { product: string; quantity: number; usedPercent?: number; usedPercentTouched?: boolean; usedExistingUnit?: boolean }[];
+    productsUsed: { product: string; usedPercent: number }[];
 }
 
 // Mismo estilo "Maison" que RegistroModal.tsx para mantener consistencia visual entre modales.
@@ -64,7 +61,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
 export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const queryClient = useQueryClient();
 
-    const { data: inventoryProducts } = useQuery<Product[]>({
+    const { data: inventoryProducts, isLoading: isLoadingProducts, isError: isProductsError } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: () => getProducts(),
         enabled: isOpen
@@ -72,15 +69,36 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
 
     const productOptions = inventoryProducts?.map(p => ({
         value: p._id,
-        label: `${p.name} (${p.brand}) - Stock: ${p.stock}`,
-        isDisabled: p.stock === 0
+        label: `${p.name} (${p.brand}) - Stock: ${formatStock(p.stock, p.currentUnitLevel)}`,
+        // Opción A: solo sin cerrados NI abierto (stock 0 con abierto es utilizable).
+        isDisabled: p.stock < 1 && openLevelOf(p.currentUnitLevel) === undefined
     })) || [];
+
+    // Consumo previo (puntos) por producto y productos sin dato `usedPercent` (registro legacy).
+    // El server suma los items repetidos del mismo producto, por eso se acumula acá también.
+    const { oldEffByProduct, legacyProducts } = useMemo(() => {
+        const old = new Map<string, number>();
+        const legacy = new Set<string>();
+        (record?.productsUsed || []).forEach(p => {
+            const id = typeof p.product === 'object' && p.product !== null ? p.product._id : p.product;
+            old.set(id, (old.get(id) ?? 0) + effectiveUsed(p));
+            if (typeof p.usedPercent !== 'number') legacy.add(id);
+        });
+        return { oldEffByProduct: old, legacyProducts: legacy };
+    }, [record]);
+
+    // Pool contra el que valida el server al editar: disponible hoy + lo que este registro ya había consumido.
+    // Producto no cargado en el inventario (p.ej. dado de baja): solo se conoce lo previamente consumido.
+    const basePoolOf = (productId: string): number => {
+        const det = inventoryProducts?.find(p => p._id === productId);
+        const old = oldEffByProduct.get(productId) ?? 0;
+        return det ? poolOf(det.stock, det.currentUnitLevel) + old : Math.max(old, 1);
+    };
 
     // Estado para el selector independiente de Insumos (fuera del form, igual que RegistroModal.tsx).
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
-    const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
-    const { register, control, handleSubmit, reset, setValue, watch } = useForm<EditRegistroFormValues>({
+    const { register, control, handleSubmit, reset, watch, getValues } = useForm<EditRegistroFormValues>({
         defaultValues: {
             notes: '',
             productsUsed: []
@@ -91,7 +109,6 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
 
     const handleCloseModal = () => {
         setSelectedProductOption(null);
-        setQuantityToAdd('');
         onClose();
     };
 
@@ -99,49 +116,19 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
         if (isOpen && record) {
             reset({
                 notes: record.notes || '',
-                // Cálculo INVERSO (UX-88): el `remainingLevel` guardado (% que queda) se convierte de
-                // vuelta a "% usado" para precargar la barra, con la misma fórmula de `available` que
-                // usa el onSubmit — así un submit sin tocar el slider recalcula el mismo remainingLevel
-                // original (round-trip sin corromper el dato).
+                // Se precarga el consumo previo de cada item (mínimo 1: el server exige entero >= 1).
                 productsUsed: (record.productsUsed || []).map(p => {
                     const productId = typeof p.product === 'object' && p.product !== null ? p.product._id : p.product;
-                    const det = inventoryProducts?.find(prod => prod._id === productId);
-                    const available = p.usedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
-                    const usedPercent = typeof p.remainingLevel === 'number'
-                        ? Math.max(0, Math.min(100, available - p.remainingLevel))
-                        : undefined;
-                    return {
-                        product: productId,
-                        quantity: p.quantity,
-                        usedExistingUnit: p.usedExistingUnit ?? false,
-                        ...(typeof usedPercent === 'number' ? { usedPercent, usedPercentTouched: true } : {}),
-                    };
+                    return { product: productId, usedPercent: Math.max(1, effectiveUsed(p)) };
                 })
             });
         }
-    }, [isOpen, record, reset, inventoryProducts]);
+    }, [isOpen, record, reset]);
 
     const { mutate, isPending } = useMutation({
         mutationFn: (data: EditRegistroFormValues) => updateServiceRecord(record!._id, {
             notes: data.notes,
-            // La barra pide "% usado en esta visita" (UX-88); el backend sigue esperando
-            // `remainingLevel` (% que queda). Convertimos acá, justo antes de armar el payload, con la
-            // misma fórmula que el reset() inverso de arriba. Omitimos la clave si el usuario no tocó
-            // el slider en esta edición (fix UX-81): los items con dato histórico llegan con
-            // usedPercentTouched: true desde el reset(), así que su valor original se sigue reenviando.
-            productsUsed: data.productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
-                const det = inventoryProducts?.find(p => p._id === item.product);
-                const available = item.usedExistingUnit === true
-                    ? (det?.currentUnitLevel ?? 100)
-                    : 100;
-                const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
-                    ? Math.max(0, Math.min(100, available - usedPercent))
-                    : undefined;
-                return {
-                    ...item,
-                    ...(remainingLevel !== undefined ? { remainingLevel } : {}),
-                };
-            })
+            productsUsed: data.productsUsed
         }),
         onSuccess: () => {
             toast.success('Visita actualizada. Stock reconciliado.');
@@ -149,24 +136,35 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             handleCloseModal();
         },
+        // 409 (el stock cambió mientras se guardaba) llega con mensaje del server: lo muestra el toast, sin duplicar inline.
         onError: (error) => handleApiError(error, 'Error al actualizar la visita')
     });
 
     const onSubmit = (data: EditRegistroFormValues) => {
         if (!record) return;
-        mutate(data);
+        // Se envía `{ product, usedPercent }` entero, >= 1 y recortado al tope vigente (defensa ante tope que bajó).
+        mutate({
+            notes: data.notes,
+            productsUsed: data.productsUsed.map(({ product, usedPercent }) => {
+                const raw = Number.isFinite(usedPercent) ? Math.round(usedPercent) : 1;
+                return { product, usedPercent: Math.max(1, Math.min(raw, basePoolOf(product))) };
+            })
+        });
     };
 
     const handleAddProduct = () => {
-        if (!selectedProductOption || !quantityToAdd) return;
+        if (!selectedProductOption) return;
 
         if (fields.some(f => f.product === selectedProductOption.value)) {
-            toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
+            toast.error('Este insumo ya está en la lista. Ajustá su barra de consumo.');
             return;
         }
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
+        const det = inventoryProducts?.find(p => p._id === selectedProductOption.value);
+        append({
+            product: selectedProductOption.value,
+            usedPercent: Math.min(defaultUsed(det?.currentUnitLevel), Math.max(1, basePoolOf(selectedProductOption.value))),
+        });
         setSelectedProductOption(null);
-        setQuantityToAdd('');
     };
 
     const footer = (
@@ -174,7 +172,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
                 Cancelar
             </button>
-            <button type="submit" form="editRegistroForm" disabled={isPending} className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm">
+            <button type="submit" form="editRegistroForm" disabled={isPending} className="bg-primary hover:bg-accent hover:text-accent-foreground disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed shadow-sm">
                 {isPending ? 'Guardando...' : 'Guardar Cambios'}
             </button>
         </>
@@ -217,68 +215,56 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                 options={productOptions}
                                 placeholder="Buscar insumo..."
                                 styles={selectStyles}
-                                noOptionsMessage={() => "Insumo no encontrado o sin stock"}
+                                noOptionsMessage={() => "Insumo no encontrado"}
                                 value={selectedProductOption}
                                 onChange={(val) => setSelectedProductOption(val as { value: string, label: string } | null)}
                             />
                         </div>
-
-                        <div className="flex gap-3">
-                            <input type="number" min="1" placeholder="Cant." className="flex-1 sm:w-24 px-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value ? Number(e.target.value) : '')} />
-                            <button type="button" onClick={handleAddProduct} disabled={!selectedProductOption || !quantityToAdd} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shrink-0"><FiPlus /></button>
-                        </div>
+                        <button type="button" onClick={handleAddProduct} disabled={!selectedProductOption} aria-label="Agregar insumo" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed shrink-0"><FiPlus /></button>
                     </div>
 
-                    {fields.length > 0 ? (
+                    {isLoadingProducts ? (
+                        <div className="space-y-2" aria-busy="true">
+                            <div className="h-24 bg-gray-100 rounded-lg animate-pulse" />
+                        </div>
+                    ) : isProductsError ? (
+                        <p className="flex items-center justify-center gap-1.5 text-xs text-destructive py-3 bg-red-50 rounded-lg border border-red-100">
+                            <FiAlertTriangle aria-hidden /> No se pudo cargar el inventario. Cerrá y volvé a abrir la edición.
+                        </p>
+                    ) : fields.length > 0 ? (
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
-                                // Rango dinámico del slider (UX-89): mismo criterio que RegistroModal.tsx —
-                                // usa watch() (acepta el warning de lint react-hooks/incompatible-library,
-                                // ya presente en otros 3 archivos del proyecto) para poder recortar el valor
-                                // al tildar el checkbox sin dejar el slider en un estado inconsistente.
-                                const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
-                                const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
-                                const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
-                                    ? det.currentUnitLevel
-                                    : 100;
+                                const base = basePoolOf(field.product);
+                                const watchedUsed = watch(`productsUsed.${index}.usedPercent`);
+                                const current = Number(getValues(`productsUsed.${index}.usedPercent`));
+                                const usedNow = Math.max(1, Math.min(Number.isFinite(watchedUsed) ? watchedUsed : current, base));
+                                const after = fromPool(base - usedNow);
                                 return (
-                                    <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex flex-col">
+                                    <li key={field.id} className="flex flex-col gap-3 py-3 px-3 bg-gray-50 border border-gray-100 rounded-lg">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="flex flex-col min-w-0">
                                                 <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
-                                                <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                                {det && <span className="text-xs text-gray-500">Stock actual: {formatStock(det.stock, det.currentUnitLevel)}</span>}
                                             </div>
-                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
+                                            <button type="button" aria-label={`Quitar ${det?.name || 'insumo'}`} onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
                                         </div>
                                         <RemainingLevelSlider
+                                            label="% usado en esta visita"
+                                            ariaLabel={`% usado de ${det?.name || 'insumo'} en esta visita`}
                                             defaultValue={field.usedPercent}
                                             registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
-                                            onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
-                                            max={maxUsable}
-                                            value={watchedUsedPercent}
+                                            min={1}
+                                            max={base}
+                                            value={watchedUsed}
                                         />
-                                        {typeof det?.currentUnitLevel === 'number' && (
-                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    defaultChecked={field.usedExistingUnit}
-                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
-                                                    {...register(`productsUsed.${index}.usedExistingUnit`, {
-                                                        onChange: (e) => {
-                                                            // Al tildar, si el % usado ya cargado supera el nuevo tope
-                                                            // disponible (det.currentUnitLevel), se recorta para no dejar
-                                                            // el slider en un estado visualmente inconsistente (UX-89).
-                                                            if (e.target.checked && typeof det?.currentUnitLevel === 'number'
-                                                                && typeof watchedUsedPercent === 'number' && watchedUsedPercent > det.currentUnitLevel) {
-                                                                setValue(`productsUsed.${index}.usedPercent`, det.currentUnitLevel);
-                                                            }
-                                                        },
-                                                    })}
-                                                />
-                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
-                                            </label>
-                                        )}
+                                        <p aria-live="polite" className="flex items-start gap-1.5 text-xs text-gray-600">
+                                            <FiInfo className="shrink-0 mt-0.5 text-primary" aria-hidden="true" />
+                                            <span className="min-w-0 break-words">
+                                                Stock tras guardar: {formatStock(after.stock, after.level)}.
+                                                {legacyProducts.has(field.product) && ' Esta visita es anterior al modelo de % usado: el consumo original es una estimación, revisalo.'}
+                                            </span>
+                                        </p>
                                     </li>
                                 );
                             })}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FiPlus, FiTrash2, FiBox } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBox, FiInfo } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos react-select
 
 import { getProducts } from "../api/productApi";
@@ -19,6 +19,7 @@ import Modal from "./ui/Modal";
 import RemainingLevelSlider from "./ui/RemainingLevelSlider";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
+import { maxUsable, defaultUsed, describeConsumption, formatStock, fromPool, poolOf, openLevelOf } from "../utils/stockPool";
 
 interface SelectOption {
     value: string;
@@ -63,15 +64,16 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
     touchupDate: string;
     touchupTime: string;
     /**
-     * `usedPercent`/`usedPercentTouched` son campos internos del formulario (nunca viajan tal cual a
-     * la API): la barra ahora representa "% usado en esta visita" (UX-88), no el `remainingLevel` que
-     * espera el backend. `usedPercentTouched` distingue "el usuario movió el slider" de "el input
-     * <range> nunca tocado, en 0 por defecto en el DOM" para no enviar un dato falso (fix UX-81).
-     * En `onSubmit` se calcula `remainingLevel = clamp(available - usedPercent, 0, 100)` y se
-     * descartan ambos campos del payload.
+     * Campos internos del formulario (UX-90, Opción A): `maxNewUnits` (k, "Cant.") es el tope de envases
+     * NUEVOS (cerrados) que se pueden consumir además del abierto y NO viaja a la API; `usedPercent` es el TOTAL de puntos
+     * consumidos (la barra) y siempre se envía (ya no hay "sin dato": el default visible es el enviado).
      */
-    productsUsed: { product: string; quantity: number; usedPercent?: number; usedPercentTouched?: boolean; usedExistingUnit?: boolean }[];
+    productsUsed: { product: string; maxNewUnits: number; usedPercent: number }[];
 }
+
+/** k efectivo de envases nuevos: sin abierto se necesita al menos 1 (si no, la barra quedaría en 0); con abierto puede ser 0. */
+const effectiveK = (det: Product, k: number): number =>
+    Math.max(openLevelOf(det.currentUnitLevel) !== undefined ? 0 : 1, Number.isFinite(k) ? k : 1);
 
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
     const queryClient = useQueryClient();
@@ -112,15 +114,16 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
     const productOptions = inventoryProducts?.map(p => ({
         value: p._id,
-        label: `${p.name} (${p.brand}) - Stock: ${p.stock}`,
-        isDisabled: p.stock === 0 // Deshabilitamos los que no tienen stock
+        label: `${p.name} (${p.brand}) - Stock: ${formatStock(p.stock, p.currentUnitLevel)}`,
+        // Opción A: solo se deshabilita si no tiene cerrados NI envase abierto (stock 0 con abierto es utilizable).
+        isDisabled: p.stock < 1 && openLevelOf(p.currentUnitLevel) === undefined
     })) || [];
 
     // Estado para el selector independiente de Insumos
     const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
-    const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
+    const [quantityToAdd, setQuantityToAdd] = useState<number | ''>(1);
 
-    const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<RegistroFormValues>({
+    const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue, getValues } = useForm<RegistroFormValues>({
         defaultValues: {
             client: preselectedClientId || '',
             service: preselectedServiceId || '',
@@ -194,7 +197,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
 
     const handleCloseModal = () => {
         setSelectedProductOption(null);
-        setQuantityToAdd('');
+        setQuantityToAdd(1);
         onClose();
     };
 
@@ -246,21 +249,13 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             : undefined;
         const payload: ServiceRecordPayload = {
             ...rest,
-            // La barra pide "% usado en esta visita" (UX-88); el backend sigue esperando
-            // `remainingLevel` (% que queda). Convertimos acá, justo antes de armar el payload:
-            // available = envase ya abierto conocido (currentUnitLevel) o 100% si es un envase nuevo.
-            // Omitimos la clave si el usuario nunca tocó el slider (fix UX-81, mismo criterio de siempre).
-            productsUsed: productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
-                const available = item.usedExistingUnit === true
-                    ? (inventoryProducts?.find(p => p._id === item.product)?.currentUnitLevel ?? 100)
-                    : 100;
-                const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
-                    ? Math.max(0, Math.min(100, available - usedPercent))
-                    : undefined;
-                return {
-                    ...item,
-                    ...(remainingLevel !== undefined ? { remainingLevel } : {}),
-                };
+            // UX-90: se envía siempre el valor actual de la barra (entero, >= 1), recortado a su tope
+            // vigente (defensa ante un tope que bajó sin evento del slider). El server deriva el resto.
+            productsUsed: productsUsed.map(({ product, maxNewUnits, usedPercent }) => {
+                const det = inventoryProducts?.find(p => p._id === product);
+                const cap = det ? maxUsable(det.stock, det.currentUnitLevel, effectiveK(det, maxNewUnits)) : Number.POSITIVE_INFINITY;
+                const raw = Number.isFinite(usedPercent) ? Math.round(usedPercent) : defaultUsed(det?.currentUnitLevel);
+                return { product, usedPercent: Math.max(1, Math.min(raw, cap)) };
             }),
             ...(nextTouchupDate ? { nextTouchupDate } : {}),
             ...(pastVisitMode ? { isBackfill: true } : {}),
@@ -272,12 +267,19 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
         if (!selectedProductOption || !quantityToAdd) return;
 
         if (fields.some(f => f.product === selectedProductOption.value)) {
-            toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
+            toast.error('Este insumo ya está en la lista. Ajustá su barra de consumo.');
             return;
         }
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
+        const det = inventoryProducts?.find(p => p._id === selectedProductOption.value);
+        // Default (UX-90): con envase abierto arranca en lo que queda (terminarlo); sin abierto, un envase entero.
+        // k = "Cant." acotado a los cerrados disponibles (stock 0 con abierto => k 0, barra 0..L).
+        append({
+            product: selectedProductOption.value,
+            maxNewUnits: Math.min(Number(quantityToAdd), det?.stock ?? 1),
+            usedPercent: defaultUsed(det?.currentUnitLevel),
+        });
         setSelectedProductOption(null);
-        setQuantityToAdd('');
+        setQuantityToAdd(1);
     };
 
     const footer = (
@@ -446,7 +448,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 options={productOptions}
                                 placeholder="Buscar insumo..."
                                 styles={selectStyles}
-                                noOptionsMessage={() => "Insumo no encontrado o sin stock"}
+                                noOptionsMessage={() => "Insumo no encontrado"}
                                 value={selectedProductOption}
                                 onChange={(val) => setSelectedProductOption(val as { value: string, label: string } | null)}
                             />
@@ -462,61 +464,61 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
                                 const det = inventoryProducts?.find(p => p._id === field.product);
-                                // Preview en vivo de "→ queda X%" con la misma fórmula del onSubmit — se
-                                // recalcula solo cuando el usuario toca el slider o el checkbox de este item
-                                // (watch() devuelve undefined hasta el primer touch, igual que el flag P19).
+                                const stock = det?.stock ?? 0;
+                                const level = det?.currentUnitLevel;
                                 const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
-                                const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
-                                const previewAvailable = watchedUsedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
-                                const remainingPreview = typeof watchedUsedPercent === 'number' && !Number.isNaN(watchedUsedPercent)
-                                    ? Math.max(0, Math.min(100, previewAvailable - watchedUsedPercent))
-                                    : undefined;
-                                // Rango dinámico del slider (UX-89): si se tilda "usar envase abierto" y
-                                // se conoce currentUnitLevel, no tiene sentido que la barra siga yendo
-                                // hasta 100 — se acota a lo que efectivamente queda disponible.
-                                const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
-                                    ? det.currentUnitLevel
-                                    : 100;
+                                const watchedMaxNew = watch(`productsUsed.${index}.maxNewUnits`);
+                                const hasOpen = openLevelOf(level) !== undefined;
+                                const kEff = det ? effectiveK(det, watchedMaxNew) : 1;
+                                const maxBar = maxUsable(stock, level, kEff);
+                                const usedNow = Math.max(1, Math.min(Number.isFinite(watchedUsedPercent) ? watchedUsedPercent : field.usedPercent, maxBar));
+                                const after = fromPool(poolOf(stock, level) - usedNow);
                                 return (
-                                    <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex flex-col">
+                                    <li key={field.id} className="flex flex-col gap-3 py-3 px-3 bg-gray-50 border border-gray-100 rounded-lg">
+                                        <div className="flex flex-wrap justify-between items-start gap-2">
+                                            <div className="flex flex-col min-w-0">
                                                 <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
-                                                <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
+                                                <span className="text-xs text-gray-500">
+                                                    Stock: {formatStock(stock, level)}
+                                                </span>
                                             </div>
-                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
-                                        </div>
-                                        <RemainingLevelSlider
-                                            defaultValue={field.usedPercent}
-                                            registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
-                                            onTouched={() => setValue(`productsUsed.${index}.usedPercentTouched`, true)}
-                                            max={maxUsable}
-                                            value={watchedUsedPercent}
-                                        />
-                                        {typeof remainingPreview === 'number' && (
-                                            <p className="text-[11px] text-gray-400 -mt-1">→ queda {remainingPreview}%</p>
-                                        )}
-                                        {typeof det?.currentUnitLevel === 'number' && (
-                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <label htmlFor={`productsUsed-${index}-k`} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Envases nuevos (máx.)</label>
                                                 <input
-                                                    type="checkbox"
-                                                    defaultChecked={field.usedExistingUnit}
-                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
-                                                    {...register(`productsUsed.${index}.usedExistingUnit`, {
+                                                    id={`productsUsed-${index}-k`}
+                                                    type="number"
+                                                    min={hasOpen ? 0 : 1}
+                                                    max={Math.max(hasOpen ? 0 : 1, stock)}
+                                                    readOnly={stock < 1}
+                                                    className="w-16 px-2 py-1 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                                                    {...register(`productsUsed.${index}.maxNewUnits`, {
+                                                        valueAsNumber: true,
                                                         onChange: (e) => {
-                                                            // Al tildar, si el % usado ya cargado supera el nuevo tope
-                                                            // disponible (det.currentUnitLevel), se recorta para no dejar
-                                                            // el slider en un estado visualmente inconsistente (UX-89).
-                                                            if (e.target.checked && typeof det?.currentUnitLevel === 'number'
-                                                                && typeof watchedUsedPercent === 'number' && watchedUsedPercent > det.currentUnitLevel) {
-                                                                setValue(`productsUsed.${index}.usedPercent`, det.currentUnitLevel);
-                                                            }
+                                                            // Si se baja el tope, se recorta el valor de la barra al nuevo máximo.
+                                                            const newMax = det ? maxUsable(stock, level, effectiveK(det, Number(e.target.value))) : 1;
+                                                            const current = Number(getValues(`productsUsed.${index}.usedPercent`));
+                                                            if (current > newMax) setValue(`productsUsed.${index}.usedPercent`, newMax);
                                                         },
                                                     })}
                                                 />
-                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
-                                            </label>
-                                        )}
+                                                <button type="button" aria-label={`Quitar ${det?.name || 'insumo'}`} onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
+                                            </div>
+                                        </div>
+                                        <RemainingLevelSlider
+                                            label="% usado en esta visita"
+                                            ariaLabel={`% usado de ${det?.name || 'insumo'} en esta visita`}
+                                            defaultValue={field.usedPercent}
+                                            registration={register(`productsUsed.${index}.usedPercent`, { valueAsNumber: true })}
+                                            min={1}
+                                            max={maxBar}
+                                            value={watchedUsedPercent}
+                                        />
+                                        <p aria-live="polite" className="flex items-start gap-1.5 text-xs text-gray-600">
+                                            <FiInfo className="shrink-0 mt-0.5 text-primary" aria-hidden="true" />
+                                            <span className="min-w-0 break-words">
+                                                {describeConsumption(level, usedNow)}. Stock tras la visita: {formatStock(after.stock, after.level)}.
+                                            </span>
+                                        </p>
                                     </li>
                                 );
                             })}

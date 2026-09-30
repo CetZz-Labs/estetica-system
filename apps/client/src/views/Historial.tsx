@@ -12,6 +12,7 @@ import { getMe } from "../api/adminApi";
 import { handleApiError } from "../api/errorHandler";
 import type { Client, Service, Professional, ServiceRecord, Paginated, AdminInfo } from "../types";
 import { formatCalendarDate } from "../utils/dates";
+import { formatUsedShort } from "../utils/stockPool";
 import Pagination from "../components/ui/Pagination";
 import EditRegistroModal from "../components/EditRegistroModal";
 import ServiceRecordDetail from "../components/ServiceRecordDetail";
@@ -300,7 +301,7 @@ export default function Historial() {
                                                     <span className="truncate">
                                                         {registro.productsUsed.map(item => {
                                                             const productName = typeof item.product === 'object' && item.product !== null ? item.product.name : 'Insumo';
-                                                            return `${productName} (${item.quantity})`;
+                                                            return `${productName} (${formatUsedShort(item)})`;
                                                         }).join(', ')}
                                                     </span>
                                                 </span>

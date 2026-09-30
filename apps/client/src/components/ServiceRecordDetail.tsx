@@ -161,12 +161,24 @@ export default function ServiceRecordDetail({ record, touchupEdit }: Props) {
                                 <li key={idx} className="flex justify-between items-center text-sm bg-surface-2 border border-border-soft rounded-ctrl px-3 py-2">
                                     <span className="text-text">{productName}</span>
                                     <span className="flex items-center gap-2">
-                                        <span className="text-muted font-medium">x{pu.quantity}</span>
-                                        {typeof pu.remainingLevel === 'number' && (
-                                            <span className="text-muted text-xs">Quedó al {pu.remainingLevel}%</span>
-                                        )}
-                                        {pu.usedExistingUnit === true && (
-                                            <span className="text-muted text-xs">Envase reutilizado</span>
+                                        {typeof pu.usedPercent === 'number' ? (
+                                            <>
+                                                <span className="text-muted font-medium">{pu.usedPercent}% usado</span>
+                                                {typeof pu.remainingLevel === 'number' && pu.remainingLevel > 0 && (
+                                                    <span className="text-muted text-xs">Quedó abierto al {pu.remainingLevel}%</span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Registro legacy (previo al modelo de % usado) */}
+                                                <span className="text-muted font-medium">x{pu.quantity ?? 0}</span>
+                                                {typeof pu.remainingLevel === 'number' && (
+                                                    <span className="text-muted text-xs">Quedó al {pu.remainingLevel}%</span>
+                                                )}
+                                                {pu.usedExistingUnit === true && (
+                                                    <span className="text-muted text-xs">Envase reutilizado</span>
+                                                )}
+                                            </>
                                         )}
                                     </span>
                                 </li>

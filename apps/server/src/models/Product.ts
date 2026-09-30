@@ -7,9 +7,9 @@ export interface IProduct extends Document {
     stock: number;
     description?: string;
     isActive: boolean;
-    // UX-90: nivel (1..99) del ÚNICO envase abierto; undefined = no hay envase abierto.
-    // `stock` INCLUYE ese envase. Participa del pool de puntos (utils/stockPool.ts):
-    // P = level + 100 * (stock - 1). Invariante: level definido => stock >= 1.
+    // UX-90: % (1..99) que queda del ÚNICO envase abierto; undefined = no hay envase abierto.
+    // `stock` cuenta SOLO envases cerrados (se descuenta 1 al abrir). Participa del pool de
+    // puntos (utils/stockPool.ts): P = level + 100 * stock. stock 0 con abierto es un estado válido.
     currentUnitLevel?: number;
     createdAt: Date;
     updatedAt: Date;
@@ -46,8 +46,8 @@ const ProductSchema: Schema = new Schema({
         type: Boolean,
         default: true
     },
-    // UX-90: participa del pool de stock (GOV-STOCK). Se escribe solo vía services/stockService
-    // (canoniza a $unset cuando el resto es 0) y adjustStock (lo descarta si el stock queda en 0).
+    // UX-90: participa del pool de stock (GOV-STOCK). Se escribe vía services/stockService
+    // ($unset cuando el resto del pool es múltiplo de 100).
     currentUnitLevel: {
         type: Number,
         min: 0,

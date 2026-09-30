@@ -120,7 +120,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 | `stock` | `Number` | Sí, default `0` | - | Cantidad disponible. `min: 0` (no negativo) |
 | `description` | `String` | No | - | Descripción opcional. `trim` |
 | `isActive` | `Boolean` | No, default `true` | - | Soft delete |
-| `currentUnitLevel` | `Number` | No, sin default | - | **UX-90.** `min: 0, max: 100`; valores válidos 1..99. Nivel del ÚNICO envase abierto; ausente = no hay envase abierto. `stock` INCLUYE ese envase (pool: `P = L + 100*(stock-1)`). Invariante: definido ⇒ `stock >= 1`. Se escribe solo vía `services/stockService` (canoniza a `$unset` cuando el resto es 0) y `adjustStock` (lo descarta si el stock queda en 0) |
+| `currentUnitLevel` | `Number` | No, sin default | - | **UX-90.** `min: 0, max: 100`; valores válidos 1..99. % que queda del ÚNICO envase abierto; ausente = no hay envase abierto. `stock` cuenta SOLO envases CERRADOS (se descuenta 1 al abrir uno); pool `P = L + 100*stock`. `stock 0` con abierto es un estado válido. Se escribe vía `services/stockService` (`$unset` cuando el resto del pool es múltiplo de 100); `adjustStock` no lo toca. Sin migración: es el comportamiento de los datos existentes |
 | `createdAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 | `updatedAt` | `Date` | Auto | - | Timestamp (Mongoose) |
 
@@ -129,7 +129,7 @@ Inventario de insumos/consumibles. Control de stock con validación de no negati
 - Validación de stock negativo: `min: [0, 'El stock no puede ser negativo']`.
 - Carga masiva desde Excel/CSV usa `upsert` por nombre + marca para evitar duplicados.
 - Umbrales visuales en UI: `stock === 0` → rojo, `stock <= 5` → naranja, `stock > 5` → verde.
-- `currentUnitLevel` (UX-90) participa del pool de puntos de GOV-STOCK (mandatos 5-7): 1 envase = 100 puntos; el stock incluye el envase abierto y se descuenta 1 unidad recién cuando el abierto se consume por completo.
+- `currentUnitLevel` (UX-90) participa del pool de puntos de GOV-STOCK (mandatos 5-7): 1 envase = 100 puntos; `stock` cuenta solo envases cerrados (se descuenta 1 al abrir uno) y el abierto se drena primero; terminar el abierto no modifica el stock.
 
 ---
 

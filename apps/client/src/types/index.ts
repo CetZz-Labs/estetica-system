@@ -27,7 +27,7 @@ export interface Product {
     stock: number;
     description?: string;
     isActive: boolean;
-    /** % (0-100) del último nivel reportado en una visita para este producto. undefined = sin dato (legado o nunca reportado). Informativo, no participa del control de stock (UX-81). */
+    /** UX-90 (Opción A): % (1-99) del único envase ABIERTO; `stock` cuenta solo envases cerrados. undefined = no hay envase abierto. Con stock 0 y abierto el producto sigue siendo utilizable. */
     currentUnitLevel?: number;
     createdAt: string;
     updatedAt: string;
@@ -35,10 +35,13 @@ export interface Product {
 
 export interface UsedProduct {
     product: Product | string; // Puede venir el ID (string) o el objeto populado (Product)
-    quantity: number;
-    /** % (0-100) estimado por la profesional de cuánto quedó del envase tras esta visita. Opcional, informativo (UX-81). */
+    /** Derivado por el server (UX-90): ceil(usedPercent/100). Opcional en lectura (historial legacy). */
+    quantity?: number;
+    /** UX-90: TOTAL de puntos consumidos en la visita (100 = un envase entero; puede superar 100). Ausente en historial legacy. */
+    usedPercent?: number;
+    /** % que quedó en el envase abierto tras la visita (derivado por el server; legacy: informado por la profesional). */
     remainingLevel?: number;
-    /** Si es true, este item usó el envase ya abierto (currentUnitLevel) en vez de descontar stock de uno nuevo (UX-83). */
+    /** Derivado por el server: había un envase abierto al empezar la visita (legacy: reutilizó el abierto). */
     usedExistingUnit?: boolean;
 }
 
