@@ -67,7 +67,7 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
      * "el usuario movió el slider" de "el input <range> nunca tocado, en 0 por defecto en el DOM"
      * para no enviar `remainingLevel: 0` falso al backend (fix UX-81). Se limpia en `onSubmit`.
      */
-    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean }[];
+    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean; usedExistingUnit?: boolean }[];
 }
 
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
@@ -263,7 +263,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
             return;
         }
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd) });
+        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
         setSelectedProductOption(null);
         setQuantityToAdd('');
     };
@@ -464,6 +464,17 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                             registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
                                             onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
                                         />
+                                        {typeof det?.currentUnitLevel === 'number' && (
+                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    defaultChecked={field.usedExistingUnit}
+                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    {...register(`productsUsed.${index}.usedExistingUnit`)}
+                                                />
+                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
+                                            </label>
+                                        )}
                                     </li>
                                 );
                             })}

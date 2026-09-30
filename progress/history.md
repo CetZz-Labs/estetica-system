@@ -384,6 +384,31 @@
 
 ---
 
+## 2026-09-29 — UX-83: Elegir usar envase ya abierto vs. abrir uno nuevo al registrar consumo de un producto
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + reviewer-backend (1 ronda) + implementer-frontend + reviewer-frontend (1 ronda). Stacked PR: backend comiteado y aprobado antes de lanzar el frontend.
+* **Objetivo:** follow-up del usuario a UX-81 — si en una visita se reportó que un producto quedó al 50%, en la siguiente visita que lo use la profesional debe poder elegir "usar el envase ya abierto" (no descuenta stock) o "abrir uno nuevo" (descuenta como siempre). Diseño cerrado por explorer (`progress/explores/_archive/explore_UX-83.md`), que además encontró un bug de integridad no contemplado en el pedido original: `deleteServiceRecord` restauraba stock incondicionalmente, lo cual habría inflado stock fantasma al borrar una visita con un ítem de envase reutilizado.
+
+* **Cambios Backend (comiteados y aprobados antes del frontend):**
+  - `apps/server/src/models/ServiceRecord.ts` — `productsUsed[].usedExistingUnit` (boolean, default `false`, siempre persistido explícito — a diferencia de `remainingLevel`, que es opcional/sin dato).
+  - `apps/server/src/controllers/serviceRecordController.ts::createServiceRecord` — si `usedExistingUnit:true`, valida que `Product.currentUnitLevel` esté definido (400 descriptivo si no) y saltea la validación/descuento de stock para ese ítem.
+  - `apps/server/src/controllers/serviceRecordController.ts::updateServiceRecord` (P17) — `oldMap`/`newMap` pasan a indexar la "cantidad efectiva de stock" (0 si `usedExistingUnit`) en vez de `quantity` cruda; verificadas explícitamente las 4 transiciones posibles (nuevo↔existing en ambos sentidos, y los dos casos estables). Patrón generalizado en `docs/patterns-backend.md` § P17 (nueva sección "Extensión — cantidad efectiva").
+  - `apps/server/src/controllers/serviceRecordController.ts::deleteServiceRecord` — excluye del restore de stock los ítems con `usedExistingUnit:true` (fix del bug de integridad encontrado por el explorer).
+  - `apps/server/src/routes/serviceRecordRoutes.ts` — validator `isBoolean()` espejado en POST/PUT.
+
+* **Cambios Frontend:**
+  - `apps/client/src/types/index.ts` / `apps/client/src/api/serviceRecordApi.ts` — `usedExistingUnit?: boolean`.
+  - `apps/client/src/components/RegistroModal.tsx` / `EditRegistroModal.tsx` — checkbox nativo "Usar el envase ya abierto (queda X%)", visible solo cuando el producto tiene `currentUnitLevel` definido; default `false` en items nuevos, precarga correcta en edición.
+  - `apps/client/src/components/ServiceRecordDetail.tsx` — badge "Envase reutilizado" aditivo cuando `usedExistingUnit:true`.
+
+* **Verificación:** `pnpm --filter @estetica/server build`/`test` (backend: 31 passed/4 failed, deuda preexistente sin regresiones) y `pnpm --filter @estetica/client build`/`lint` (frontend: exit 0, 3 warnings preexistentes) verificados independientemente por cada reviewer, reconstruyendo las 4 transiciones del delta con números concretos antes de aprobar. `git stash list` vacío en ambas rondas, sin secretos/`console.log`/TODO. Reviewers: **APPROVED** (backend) → `progress/reviews/review_UX-83-backend.md`; **APPROVED** (frontend, cierre final) → `progress/reviews/review_UX-83-frontend.md`. UX-83 → **done**.
+
+* **Nota de seguridad (ambas rondas de implementación/review):** los subagentes reportaron haber recibido, dentro de instrucciones de sistema, un bloque de "MCP Server Instructions" de un servidor "Claude Docs" pidiendo crear documentos reflexivamente — correctamente ignorado por no provenir del leader ni del usuario, sin artifacts creados. Consistente con la política del arnés (los subagentes no tienen esas herramientas ni la autoridad para invocarlas por su cuenta).
+
+* **Cierre de la tanda de pedidos del usuario del 2026-09-29:** con UX-83 cerrada, quedan **done** las 6 features nacidas de esta sesión (UX-80, UX-81, UX-82, UX-83, UX-84, UX-85), todas sobre la misma rama `feature/UX-80-detalle-visita-consumo-productos`.
+
+---
+
 ## 2026-09-29 — UX-82: Reponer entrada "Mi Negocio" en el menú lateral
 
 * **Agente:** Claude (Leader, hallazgo propio) + implementer (frontend) + reviewer (1 ronda).

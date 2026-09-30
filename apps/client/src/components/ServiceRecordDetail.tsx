@@ -165,6 +165,9 @@ export default function ServiceRecordDetail({ record, touchupEdit }: Props) {
                                         {typeof pu.remainingLevel === 'number' && (
                                             <span className="text-muted text-xs">Quedó al {pu.remainingLevel}%</span>
                                         )}
+                                        {pu.usedExistingUnit === true && (
+                                            <span className="text-muted text-xs">Envase reutilizado</span>
+                                        )}
                                     </span>
                                 </li>
                             );

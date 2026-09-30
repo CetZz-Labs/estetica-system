@@ -4,14 +4,11 @@
 - **Última actualización:** 2026-09-29
 - **Sesión:** activa
 - **Rama:** `feature/UX-80-detalle-visita-consumo-productos` (creada desde `development`, confirmado sincronizada con `main` en `b14fdb0` antes de ramificar)
-- **Feature en curso:** UX-83 backend (`in_progress`) — UX-80, UX-81, UX-82, UX-84 y UX-85 cerradas esta sesión (ver `progress/history.md`). Commit `650df3a` ya incluye UX-80/81/82/84; UX-85 (`sw.js` + `pushReminderScheduler.ts`) pendiente de commitear.
+- **Feature en curso:** ninguna cerrada pendiente — UX-80, UX-81, UX-82, UX-83, UX-84 y UX-85 cerradas esta sesión (ver `progress/history.md`), todas comiteadas. Nuevo reporte del usuario (2026-09-29) en curso: overflow de texto sin scroll en descripciones/notas — ver abajo.
 
 ## Plan de Acción
-1. [DONE] UX-80, UX-82, UX-81, UX-84, UX-85: ver `progress/history.md`.
-2. [DONE] Diseño de UX-83 cerrado por explorer (`progress/explores/explore_UX-83.md`) — reclasificada "Compleja" (stacked PRs: backend primero, con su reviewer, después frontend). AC completo ya en `feature_list.json`.
-3. [EN CURSO] UX-83 backend marcada `in_progress` — próximo paso: lanzar implementer backend (modelo + rutas + create/update/delete) con el diseño ya cerrado del explorer.
-4. [PENDIENTE] Reviewer de UX-83 backend, enfocado específicamente en las 4 transiciones del delta P17 + el fix de `deleteServiceRecord` (hallazgo del explorer, no estaba en el pedido original).
-5. [PENDIENTE] Solo tras cerrar el backend: implementer frontend de UX-83 (checkbox en RegistroModal/EditRegistroModal + badge en ServiceRecordDetail) → reviewer → cerrar.
+1. [DONE] UX-80, UX-81, UX-82, UX-83, UX-84, UX-85: ver `progress/history.md`. Todas comiteadas (`650df3a`, `805112a`, `0c4721f`, + commit pendiente del frontend de UX-83).
+2. [EN CURSO] Nuevo bug reportado por el usuario: en el historial del cliente (`ProfileClient.tsx`) y en el popup de detalle de visita (`ServiceRecordDetail.tsx`, UX-80) el texto de la descripción/notas se sale del contenedor sin generar scroll. Registrar como feature nueva y despachar a implementer frontend.
 
 ## Estado del Backlog
 - UX-80 (ver detalle completo de visita, ambas pantallas) → **done**, ver `progress/history.md`

@@ -1536,7 +1536,7 @@
       "name": "Elegir usar envase ya abierto vs. abrir uno nuevo al registrar consumo de un producto",
       "module": "Inventory",
       "phase": "Fase 1",
-      "status": "in_progress",
+      "status": "done",
       "description": "Pedido directo del usuario (2026-09-29), follow-up de UX-81. Diseño cerrado por explorer (`progress/explores/explore_UX-83.md`): nuevo campo `ServiceRecord.productsUsed[].usedExistingUnit` (boolean, default `false`, SIEMPRE persistido explícito — a diferencia de `remainingLevel` que es opcional/sin dato, este campo necesita historial exacto para que la reconciliación por delta de P17 sepa si ese item tocó stock o no). Reclasificada de 'Media' a **'Compleja' (transversal)** — cruza los 3 puntos de control de stock (create/update/delete) y redefine el significado de 'delta' en la reconciliación P17 (ya auditada en UX-67 y UX-81). Hallazgo crítico del explorer, agregado al alcance aunque no estaba en el pedido original: `deleteServiceRecord` restaura stock incondicionalmente hoy — si no se excluyen los items con `usedExistingUnit:true`, borrar una visita infla stock con una unidad que nunca se descontó (bug de integridad). Estrategia de entrega: **stacked PRs** — 1 implementer backend (modelo + rutas + create/update/delete) con su propio reviewer enfocado en las 4 transiciones del delta ANTES de lanzar el implementer frontend (no en paralelo, a diferencia de UX-81).",
       "acceptance_criteria": [
         "apps/server/src/models/ServiceRecord.ts — `productsUsed[].usedExistingUnit: boolean` (default false, no opcional-condicional)",

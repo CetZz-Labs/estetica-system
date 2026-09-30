@@ -34,7 +34,7 @@ interface EditRegistroFormValues {
      * payload de `updateServiceRecord`. Para items con dato histórico, se precarga en `true` en el
      * `reset()` de abajo, así se re-envía su valor original aunque no se vuelva a tocar el slider.
      */
-    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean }[];
+    productsUsed: { product: string; quantity: number; remainingLevel?: number; remainingLevelTouched?: boolean; usedExistingUnit?: boolean }[];
 }
 
 // Mismo estilo "Maison" que RegistroModal.tsx para mantener consistencia visual entre modales.
@@ -99,6 +99,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                 productsUsed: (record.productsUsed || []).map(p => ({
                     product: typeof p.product === 'object' && p.product !== null ? p.product._id : p.product,
                     quantity: p.quantity,
+                    usedExistingUnit: p.usedExistingUnit ?? false,
                     ...(typeof p.remainingLevel === 'number' ? { remainingLevel: p.remainingLevel, remainingLevelTouched: true } : {})
                 }))
             });
@@ -139,7 +140,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
             return;
         }
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd) });
+        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
         setSelectedProductOption(null);
         setQuantityToAdd('');
     };
@@ -222,6 +223,17 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                             registration={register(`productsUsed.${index}.remainingLevel`, { valueAsNumber: true })}
                                             onTouched={() => setValue(`productsUsed.${index}.remainingLevelTouched`, true)}
                                         />
+                                        {typeof det?.currentUnitLevel === 'number' && (
+                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    defaultChecked={field.usedExistingUnit}
+                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    {...register(`productsUsed.${index}.usedExistingUnit`)}
+                                                />
+                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
+                                            </label>
+                                        )}
                                     </li>
                                 );
                             })}

@@ -38,6 +38,8 @@ export interface UsedProduct {
     quantity: number;
     /** % (0-100) estimado por la profesional de cuánto quedó del envase tras esta visita. Opcional, informativo (UX-81). */
     remainingLevel?: number;
+    /** Si es true, este item usó el envase ya abierto (currentUnitLevel) en vez de descontar stock de uno nuevo (UX-83). */
+    usedExistingUnit?: boolean;
 }
 
 // Interfaz para el Cliente poblado (reducido a los campos que devuelve el endpoint de retoques)
