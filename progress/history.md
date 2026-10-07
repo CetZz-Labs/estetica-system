@@ -1755,3 +1755,26 @@
 * **Verificación:** `pnpm --filter @estetica/server build` Exit 0. `pnpm --filter @estetica/client build` Exit 0. `pnpm --filter @estetica/client lint` Exit 0 (4 warnings preexistentes no relacionados). `pnpm --filter @estetica/server test`: mismos 4 fallos preexistentes de `tenantIsolation.test.ts` (deuda documentada, sin relación al cambio de esta feature). Sin dependencias nuevas. Reviewer: **APPROVED** → `progress/reviews/review_UX-79.md` (archivo renombrado de `review_UX-78.md` junto con la feature). UX-79 → **done**.
 
 * **Pendiente para el usuario:** confirmar en la app real (login) que el link `wa.me` abre correctamente con números reales de la base antes de mergear a `development`/`main`; probar al menos un número en formato viejo "15" para decidir si vale la pena una migración de datos de `Client.phone` a futuro.
+
+---
+
+## 2026-09-30 — UX-90 DESCARTADA (revertida)
+
+* **Decisión del usuario:** se volvió atrás con la idea de gestionar el stock gastando productos por porcentaje con la dinámica de envases abiertos (pool de puntos, combinar envase abierto + nuevo, un solo abierto por producto). "Ya no hace falta, no lo consideramos".
+* **Qué se hizo:** un único commit de revert sobre la rama `feature/UX-80-detalle-visita-consumo-productos` deshace `fc67de4`, `a2a9570`, `3a40690` y `544c1a4`. El árbol queda idéntico a `fd35d97` (cierre de UX-80..89). Los commits originales permanecen en el historial (`git show 3a40690`) por si algún día se retoma. El patrón P21 de `docs/patterns-frontend.md`, el script de migración y el cambio de GOV-STOCK se fueron con el revert.
+* **Se mantiene lo de UX-80..89:** UX-81/83/88/89 (slider de "% usado", reutilizar envase abierto, rango dinámico) siguen tal cual, ya probados por el usuario. Nada de UX-90 llega a `development`/`main`.
+* **Lo aprendido (para retomar):** el diseño del `explorer` está resumido en los mensajes de esa sesión; la entrada histórica de UX-90 del mismo día (revertida) documentaba el cambio de Opción B a Opción A para evitar migrar la base. Quedan sin implementar los menores asociados (M1, B1, B2, B3).
+
+---
+
+## 2026-10-07 — UX-91: Stock/consumo responsive y paginación server-side de productos
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (varios tramos en paralelo) + reviewer (2 rondas).
+* **Rama:** `feature/UX-91-stock-paginacion-responsive` (desde `feature/UX-80-detalle-visita-consumo-productos`). Sin commitear al cierre de sesión.
+* **Objetivo:** pedido del usuario — el indicador de stock y la barra de consumo (% usado) no eran responsive, y `GET /productos` traía todos los productos sin paginar. Pidió además evitar que se repita y paginar las consultas que puedan traer muchos datos. Decisión del leader: clientes se separa como **UX-92** (misma violación, feature aparte por la regla de feature única).
+* **Backend:** `utils/pagination.ts` (`parsePagination`, `buildPaginationMeta`, con test); `GET /productos` → `{data, meta}` con `page`/`limit` (≤100, default 7)/`search`/`lowStock`/`sort=stock`; nuevos `GET /productos/stats` y `GET /productos/opciones` (`search`, `limit` ≤20, `ids` ≤50 con ObjectId de 24 hex); `.limit` defensivo en servicios, profesionales, linkable-admins, pendientes de registro y turnos por cliente; tests IDOR de tenant para los endpoints nuevos.
+* **Frontend:** `RemainingLevelSlider` apila label+% y range en mobile (range `h-10`); título/checkbox de los modales con `min-w-0`/`items-start`; Inventario paginado con KPIs desde `/stats`, cards en `<sm` y `StockIndicator` compartido; Dashboard con widget de poco stock vía `lowStock`+`sort=stock`; `ProductAsyncSelect` (búsqueda server-side) en RegistroModal/EditRegistroModal, con items ya registrados resueltos por `?ids=` (UX-83/88/89 intactos); `utils/useDebounce.ts`; eliminado `getProducts` muerto.
+* **Gates anti-reincidencia:** `CHECKPOINTS.md` — C3 "Tope en Todo GET de Colección", C3 "Pickers con Búsqueda Server-Side", nuevo **C9 Responsive**. Docs: `patterns-backend` P1 y `patterns-frontend` P3 corregidos (describían un `getClients` paginado inexistente); `CHANGELOG.md` + `docs/migration-guides/productos-paginados-ux91.md` (breaking permitido: feature in_progress).
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 39 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **APPROVED** (ronda 2) → `progress/reviews/review_UX-91.md`. UX-91 → **done**.
+* **Pendiente humano:** validar visualmente en navegador a 360px/768px (slider, modales, cards de Inventario) — C9 no se pudo verificar sin navegador; probar el flujo de editar una visita con envase abierto.
+* **Pendiente de proceso:** UX-92 (clientes: paginar `GET /clientes`, `/clientes/opciones`, Clients.tsx y pickers de RegistroModal/Historial/Turnos). Al cerrarla, ajustar los ejemplos que aún citan `getClients` en `patterns-frontend.md` (L40/L74) y `patterns-backend.md`. Deuda fuera de alcance: `serviceRecordController:504` y el `.distinct` de `getPendingRegistration`.

@@ -1,15 +1,19 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createProduct,
     getProducts,
+    getProductStats,
+    getProductOptions,
     updateProduct,
     adjustStock,
     deleteProduct,
     createBulkProducts
 } from '../controllers/productController';
 import { validateRequest } from '../middlewares/validateRequest';
+
+const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
 
 const router: Router = Router();
 
@@ -27,7 +31,31 @@ router.post('/', [
 ], createProduct);
 
 // GET /api/productos — ADMIN y PROFESSIONAL (SRS §6.2)
-router.get('/', requireRole('ADMIN', 'PROFESSIONAL'), getProducts);
+router.get('/', [
+    requireRole('ADMIN', 'PROFESSIONAL'),
+    query('page').optional().isInt({ min: 1 }).withMessage('page debe ser un entero >= 1'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit debe estar entre 1 y 100'),
+    query('search').optional().isString().trim().isLength({ max: 100 }).withMessage('search demasiado largo'),
+    query('lowStock').optional().isBoolean().withMessage('lowStock debe ser booleano'),
+    query('sort').optional().isIn(['stock']).withMessage('sort solo admite el valor stock'),
+    validateRequest
+], getProducts);
+
+// Rutas fijas: declaradas ANTES de cualquier ruta con /:id
+router.get('/stats', requireRole('ADMIN', 'PROFESSIONAL'), getProductStats);
+
+router.get('/opciones', [
+    requireRole('ADMIN', 'PROFESSIONAL'),
+    query('limit').optional().isInt({ min: 1, max: 20 }).withMessage('limit debe estar entre 1 y 20'),
+    query('search').optional().isString().trim().isLength({ max: 100 }).withMessage('search demasiado largo'),
+    query('ids').optional().isString().custom((value: string) => {
+        const ids = value.split(',').map(id => id.trim()).filter(Boolean);
+        if (ids.length > 50) throw new Error('ids admite como máximo 50 elementos');
+        if (!ids.every(id => OBJECT_ID_REGEX.test(id))) throw new Error('ids contiene un ID inválido');
+        return true;
+    }),
+    validateRequest
+], getProductOptions);
 
 router.put('/:id', [
     requireRole('ADMIN'),

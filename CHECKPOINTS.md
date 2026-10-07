@@ -37,6 +37,7 @@
 - [ ] **Soft Deletes:** Clientes, servicios y productos usan `isActive: false` para preservar historial.
 - [ ] **Control de Stock:** Las operaciones de egreso validan stock suficiente antes de descontar.
 - [ ] **Paginación Obligatoria:** Todo endpoint que devuelve una colección de filas de negocio potencialmente ilimitada (clientes, visitas, productos, turnos) responde paginado `{ data, meta }` con `skip`/`limit` y page-size **7**, filtrando y buscando server-side. Exenciones: widgets de dashboard, catálogos cortos, rankings top-N y agregaciones/KPIs. Patrón en `docs/patterns-backend.md` § P1.
+- [ ] **Tope en Todo GET de Colección (UX-91):** ningún `find()` de un controller GET queda sin límite. O valida `page`/`limit` con `express-validator` (`limit` entero 1..100, nunca ilimitado; helper `utils/pagination.ts`), o lleva un `.limit(N)` fijo documentado como exención (catálogos, widgets, rangos). El `reviewer` corre `grep -n "find(" apps/server/src/controllers` y justifica cada hit en su review.
 - [ ] **Multi-tenancy en Queries:** Todo query Mongoose de negocio filtra por `tenantId` (resuelto desde `req.tenantId`, nunca del body). `findById`/`findByIdAndUpdate`/`findByIdAndDelete` reemplazados por `findOne`/`findOneAndUpdate`/`findOneAndDelete` con `{ _id, tenantId }`. Ver `docs/governance-rules.md#gov-tenant`.
 
 ### Frontend (React + Vite)
@@ -44,6 +45,7 @@
 - [ ] **Desacoplamiento de Datos:** Los componentes no contienen llamadas HTTP directas. Los datos se consumen a través de funciones API en `src/api/` y hooks de TanStack Query.
 - [ ] **Manejo de Estados:** Todo componente cubre los 4 estados: loading (skeleton), error (toast/trifecta), empty (mensaje), data.
 - [ ] **Sin Filtrado Client-Side de Listados Ilimitados:** Prohibido traer la colección completa con `useQuery` y filtrar/buscar/paginar en memoria con `useMemo`. La paginación, filtrado y búsqueda se delegan al servidor; la `queryKey` incluye page + todos los filtros activos. Patrón en `docs/patterns-frontend.md` § P3.
+- [ ] **Pickers con Búsqueda Server-Side (UX-91):** todo select/picker de una entidad que crece (productos, clientes) usa búsqueda en el servidor (`AsyncSelect` + endpoint `/opciones` con `limit` ≤ 20). Un `useQuery` cuyo `queryFn` trae una lista sin parámetros de paginación solo es válido para catálogos exentos y cortos (servicios, profesionales).
 - [ ] **HTML Semántico:** Ninguna acción usa `<div>`/`<span>` con `onClick` o `role="button"`. Acción → `<button>`, navegación → `<Link>`. Todo `<button>` clickeable lleva `cursor-pointer`.
 - [ ] **Formateo de Fechas con Helper Compartido:** Toda fecha en la UI usa el helper compartido de fechas (`formatCalendarDate` para date-only con `timeZone: 'UTC'`, `formatDateTime` para timestamps reales). Prohibido reimplementar `toLocaleDateString`/`toLocaleString` ad-hoc (gotcha: date-only corre un día atrás en UTC-3).
 - [ ] **Instancia Axios Centralizada:** `src/libs/axios.ts` es la única fuente de peticiones HTTP. Tiene interceptor JWT de Clerk.
@@ -99,6 +101,17 @@
 - [ ] **SEC-F (Soft-delete + unicidad):** Al reactivar un recurso soft-deleted, se verifica ausencia de duplicados activos (mismo nombre+marca de producto, o externalId de admin) en el tenant antes de restaurar.
 - [ ] **SEC-G (Sin `dangerouslySetInnerHTML`):** Prohibido en frontend.
 - [ ] **SEC-H (Variables sensibles):** `CLERK_SECRET_KEY`, `MONGODB_URI`, `VITE_CLERK_PUBLISHABLE_KEY` nunca se hardcodean. El backend falla al arranque si falta una variable crítica (no degrada silenciosamente). Ver `docs/governance-rules.md` → GOV-ENV.
+
+---
+
+## C9 — Responsive Mobile-First (UX-91)
+
+> **Quién lo verifica:** el `reviewer` en toda tarea que cree o modifique UI. **Rationale:** el indicador de stock y la barra de consumo salieron a producción sin funcionar en celular.
+
+- [ ] **Verificado a 360px y 768px:** el `impl_*.md` incluye nota de verificación a 360px (o declara que no se pudo verificar en navegador). Clases base = mobile; `sm:`/`md:` amplían.
+- [ ] **Sin filas rígidas:** ninguna fila usa `shrink-0` con texto largo junto a un control `flex-1`; en mobile se apilan (label + valor arriba, control a ancho completo). Textos largos con `min-w-0` + `truncate`/wrap.
+- [ ] **Tablas de negocio:** sin `min-w-[Npx]` forzando scroll horizontal en mobile; en `<sm` se muestran como cards apiladas (`docs/design.md` §12).
+- [ ] **Controles táctiles:** altura cómoda (≥ 40–44px) en inputs/range/botones.
 
 ---
 

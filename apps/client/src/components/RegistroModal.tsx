@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { FiPlus, FiTrash2, FiBox } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos react-select
 
-import { getProducts } from "../api/productApi";
+import type { ProductOption } from "../api/productApi";
 import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { getProfessionals } from "../api/professionalApi";
@@ -14,9 +14,10 @@ import { completeAppointment, getAppointments } from "../api/appointmentApi";
 import { getDisponibilidad } from "../api/disponibilidadApi";
 import type { BusinessHours } from "../api/disponibilidadApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Product, Client, Service, Professional, Appointment } from "../types";
+import type { Client, Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
 import RemainingLevelSlider from "./ui/RemainingLevelSlider";
+import ProductAsyncSelect, { type ProductSelectOption } from "./ui/ProductAsyncSelect";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
 
@@ -76,12 +77,6 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
     const queryClient = useQueryClient();
 
-    const { data: inventoryProducts } = useQuery<Product[]>({
-        queryKey: ['products'],
-        queryFn: () => getProducts(),
-        enabled: isOpen
-    });
-
     const { data: clients } = useQuery<Client[]>({
         queryKey: ['clients'],
         queryFn: () => getClients(),
@@ -110,14 +105,11 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
-    const productOptions = inventoryProducts?.map(p => ({
-        value: p._id,
-        label: `${p.name} (${p.brand}) - Stock: ${p.stock}`,
-        isDisabled: p.stock === 0 // Deshabilitamos los que no tienen stock
-    })) || [];
-
     // Estado para el selector independiente de Insumos
-    const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
+    const [selectedProductOption, setSelectedProductOption] = useState<ProductSelectOption | null>(null);
+    // Datos de UI (name, brand, stock, currentUnitLevel) de los insumos ya agregados, por id.
+    // Vive fuera del form: no viaja a la API y los items no dependen de ninguna lista cargada.
+    const [productInfo, setProductInfo] = useState<Record<string, ProductOption>>({});
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
     const { register, control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<RegistroFormValues>({
@@ -195,11 +187,13 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     const handleCloseModal = () => {
         setSelectedProductOption(null);
         setQuantityToAdd('');
+        setProductInfo({});
         onClose();
     };
 
     useEffect(() => {
         if (isOpen) {
+            setProductInfo({});
             reset({
                 client: preselectedClientId || '',
                 service: preselectedServiceId || '',
@@ -252,7 +246,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             // Omitimos la clave si el usuario nunca tocó el slider (fix UX-81, mismo criterio de siempre).
             productsUsed: productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
                 const available = item.usedExistingUnit === true
-                    ? (inventoryProducts?.find(p => p._id === item.product)?.currentUnitLevel ?? 100)
+                    ? (productInfo[item.product]?.currentUnitLevel ?? 100)
                     : 100;
                 const remainingLevel = usedPercentTouched && typeof usedPercent === 'number'
                     ? Math.max(0, Math.min(100, available - usedPercent))
@@ -275,6 +269,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
             return;
         }
+        setProductInfo(prev => ({ ...prev, [selectedProductOption.value]: selectedProductOption.product }));
         append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
         setSelectedProductOption(null);
         setQuantityToAdd('');
@@ -442,13 +437,10 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                     <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         {/* ⭐️ Selector Inteligente de Insumos (No usa Controller porque es independiente del form principal) */}
                         <div className="w-full sm:flex-1">
-                            <Select
-                                options={productOptions}
-                                placeholder="Buscar insumo..."
-                                styles={selectStyles}
-                                noOptionsMessage={() => "Insumo no encontrado o sin stock"}
+                            <ProductAsyncSelect
+                                styles={selectStyles as unknown as StylesConfig<ProductSelectOption, false>}
                                 value={selectedProductOption}
-                                onChange={(val) => setSelectedProductOption(val as { value: string, label: string } | null)}
+                                onChange={setSelectedProductOption}
                             />
                         </div>
 
@@ -461,7 +453,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                     {fields.length > 0 ? (
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
-                                const det = inventoryProducts?.find(p => p._id === field.product);
+                                const det = productInfo[field.product];
                                 // Preview en vivo de "→ queda X%" con la misma fórmula del onSubmit — se
                                 // recalcula solo cuando el usuario toca el slider o el checkbox de este item
                                 // (watch() devuelve undefined hasta el primer touch, igual que el flag P19).
@@ -479,9 +471,9 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                     : 100;
                                 return (
                                     <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <div className="flex min-w-0 flex-col">
+                                                <span className="truncate text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
                                                 <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
                                             </div>
                                             <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
@@ -497,11 +489,11 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                             <p className="text-[11px] text-gray-400 -mt-1">→ queda {remainingPreview}%</p>
                                         )}
                                         {typeof det?.currentUnitLevel === 'number' && (
-                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
                                                 <input
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
-                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    className="mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
                                                     {...register(`productsUsed.${index}.usedExistingUnit`, {
                                                         onChange: (e) => {
                                                             // Al tildar, si el % usado ya cargado supera el nuevo tope
@@ -514,7 +506,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                                         },
                                                     })}
                                                 />
-                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
+                                                <span className="min-w-0">Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock</span>
                                             </label>
                                         )}
                                     </li>

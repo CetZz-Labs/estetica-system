@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 
 import { getDashboardStats, getUpcomingTouchups, getRecentRecords, updateServiceRecord } from '../api/serviceRecordApi';
 import { getPendingRegistration, cancelAppointment, getUpcomingAppointments } from '../api/appointmentApi';
-import { getProducts } from '../api/productApi';
-import type { ServiceRecord, Appointment, Product } from '../types';
+import { getProductsPage } from '../api/productApi';
+import type { ServiceRecord, Appointment, Product, Paginated } from '../types';
 import type { DashboardStats } from '../api/serviceRecordApi';
 import { formatDate, getTimelineStatus, formatDateTime } from '../utils/dates';
 import { handleApiError } from '../api/errorHandler';
@@ -141,11 +141,11 @@ export default function Dashboard() {
         queryFn: getUpcomingAppointments
     });
 
-    // Reutiliza la misma queryKey ['products'] que Inventario.tsx (misma función de API,
-    // sin lógica nueva) para que TanStack Query comparta caché entre ambas vistas.
-    const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-        queryKey: ['products'],
-        queryFn: getProducts,
+    // Widget con limit fijo (exento de paginación): top 5 de poco stock, filtrado en el server.
+    // Orden por stock ascendente (sort=stock) para mostrar los más críticos primero.
+    const { data: lowStockPage, isLoading: isLoadingProducts } = useQuery<Paginated<Product>>({
+        queryKey: ['products', 'low-stock-widget', 'stock'],
+        queryFn: () => getProductsPage({ lowStock: true, limit: 5, sort: 'stock' }),
     });
 
     const handleTouchupCheck = (clientId: string, serviceId: string) => {
@@ -297,10 +297,7 @@ export default function Dashboard() {
             : 'Sin turnos próximos';
 
     // Panel "Poco stock" (§7.7) — consume la misma función de API que Inventario.tsx.
-    const lowStockProducts = (products ?? [])
-        .filter((p) => p.stock <= LOW_STOCK_THRESHOLD)
-        .sort((a, b) => a.stock - b.stock)
-        .slice(0, 5);
+    const lowStockProducts = lowStockPage?.data ?? [];
 
     return (
         <div className="max-w-6xl mx-auto">

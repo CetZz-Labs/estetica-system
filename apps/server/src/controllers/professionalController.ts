@@ -126,7 +126,7 @@ export const getProfessionals = async (req: Request, res: Response) => {
             filter.isActive = true;
         }
 
-        const professionals = await Professional.find(filter).sort({ name: 1 });
+        const professionals = await Professional.find(filter).sort({ name: 1 }).limit(100); // UX-91: cap defensivo
         return res.status(200).json(professionals);
     } catch (error) {
         console.error('Error al obtener las profesionales:', error);
@@ -137,7 +137,7 @@ export const getProfessionals = async (req: Request, res: Response) => {
 // 3. Read - Admins vinculables (GET /api/profesionales/linkable-admins)
 export const getLinkableAdmins = async (req: Request, res: Response) => {
     try {
-        const admins = await Admin.find({ tenantId: req.tenantId, isActive: true }).select('email role');
+        const admins = await Admin.find({ tenantId: req.tenantId, isActive: true }).select('email role').limit(100); // UX-91: cap defensivo
         return res.status(200).json(admins);
     } catch (error) {
         console.error('Error al obtener los usuarios vinculables:', error);

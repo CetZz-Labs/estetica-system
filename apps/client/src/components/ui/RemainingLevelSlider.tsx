@@ -80,8 +80,9 @@ export default function RemainingLevelSlider({ defaultValue, registration, onTou
     const shownValue = Math.min(typeof value === 'number' && !Number.isNaN(value) ? value : displayValue, effectiveMax);
 
     return (
-        <div className="flex items-center gap-3">
-            <label htmlFor={`${registration.name}-range`} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">
+        // Mobile: cabecera (label + %) arriba y range a ancho completo debajo; desde sm: todo en una fila.
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 sm:flex-nowrap sm:justify-start">
+            <label htmlFor={`${registration.name}-range`} className="order-1 min-w-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide sm:shrink-0">
                 % usado en esta visita (opcional)
             </label>
             <input
@@ -91,7 +92,7 @@ export default function RemainingLevelSlider({ defaultValue, registration, onTou
                 max={effectiveMax}
                 // defaultValue (no value): input no controlado (patrón `register` de RHF).
                 defaultValue={initialValue}
-                className="flex-1 cursor-pointer accent-primary"
+                className="order-3 w-full min-w-0 h-10 cursor-pointer accent-primary sm:order-2 sm:w-auto sm:flex-1 sm:h-auto"
                 {...registration}
                 onChange={(e) => {
                     registration.onChange(e);
@@ -99,7 +100,7 @@ export default function RemainingLevelSlider({ defaultValue, registration, onTou
                     onTouched?.();
                 }}
             />
-            <span className="text-xs font-semibold text-gray-600 w-9 text-right shrink-0">
+            <span className="text-xs font-semibold text-gray-600 order-2 w-9 text-right shrink-0 sm:order-3">
                 {shownValue}%
             </span>
         </div>
