@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/Product';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 
 const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
@@ -41,13 +42,80 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 // 2. Leer todos los productos activos
+// Umbral de stock bajo (coincide con Inventario.tsx: stock <= 5)
+const LOW_STOCK_THRESHOLD = 5;
+
 export const getProducts = async (req: Request, res: Response) => {
     try {
-        // Filtramos por tenant y ordenamos por marca y luego por nombre
-        const products = await Product.find({ tenantId: req.tenantId, isActive: true }).sort({ brand: 1, name: 1 });
+        const { page, limit, skip } = parsePagination(req.query);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+
+        const filter: Record<string, unknown> = { tenantId: req.tenantId, isActive: true };
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), 'i');
+            filter.$or = [{ name: regex }, { brand: regex }];
+        }
+        if (req.query.lowStock === 'true') {
+            filter.stock = { $lte: LOW_STOCK_THRESHOLD };
+        }
+
+        const sortSpec: Record<string, 1 | -1> = req.query.sort === 'stock'
+            ? { stock: 1, brand: 1, name: 1 }
+            : { brand: 1, name: 1 };
+
+        const [data, total] = await Promise.all([
+            Product.find(filter).sort(sortSpec).skip(skip).limit(limit),
+            Product.countDocuments(filter)
+        ]);
+
+        return res.status(200).json({ data, meta: buildPaginationMeta(total, page, limit) });
+    } catch (error) {
+        console.error('Error al obtener productos:', error);
+        return res.status(500).json({ error: 'Error al obtener productos' });
+    }
+};
+
+// GET /productos/stats — KPIs de inventario (tenant-scoped, solo activos)
+export const getProductStats = async (req: Request, res: Response) => {
+    try {
+        const base = { tenantId: req.tenantId, isActive: true };
+        const [total, lowStock, outOfStock] = await Promise.all([
+            Product.countDocuments(base),
+            Product.countDocuments({ ...base, stock: { $gt: 0, $lte: LOW_STOCK_THRESHOLD } }),
+            Product.countDocuments({ ...base, stock: 0 })
+        ]);
+        return res.status(200).json({ total, lowStock, outOfStock });
+    } catch (error) {
+        console.error('Error al obtener estadísticas de productos:', error);
+        return res.status(500).json({ error: 'Error al obtener estadísticas de productos' });
+    }
+};
+
+// GET /productos/opciones — picker slim. Con `ids` resuelve productos ya registrados
+// (sin filtrar isActive, para no perder insumos dados de baja posteriormente).
+export const getProductOptions = async (req: Request, res: Response) => {
+    try {
+        const { limit } = parsePagination(req.query, { defaultLimit: 20, maxLimit: 20 });
+        const idsParam = typeof req.query.ids === 'string' ? req.query.ids : '';
+        const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+        const projection = '_id name brand stock currentUnitLevel';
+
+        if (ids.length > 0) {
+            const products = await Product.find({ tenantId: req.tenantId, _id: { $in: ids } }).select(projection);
+            return res.status(200).json(products);
+        }
+
+        const filter: Record<string, unknown> = { tenantId: req.tenantId, isActive: true };
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), 'i');
+            filter.$or = [{ name: regex }, { brand: regex }];
+        }
+        const products = await Product.find(filter).select(projection).sort({ brand: 1, name: 1 }).limit(limit);
         return res.status(200).json(products);
     } catch (error) {
-        return res.status(500).json({ error: 'Error al obtener productos' });
+        console.error('Error al obtener opciones de productos:', error);
+        return res.status(500).json({ error: 'Error al obtener opciones de productos' });
     }
 };
 

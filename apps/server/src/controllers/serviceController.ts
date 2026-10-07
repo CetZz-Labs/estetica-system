@@ -41,7 +41,7 @@ export const createService = async (req: Request, res: Response) => {
 export const getServices = async (req: Request, res: Response) => {
     try {
         // Filtrar por tenant, activos y ordenar alfabéticamente por 'name' (1 ascendente)
-        const services = await Service.find({ tenantId: req.tenantId, isActive: true }).sort({ name: 1 });
+        const services = await Service.find({ tenantId: req.tenantId, isActive: true }).sort({ name: 1 }).limit(100); // UX-91: cap defensivo
         return res.status(200).json(services);
     } catch (error) {
         console.error('Error al obtener los servicios:', error);

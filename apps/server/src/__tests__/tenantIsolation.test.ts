@@ -159,8 +159,33 @@ describe('EP-08 — Aislamiento multi-tenant', () => {
         asUser(USER_A);
         const res = await request(app).get('/api/productos');
         expect(res.status).toBe(200);
-        expect(res.body).toHaveLength(1);
-        expect(res.body[0].name).toBe('Oxidante 20 Vol');
+        // UX-91: la ruta responde paginada { data, meta }.
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].name).toBe('Oxidante 20 Vol');
+        expect(res.body.meta.total).toBe(1);
+    });
+
+    it('GET /api/productos/opciones?ids= no devuelve productos de otro tenant', async () => {
+        asUser(USER_A);
+        const res = await request(app).get(`/api/productos/opciones?ids=${productA.id},${productB.id}`);
+        expect(res.status).toBe(200);
+        const returned = (res.body as Array<{ _id: string }>).map(p => p._id);
+        expect(returned).toContain(productA.id);
+        expect(returned).not.toContain(productB.id);
+    });
+
+    it('GET /api/productos/opciones?ids= rechaza con 400 un ID de 12 caracteres', async () => {
+        asUser(USER_A);
+        const res = await request(app).get('/api/productos/opciones?ids=abcdefghijkl');
+        expect(res.status).toBe(400);
+    });
+
+    it('GET /api/productos/stats cuenta solo los productos del tenant A', async () => {
+        asUser(USER_A);
+        const res = await request(app).get('/api/productos/stats');
+        expect(res.status).toBe(200);
+        // Tenant A tiene 1 producto en este punto (stock 10); el de tenant B no cuenta.
+        expect(res.body).toEqual({ total: 1, lowStock: 0, outOfStock: 0 });
     });
 
     it('GET /api/registros/recientes devuelve solo los registros del tenant A', async () => {

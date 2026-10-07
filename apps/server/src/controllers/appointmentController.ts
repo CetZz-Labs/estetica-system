@@ -411,7 +411,8 @@ export const getPendingRegistration = async (req: Request, res: Response) => {
         })
             .populate('client', 'firstName lastName')
             .populate('service', 'name')
-            .sort({ startTime: -1 });
+            .sort({ startTime: -1 })
+            .limit(50); // UX-91: cap defensivo (widget)
 
         return res.status(200).json(appointments);
     } catch (error) {
@@ -460,7 +461,8 @@ export const getClientAppointments = async (req: Request, res: Response) => {
         const appointments = await Appointment.find(filter)
             .populate('service', 'name')
             .populate('professional', 'name color')
-            .sort({ startTime: -1 });
+            .sort({ startTime: -1 })
+            .limit(100); // UX-91: cap defensivo
 
         return res.status(200).json(appointments);
     } catch (error) {
