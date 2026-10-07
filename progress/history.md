@@ -1778,3 +1778,17 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 39 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **APPROVED** (ronda 2) → `progress/reviews/review_UX-91.md`. UX-91 → **done**.
 * **Pendiente humano:** validar visualmente en navegador a 360px/768px (slider, modales, cards de Inventario) — C9 no se pudo verificar sin navegador; probar el flujo de editar una visita con envase abierto.
 * **Pendiente de proceso:** UX-92 (clientes: paginar `GET /clientes`, `/clientes/opciones`, Clients.tsx y pickers de RegistroModal/Historial/Turnos). Al cerrarla, ajustar los ejemplos que aún citan `getClients` en `patterns-frontend.md` (L40/L74) y `patterns-backend.md`. Deuda fuera de alcance: `serviceRecordController:504` y el `.distinct` de `getPendingRegistration`.
+
+---
+
+## 2026-10-07 — UX-92: Paginación server-side de clientes y pickers de cliente
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/UX-92-paginacion-clientes` (desde `development`, con UX-91 ya mergeada).
+* **Objetivo:** continuación de UX-91 — `GET /clientes` devolvía todos los clientes sin paginar y los selects de cliente cargaban la lista completa.
+* **Backend:** `GET /clientes` → `{data, meta}` (`page`/`limit` ≤100, default 7, `search` escapado sobre nombre/apellido/teléfono, tenant + isActive); nuevo `GET /clientes/opciones` (`search`, `limit` ≤20, `ids` ≤50 de 24 hex, sin filtrar isActive con ids); `escapeRegex` extraído a `utils/regex.ts` y compartido con productos; tests IDOR de tenant.
+* **Frontend:** `Clients.tsx` paginado con cards en `<sm`; `ClientAsyncSelect` (búsqueda server-side, resuelve el cliente preseleccionado por `ids`) en RegistroModal, Historial y Turnos; `getClients` plano eliminado.
+* **Docs:** CHANGELOG `[BREAKING]` + `docs/migration-guides/clientes-paginados-ux92.md`; ejemplos de `patterns-frontend.md` alineados a `getClientsPage`.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 42 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **APPROVED** → `progress/reviews/review_UX-92.md`. UX-92 → **done**.
+* **Pendiente humano:** probar en navegador (cards de Clientes en mobile; crear visita, filtrar historial y crear turno eligiendo cliente con el nuevo select; abrir "registrar visita" desde ficha/turno con cliente preseleccionado).
+* **Deuda fuera de alcance:** `getAppointments` sin `.limit` (acotado por rango de fechas opcional), `serviceRecordController:504` y el `.distinct` de `getPendingRegistration`. Nit: espacio faltante en `RegistroModal.tsx:20`.

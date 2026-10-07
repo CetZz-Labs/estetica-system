@@ -2,20 +2,18 @@
 
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-10-07
-- **Sesión:** cerrada — UX-91 done
-- **Rama:** `feature/UX-91-stock-paginacion-responsive` (cambios sin commitear)
+- **Sesión:** cerrada — UX-92 done
+- **Rama:** `feature/UX-92-paginacion-clientes` (commiteada, sin mergear)
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
 ## Estado del Backlog
-- UX-91 → **done** (ver `progress/history.md`).
-- **Siguiente:** UX-92 (paginación server-side de clientes + pickers de cliente) — `pending`.
-- Pendientes previos: UX-34, UX-35, EP-18 a EP-25, SEC-01 (xlsx).
+- UX-91 y UX-92 → **done** (ver `progress/history.md`).
+- Pendientes: UX-34, UX-35, EP-18 a EP-25, SEC-01 (xlsx).
 
 ## Bloqueos y Riesgos Conocidos
-- **Validación humana pendiente (C9):** probar en navegador a 360px/768px el slider "% usado", los modales de registro y las cards de Inventario.
-- **Ramas sin mergear:** `feature/UX-80-...` (UX-80..89) y esta rama; probar en vivo UX-83/88/89 antes de mergear a `development`.
-- **Deuda de test preexistente:** `tenantIsolation.test.ts`, 4 tests de POST /api/registros fallando por falta de `professional` en el body.
-- **Recordatorio operativo:** ningún subagente usa `git stash` sin acotar y con pop (memoria `reviewer-git-stash-incident`); verificar `git stash list` vacío.
+- **Validación humana pendiente:** UX-92 en navegador (selects de cliente, cards de Clientes en mobile) y C9 de UX-91.
+- **Deuda:** `getAppointments` sin `.limit`; `serviceRecordController:504`; `.distinct` de `getPendingRegistration`; 4 tests preexistentes de POST /api/registros.
+- **Recordatorio operativo:** ningún subagente usa `git stash` sin acotar y con pop; verificar `git stash list` vacío.
