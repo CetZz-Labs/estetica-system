@@ -28,45 +28,44 @@
 **Contrato de salida:** `{ data: T[], meta: { total, page, limit, totalPages } }`.
 
 ```typescript
-// controllers/clientController.ts
-const DEFAULT_PAGE = 1;
-const PAGE_SIZE = 7; // page-size estándar de negocio
+// controllers/productController.ts — implementación real (UX-91)
+import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 
-export const getClients = async (req: Request, res: Response) => {
+export const getProducts = async (req: Request, res: Response) => {
     try {
-        const page = Math.max(DEFAULT_PAGE, Number(req.query.page) || DEFAULT_PAGE);
-        const limit = Math.min(100, Math.max(1, Number(req.query.limit) || PAGE_SIZE));
-        const search = (req.query.search as string)?.trim();
+        // parsePagination: page >= 1, limit 1..100 (default 7). NUNCA parsear a mano.
+        const { page, limit, skip } = parsePagination(req.query);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-        // Filtro SIEMPRE scopeado por tenant + soft-delete. Búsqueda server-side.
+        // Filtro SIEMPRE scopeado por tenant + soft-delete. Búsqueda server-side con regex ESCAPADO.
         const filter: Record<string, unknown> = { tenantId: req.tenantId, isActive: true };
         if (search) {
-            filter.$or = [
-                { firstName: { $regex: search, $options: 'i' } },
-                { lastName: { $regex: search, $options: 'i' } },
-                { phone: { $regex: search, $options: 'i' } },
-            ];
+            const regex = new RegExp(escapeRegex(search), 'i');
+            filter.$or = [{ name: regex }, { brand: regex }];
         }
 
         const [data, total] = await Promise.all([
-            Client.find(filter).sort({ lastName: 1 }).skip((page - 1) * limit).limit(limit),
-            Client.countDocuments(filter),
+            Product.find(filter).sort({ brand: 1, name: 1 }).skip(skip).limit(limit),
+            Product.countDocuments(filter),
         ]);
 
-        return res.status(200).json({
-            data,
-            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-        });
+        return res.status(200).json({ data, meta: buildPaginationMeta(total, page, limit) });
     } catch (error) {
-        console.error('Error al listar clientes:', error);
-        return res.status(500).json({ error: 'Error interno del servidor' });
+        console.error('Error al obtener productos:', error);
+        return res.status(500).json({ error: 'Error al obtener productos' });
     }
 };
 ```
 
+En la ruta, validar `page`/`limit`/`search` con `express-validator` (`limit` entero 1..100). **Todo GET de colección tiene tope**: o paginación como arriba, o `.limit(N)` fijo documentado como exención (CHECKPOINTS C3 "Tope en Todo GET de Colección").
+
+**Endpoints auxiliares que acompañan a un listado paginado (UX-91):** el cliente ya no tiene la lista completa, así que los KPIs y los selects salen de endpoints propios, declarados ANTES de `/:id`:
+- `GET /recurso/stats` → agregaciones con `countDocuments` tenant-scoped (ej. `{ total, lowStock, outOfStock }`).
+- `GET /recurso/opciones?search=&limit=` → proyección slim para pickers, `limit` ≤ 20, búsqueda server-side. Con `?ids=a,b,c` (≤ 50, ObjectId de 24 hex) resuelve los items ya guardados en un registro sin depender de la lista.
+
 **Exenciones explícitas (NO paginar):**
 - **Widgets de dashboard** con `limit` fijo de diseño (`getRecentRecords` → 10, próximos retoques → N fijo).
-- **Catálogos acotados** con tope pequeño y conocido (selects/dropdowns de servicios).
+- **Catálogos acotados** (≤ 50 filas esperadas: servicios, profesionales) — aun así llevan `.limit(100)` defensivo.
 - **Rankings / top-N** que no son tablas navegables: array plano ordenado con `.limit(N)` fijo, renderizado sin controles de paginación.
 - **Agregaciones / KPIs** que no devuelven filas (`dashboard/stats`).
 - **Vistas acotadas a un día calendario** (ej. `/recordatorios` de UX-79, agenda diaria): el filtro de fecha (`startDate`/`endDate` = hoy) ya acota el dataset a un tamaño naturalmente pequeño, mismo criterio que los widgets de dashboard — no aplica P1 aunque la UI sea una tabla/lista navegable.

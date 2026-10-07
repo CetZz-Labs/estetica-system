@@ -1651,6 +1651,37 @@
         "Verificación manual/de código: con `currentUnitLevel` previo de 30% y el checkbox tildado, la barra debe ir de 0 a 30 (no hasta 100); destildar el checkbox debe volver el rango a 0-100",
         "pnpm --filter @estetica/client build y lint pasan con exit code 0"
       ]
+    },
+    {
+      "id": "UX-91",
+      "name": "Stock/consumo responsive y paginación server-side de productos (+ gates anti-reincidencia)",
+      "module": "Inventory",
+      "phase": "Fase 1",
+      "status": "done",
+      "description": "Pedido del usuario (2026-10-07): el indicador de stock de Inventario y la barra de consumo (RemainingLevelSlider) no son responsive; GET /productos devuelve todos los productos sin paginar. Alcance: PR0 responsive (slider + li/checkbox de modales), PR1 backend productos (utils/pagination, getProducts paginado {data,meta} con search/lowStock, /productos/stats, /productos/opciones, ?ids=, caps defensivos en catálogos/pendientes), PR2 Inventario+Dashboard paginados con cards en mobile, PR3 pickers de insumos con búsqueda server-side, PR5 gates (CHECKPOINTS C3/C9, patterns, CHANGELOG). Explorer: progress/explores/explore_UX-91.md.",
+      "acceptance_criteria": [
+        "RemainingLevelSlider apila label+valor y range en <sm; sin desbordes a 360px en RegistroModal y EditRegistroModal",
+        "GET /productos devuelve {data,meta} con page/limit (<=100, default 7), search y lowStock validados con express-validator y filtrado por tenantId",
+        "GET /productos/stats y /productos/opciones (limit<=20) tenant-scoped; resolución de currentUnitLevel de items ya registrados sin depender de la lista completa",
+        "Inventario.tsx y Dashboard sin filtrado ni KPIs en cliente; Inventario con vista de cards en <sm",
+        "Pickers de insumos con búsqueda server-side",
+        "CHECKPOINTS.md y patterns actualizados (todo GET de colección con limit<=100 o .limit fijo; checkpoint responsive); CHANGELOG actualizado",
+        "Builds server y client exit 0; lint client exit 0"
+      ]
+    },
+    {
+      "id": "UX-92",
+      "name": "Paginación server-side de clientes y pickers de cliente",
+      "module": "Clients",
+      "phase": "Fase 1",
+      "status": "pending",
+      "description": "Continuación de UX-91: GET /clientes devuelve todo sin paginar (clientController.ts:30-39). Paginar con {data,meta}, search server-side, /clientes/opciones para los selects de RegistroModal/Historial/Turnos, Clients.tsx con Pagination. Reutiliza utils/pagination de UX-91.",
+      "acceptance_criteria": [
+        "GET /clientes paginado {data,meta} con search, tenant-scoped",
+        "GET /clientes/opciones (limit<=20)",
+        "Clients.tsx sin filtrado en cliente; pickers de cliente con búsqueda server-side",
+        "Builds exit 0; CHANGELOG actualizado"
+      ]
     }
   ]
 }

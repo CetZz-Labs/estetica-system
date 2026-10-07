@@ -102,19 +102,20 @@ const { mutate: create, isPending } = useMutation({
 ```typescript
 import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { getClients } from '../api/clientApi';
-import type { Paginated, Client } from '../types';
+import { getProductsPage } from '../api/productApi';
+import { useDebounce } from '../utils/useDebounce';
+import type { Paginated, Product } from '../types';
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
 
-export default function Clients() {
+export default function Inventario() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
 
-    const { data, isLoading, isError } = useQuery<Paginated<Client>>({
-        queryKey: ['clients', { page, limit: PAGE_SIZE, search: debouncedSearch }],
-        queryFn: () => getClients({ page, limit: PAGE_SIZE, search: debouncedSearch }),
+    const { data, isLoading, isError } = useQuery<Paginated<Product>>({
+        queryKey: ['products', { page, limit: PAGE_SIZE, search: debouncedSearch }],
+        queryFn: () => getProductsPage({ page, limit: PAGE_SIZE, search: debouncedSearch }),
         placeholderData: keepPreviousData,
     });
 
@@ -130,6 +131,8 @@ export default function Clients() {
     // ... render con <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
 }
 ```
+
+**Pickers (UX-91):** un select de una entidad que crece (productos, clientes) NO usa esta lista: usa `AsyncSelect` con `getProductOptions({ search, limit: 20 })` (ver `components/ui/ProductAsyncSelect.tsx`) y guarda los datos de UI del item elegido en estado local; los items ya guardados se resuelven con `getProductOptions({ ids })`.
 
 **Excepción:** rankings/top-N que no son tablas navegables reciben un array plano ya capado por el backend (≤ 7) y se renderizan **sin** `<Pagination>`.
 
