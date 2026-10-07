@@ -1674,7 +1674,7 @@
       "name": "Paginación server-side de clientes y pickers de cliente",
       "module": "Clients",
       "phase": "Fase 1",
-      "status": "pending",
+      "status": "done",
       "description": "Continuación de UX-91: GET /clientes devuelve todo sin paginar (clientController.ts:30-39). Paginar con {data,meta}, search server-side, /clientes/opciones para los selects de RegistroModal/Historial/Turnos, Clients.tsx con Pagination. Reutiliza utils/pagination de UX-91.",
       "acceptance_criteria": [
         "GET /clientes paginado {data,meta} con search, tenant-scoped",

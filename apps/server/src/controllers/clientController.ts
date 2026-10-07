@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { Client } from '../models/Client';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination';
+import { escapeRegex } from '../utils/regex';
 
 // 1. Create (POST /api/clientes)
 export const createClient = async (req: Request, res: Response) => {
@@ -29,12 +31,53 @@ export const createClient = async (req: Request, res: Response) => {
 // 2. Read All (GET /api/clientes)
 export const getClients = async (req: Request, res: Response) => {
     try {
-        // Filtrar por tenant, solo los activos y ordenar alfabéticamente por apellido (1 es ascendente)
-        const clients = await Client.find({ tenantId: req.tenantId, isActive: true }).sort({ lastName: 1 });
-        return res.status(200).json(clients);
+        const { page, limit, skip } = parsePagination(req.query);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+
+        // Filtrar por tenant y solo los activos; búsqueda server-side con regex escapado
+        const filter: Record<string, unknown> = { tenantId: req.tenantId, isActive: true };
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), 'i');
+            filter.$or = [{ firstName: regex }, { lastName: regex }, { phone: regex }];
+        }
+
+        const [data, total] = await Promise.all([
+            Client.find(filter).sort({ lastName: 1, firstName: 1 }).skip(skip).limit(limit),
+            Client.countDocuments(filter)
+        ]);
+
+        return res.status(200).json({ data, meta: buildPaginationMeta(total, page, limit) });
     } catch (error) {
         console.error('Error al obtener los clientes:', error);
         return res.status(500).json({ error: 'Error interno del servidor al obtener los clientes' });
+    }
+};
+
+// GET /api/clientes/opciones — picker slim. Con `ids` resuelve clientes ya registrados
+// (sin filtrar isActive, para no perder clientes dados de baja posteriormente).
+export const getClientOptions = async (req: Request, res: Response) => {
+    try {
+        const { limit } = parsePagination(req.query, { defaultLimit: 20, maxLimit: 20 });
+        const idsParam = typeof req.query.ids === 'string' ? req.query.ids : '';
+        const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+        const projection = '_id firstName lastName phone';
+
+        if (ids.length > 0) {
+            const clients = await Client.find({ tenantId: req.tenantId, _id: { $in: ids } }).select(projection);
+            return res.status(200).json(clients);
+        }
+
+        const filter: Record<string, unknown> = { tenantId: req.tenantId, isActive: true };
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), 'i');
+            filter.$or = [{ firstName: regex }, { lastName: regex }, { phone: regex }];
+        }
+        const clients = await Client.find(filter).select(projection).sort({ lastName: 1, firstName: 1 }).limit(limit);
+        return res.status(200).json(clients);
+    } catch (error) {
+        console.error('Error al obtener opciones de clientes:', error);
+        return res.status(500).json({ error: 'Error al obtener opciones de clientes' });
     }
 };
 

@@ -37,7 +37,7 @@ export interface ClientFormData {
     medicalNotes?: string;
 }
 
-export const getClients = async (params: { page: number; limit: number; search?: string }): Promise<Paginated<Client>> => {
+export const getClientsPage = async (params: { page: number; limit: number; search?: string }): Promise<Paginated<Client>> => {
     const { data } = await api.get('/clientes', { params });
     return data;
 };
@@ -69,9 +69,9 @@ export const deleteClient = async (id: string): Promise<void> => {
 // Dentro de una vista
 const queryClient = useQueryClient();
 
-const { data, isLoading, isError } = useQuery<Client[]>({
-    queryKey: ['clients'],
-    queryFn: getClients,
+const { data, isLoading, isError } = useQuery<Paginated<Client>>({
+    queryKey: ['clients', { page, limit: 7 }],
+    queryFn: () => getClientsPage({ page, limit: 7 }),
 });
 
 const { mutate: create, isPending } = useMutation({

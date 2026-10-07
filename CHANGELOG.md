@@ -28,6 +28,8 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 
 - `[BREAKING]` (permitido — feature `in_progress`) **UX-91**: `GET /api/productos` deja de devolver un array plano y pasa a `{ data: Product[], meta: { total, page, limit, totalPages } }` (page-size 7, `limit` máx 100), con query params `page`, `limit`, `search` (nombre/marca) y `lowStock`. Nuevos endpoints `GET /api/productos/stats` (`{ total, lowStock, outOfStock }`) y `GET /api/productos/opciones` (slim `{ _id, name, brand, stock, currentUnitLevel }`, `search`, `limit` ≤ 20, o `ids` hasta 50 para resolver items ya registrados). Topes defensivos (`.limit`) en `GET /api/servicios`, `/api/profesionales`, `/api/profesionales/linkable-admins`, turnos pendientes de registro y turnos por cliente. Frontend migrado en la misma feature (Inventario, Dashboard, modales de registro).
 
+- `[BREAKING]` (permitido — feature `in_progress`) **UX-92**: `GET /api/clientes` deja de devolver un array plano y pasa a `{ data: Client[], meta: { total, page, limit, totalPages } }` (page-size 7, `limit` máx 100) con query params `page`, `limit` y `search` (nombre, apellido y teléfono, server-side). Nuevo `GET /api/clientes/opciones` (slim `{ _id, firstName, lastName, phone }`, `search`, `limit` ≤ 20, o `ids` hasta 50 para resolver clientes ya elegidos). Frontend migrado en la misma feature (Clientes, Registro, Historial, Turnos).
+
 ### Deprecated
 
 ### Removed
