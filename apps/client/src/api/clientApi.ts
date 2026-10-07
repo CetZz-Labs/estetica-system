@@ -1,5 +1,5 @@
 import api from '../libs/axios';
-import type { Client } from '../types';
+import type { Client, Paginated } from '../types';
 
 export interface ClientFormData {
     firstName: string;
@@ -9,9 +9,44 @@ export interface ClientFormData {
     medicalNotes?: string;
 }
 
-/** GET /api/clientes — Lista todos los clientes activos */
-export const getClients = async (): Promise<Client[]> => {
-    const response = await api.get('/clientes');
+export interface ClientPageParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+}
+
+export interface ClientOption {
+    _id: string;
+    firstName: string;
+    lastName?: string;
+    phone?: string;
+}
+
+export interface ClientOptionsParams {
+    search?: string;
+    limit?: number;
+    ids?: string[];
+}
+
+/** GET /api/clientes — Página de clientes activos (paginado server-side) */
+export const getClientsPage = async (
+    { page = 1, limit = 7, search }: ClientPageParams = {}
+): Promise<Paginated<Client>> => {
+    const params: Record<string, string | number> = { page, limit };
+    if (search) params.search = search;
+    const response = await api.get<Paginated<Client>>('/clientes', { params });
+    return response.data;
+};
+
+/** GET /api/clientes/opciones — Lista slim para selects (búsqueda server-side o resolución por ids) */
+export const getClientOptions = async (
+    { search, limit, ids }: ClientOptionsParams = {}
+): Promise<ClientOption[]> => {
+    const params: Record<string, string | number> = {};
+    if (search) params.search = search;
+    if (limit) params.limit = limit;
+    if (ids && ids.length > 0) params.ids = ids.join(',');
+    const response = await api.get<ClientOption[]>('/clientes/opciones', { params });
     return response.data;
 };
 

@@ -6,7 +6,6 @@ import { FiPlus, FiTrash2, FiBox } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos react-select
 
 import type { ProductOption } from "../api/productApi";
-import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { getProfessionals } from "../api/professionalApi";
 import { createServiceRecord, type ServiceRecordPayload } from "../api/serviceRecordApi";
@@ -14,10 +13,11 @@ import { completeAppointment, getAppointments } from "../api/appointmentApi";
 import { getDisponibilidad } from "../api/disponibilidadApi";
 import type { BusinessHours } from "../api/disponibilidadApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Client, Service, Professional, Appointment } from "../types";
+import type { Service, Professional, Appointment } from "../types";
 import Modal from "./ui/Modal";
 import RemainingLevelSlider from "./ui/RemainingLevelSlider";
-import ProductAsyncSelect, { type ProductSelectOption } from "./ui/ProductAsyncSelect";
+import ClientAsyncSelect from "./ui/ClientAsyncSelect";
+import ProductAsyncSelect,{ type ProductSelectOption } from "./ui/ProductAsyncSelect";
 import { getAvailableSlots, getLocalDayRangeISO } from "../utils/timeSlots";
 import { getTodayDateString, getYesterdayDateString } from "../utils/dates";
 
@@ -77,12 +77,6 @@ interface RegistroFormValues extends Omit<ServiceRecordPayload, "nextTouchupDate
 export default function RegistroModal({ isOpen, onClose, preselectedClientId, preselectedServiceId, preselectedProfessionalId, appointmentId, preselectedServiceDate, pastVisitMode = false }: Props) {
     const queryClient = useQueryClient();
 
-    const { data: clients } = useQuery<Client[]>({
-        queryKey: ['clients'],
-        queryFn: () => getClients(),
-        enabled: isOpen
-    });
-
     const { data: services } = useQuery<Service[]>({
         queryKey: ['services'],
         queryFn: () => getServices(),
@@ -102,7 +96,6 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
     });
 
     // ⭐️ Formateamos los datos para que react-select los entienda ({ label, value })
-    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
     // Estado para el selector independiente de Insumos
@@ -307,14 +300,10 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                             control={control}
                             rules={{ required: 'Seleccionar un cliente es obligatorio' }}
                             render={({ field }) => (
-                                <Select
-                                    {...field}
-                                    options={clientOptions}
-                                    placeholder="Buscar cliente..."
+                                <ClientAsyncSelect
+                                    value={field.value}
                                     styles={selectStyles}
-                                    noOptionsMessage={() => "No se encontró el cliente"}
-                                    value={clientOptions.find(c => c.value === field.value) || null}
-                                    onChange={(val) => field.onChange(val?.value)}
+                                    onChange={field.onChange}
                                 />
                             )}
                         />

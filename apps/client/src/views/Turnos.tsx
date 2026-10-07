@@ -17,7 +17,7 @@ import 'react-tooltip/dist/react-tooltip.css';
 
 import { getAppointments, createAppointment, updateAppointment, cancelAppointment } from '../api/appointmentApi';
 import type { AppointmentFormData as AppointmentApiPayload } from '../api/appointmentApi';
-import { getClients } from '../api/clientApi';
+import ClientAsyncSelect from '../components/ui/ClientAsyncSelect';
 import { getServices } from '../api/serviceApi';
 import { getProfessionals } from '../api/professionalApi';
 import { getDisponibilidad } from '../api/disponibilidadApi';
@@ -25,7 +25,7 @@ import type { BusinessHours } from '../api/disponibilidadApi';
 
 import { handleApiError } from '../api/errorHandler';
 import type { AxiosError } from 'axios';
-import type { Appointment, Client, Service, Professional } from '../types';
+import type { Appointment, Service, Professional } from '../types';
 import Modal from '../components/ui/Modal';
 import RegistroModal from '../components/RegistroModal';
 import AppointmentDetail, { AppointmentDetailFooter } from '../components/AppointmentDetail';
@@ -95,11 +95,6 @@ export default function Turnos() {
         }),
         enabled: !!dateRange.start && !!dateRange.end,
         placeholderData: keepPreviousData,
-    });
-
-    const { data: clientsData } = useQuery<Client[]>({
-        queryKey: ['clients'],
-        queryFn: getClients,
     });
 
     const { data: servicesData } = useQuery<Service[]>({
@@ -186,7 +181,6 @@ export default function Turnos() {
         });
     }, [appointments]);
 
-    const clientOptions = useMemo(() => (clientsData || []).map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })), [clientsData]);
     const serviceOptions = useMemo(() => (servicesData || []).map(s => ({ value: s._id, label: `${s.name} (${s.duration} min)` })), [servicesData]);
     const professionalOptions = useMemo(() => (professionalsData || []).map(p => ({ value: p._id, label: p.name })), [professionalsData]);
 
@@ -596,13 +590,10 @@ export default function Turnos() {
                             control={control}
                             rules={{ required: 'Seleccionar un cliente es obligatorio' }}
                             render={({ field }) => (
-                                <Select
-                                    options={clientOptions}
-                                    placeholder="Buscar cliente..."
+                                <ClientAsyncSelect
+                                    value={field.value}
                                     styles={selectStyles}
-                                    noOptionsMessage={() => "No se encontró el cliente"}
-                                    value={clientOptions.find(c => c.value === field.value) || null}
-                                    onChange={(val) => field.onChange(val?.value)}
+                                    onChange={field.onChange}
                                 />
                             )}
                         />

@@ -5,18 +5,18 @@ import { toast } from "sonner";
 import { FiAlertTriangle, FiClock, FiCalendar, FiUser, FiBox, FiFileText, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 import { getServiceRecords, deleteServiceRecord as deleteServiceRecordApi } from "../api/serviceRecordApi";
-import { getClients } from "../api/clientApi";
 import { getServices } from "../api/serviceApi";
 import { getProfessionals } from "../api/professionalApi";
 import { getMe } from "../api/adminApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Client, Service, Professional, ServiceRecord, Paginated, AdminInfo } from "../types";
+import type { Service, Professional, ServiceRecord, Paginated, AdminInfo } from "../types";
 import { formatCalendarDate } from "../utils/dates";
 import Pagination from "../components/ui/Pagination";
 import EditRegistroModal from "../components/EditRegistroModal";
 import ServiceRecordDetail from "../components/ServiceRecordDetail";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import Modal from "../components/ui/Modal";
+import ClientAsyncSelect from "../components/ui/ClientAsyncSelect";
 import { useTopbar } from "../layouts/TopbarContext";
 
 const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
@@ -80,11 +80,6 @@ export default function Historial() {
         onError: (error) => handleApiError(error, 'No se puede eliminar el registro de visita'),
     });
 
-    const { data: clients } = useQuery<Client[]>({
-        queryKey: ['clients'],
-        queryFn: () => getClients(),
-    });
-
     const { data: services } = useQuery<Service[]>({
         queryKey: ['services'],
         queryFn: () => getServices(),
@@ -95,7 +90,6 @@ export default function Historial() {
         queryFn: () => getProfessionals(),
     });
 
-    const clientOptions = clients?.map(c => ({ value: c._id, label: `${c.firstName} ${c.lastName ?? ''}`.trim() })) || [];
     const serviceOptions = services?.map(s => ({ value: s._id, label: s.name })) || [];
     const professionalOptions = professionals?.map(p => ({ value: p._id, label: p.name })) || [];
 
@@ -139,14 +133,12 @@ export default function Historial() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Cliente</label>
-                        <Select
-                            options={clientOptions}
+                        <ClientAsyncSelect
+                            value={clientId}
                             placeholder="Todos los clientes"
                             styles={selectStyles}
                             isClearable
-                            noOptionsMessage={() => "No se encontró el cliente"}
-                            value={clientOptions.find(c => c.value === clientId) || null}
-                            onChange={(val) => handleClientChange(val?.value ?? '')}
+                            onChange={handleClientChange}
                         />
                     </div>
 

@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { FiSearch, FiUploadCloud, FiUsers, FiAlertCircle, FiAlertTriangle } from 'react-icons/fi';
 import { Link } from 'react-router';
 
-import { getClients } from '../api/clientApi';
-import type { Client } from '../types';
+import { getClientsPage } from '../api/clientApi';
+import type { Client, Paginated } from '../types';
 import ClienteModal from '../components/ClienteModal';
 import CargaMasivaClientesModal from '../components/CargaMasivaClientesModal';
+import Pagination from '../components/ui/Pagination';
 import { useTopbar } from '../layouts/TopbarContext';
+import useDebounce from '../utils/useDebounce';
+
+const PAGE_SIZE = 7; // debe coincidir con el page-size del backend
 
 /**
  * Tinte rotativo determinístico del avatar (docs/design.md §7.10): rota entre 4 parejas
@@ -32,6 +36,7 @@ const getAvatarTint = (id: string): { bg: string; text: string } => {
 
 export default function Clients() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [page, setPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCargaMasivaOpen, setIsCargaMasivaOpen] = useState(false);
 
@@ -42,18 +47,53 @@ export default function Clients() {
         primaryAction: { label: '+ Agregar Cliente', onClick: handleOpenNewCliente },
     });
 
-    const { data: clientes, isLoading, isError } = useQuery<Client[]>({
-        queryKey: ['clients'],
-        queryFn: getClients
+    const debouncedSearch = useDebounce(searchTerm.trim(), 300);
+
+    const { data, isLoading, isError } = useQuery<Paginated<Client>>({
+        queryKey: ['clients', { page, limit: PAGE_SIZE, search: debouncedSearch }],
+        queryFn: () => getClientsPage({ page, limit: PAGE_SIZE, search: debouncedSearch }),
+        placeholderData: keepPreviousData,
     });
 
-    // Lógica de filtrado en tiempo real (client-side — no hay paginación server-side para /clientes)
-    const filteredClientes = clientes?.filter(cliente => {
-        const term = searchTerm.toLowerCase();
-        const fullName = `${cliente.firstName} ${cliente.lastName ?? ''}`.trim().toLowerCase();
-        const phone = cliente.phone || '';
-        return fullName.includes(term) || phone.includes(term);
-    });
+    const items = data?.data ?? [];
+    const total = data?.meta.total ?? 0;
+
+    const handleSearchChange = (value: string) => { setSearchTerm(value); setPage(1); };
+
+    const renderAvatar = (cliente: Client) => {
+        const initials = cliente.firstName.charAt(0).toUpperCase() + (cliente.lastName ?? '').charAt(0).toUpperCase();
+        const tint = getAvatarTint(cliente._id);
+        return (
+            <span className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-serif text-base font-semibold ${tint.bg} ${tint.text}`} aria-hidden>
+                {initials}
+            </span>
+        );
+    };
+
+    const renderContact = (cliente: Client) => (
+        <>
+            {cliente.phone && (
+                <p className="text-text-2 text-[13.5px]">{cliente.phone}</p>
+            )}
+            {cliente.email ? (
+                <a
+                    href={`mailto:${cliente.email}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative z-10 text-accent text-[13.5px] hover:underline break-all"
+                >
+                    {cliente.email}
+                </a>
+            ) : !cliente.phone ? (
+                <span className="text-muted text-[13.5px] italic">Sin datos de contacto</span>
+            ) : null}
+        </>
+    );
+
+    const renderNotesBadge = () => (
+        <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-pill bg-gold-bg text-gold-text text-[11.5px] font-semibold">
+            <FiAlertCircle aria-hidden /> Notas médicas
+        </span>
+    );
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -67,7 +107,7 @@ export default function Clients() {
                         type="text"
                         placeholder="Buscar por nombre, apellido o teléfono..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="w-full pl-10 pr-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text placeholder:text-placeholder focus:outline-none focus:border-accent-rose transition-colors"
                     />
                 </div>
@@ -80,110 +120,102 @@ export default function Clients() {
                 </button>
             </header>
 
-            {/* Tabla de clientes */}
+            {/* Listado de clientes */}
             <div className="bg-surface border border-border rounded-card overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[560px]">
-                        <thead>
-                            <tr className="bg-surface-2 border-b border-border">
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Cliente</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Contacto</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Notas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} className="border-b border-border-soft animate-pulse">
-                                        <td className="px-5 py-[13px]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 shrink-0 rounded-full bg-surface-2" />
-                                                <div className="h-4 bg-surface-2 rounded w-32" />
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-28" /></td>
-                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-20" /></td>
-                                    </tr>
-                                ))
-                            ) : isError ? (
-                                <tr>
-                                    <td colSpan={3} className="px-6 py-10">
-                                        <div className="flex items-center justify-center gap-2 rounded-ctrl bg-alert-bg p-4 text-alert-text">
-                                            <FiAlertTriangle aria-hidden className="shrink-0" />
-                                            <span>No pudimos cargar los clientes en este momento. Intentá de nuevo.</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : clientes?.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} className="px-6 py-14">
-                                        <div className="flex flex-col items-center gap-2 text-muted text-center">
-                                            <FiUsers size={32} aria-hidden />
-                                            <p className="font-semibold text-text">Sin clientes aún</p>
-                                            <p className="text-sm">Agregá tu primer cliente para comenzar.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : filteredClientes?.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} className="px-6 py-14">
-                                        <div className="flex flex-col items-center gap-2 text-muted text-center">
-                                            <FiSearch size={28} aria-hidden />
-                                            <p>No se encontraron clientes con "{searchTerm}".</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                {isLoading ? (
+                    <div className="animate-pulse" aria-busy="true">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 px-5 py-[13px] border-b border-border-soft">
+                                <div className="w-10 h-10 shrink-0 rounded-full bg-surface-2" />
+                                <div className="h-4 bg-surface-2 rounded w-32" />
+                                <div className="h-4 bg-surface-2 rounded w-28 ml-auto" />
+                            </div>
+                        ))}
+                    </div>
+                ) : isError ? (
+                    <div className="px-6 py-10">
+                        <div className="flex items-center justify-center gap-2 rounded-ctrl bg-alert-bg p-4 text-alert-text">
+                            <FiAlertTriangle aria-hidden className="shrink-0" />
+                            <span>No pudimos cargar los clientes en este momento. Intentá de nuevo.</span>
+                        </div>
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="px-6 py-14">
+                        <div className="flex flex-col items-center gap-2 text-muted text-center">
+                            {debouncedSearch !== '' ? (
+                                <>
+                                    <FiSearch size={28} aria-hidden />
+                                    <p>No se encontraron clientes con "{debouncedSearch}".</p>
+                                </>
                             ) : (
-                                filteredClientes?.map((cliente) => {
-                                    const initials = cliente.firstName.charAt(0).toUpperCase() + (cliente.lastName ?? '').charAt(0).toUpperCase();
-                                    const tint = getAvatarTint(cliente._id);
-                                    return (
+                                <>
+                                    <FiUsers size={32} aria-hidden />
+                                    <p className="font-semibold text-text">Sin clientes aún</p>
+                                    <p className="text-sm">Agregá tu primer cliente para comenzar.</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Cards (mobile) */}
+                        <ul className="sm:hidden divide-y divide-border-soft">
+                            {items.map((cliente) => (
+                                <li key={cliente._id} className="relative p-4 flex flex-col gap-2 hover:bg-surface-2 transition-colors">
+                                    <Link
+                                        to={`/clientes/${cliente._id}`}
+                                        className="flex items-center gap-3 min-w-0 after:content-[''] after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent-rose focus-visible:outline-offset-2"
+                                    >
+                                        {renderAvatar(cliente)}
+                                        <span className="font-semibold text-text text-sm break-words min-w-0">
+                                            {`${cliente.firstName} ${cliente.lastName ?? ''}`.trim()}
+                                        </span>
+                                    </Link>
+                                    <div className="flex flex-col gap-1 min-w-0">
+                                        {renderContact(cliente)}
+                                    </div>
+                                    {cliente.medicalNotes && renderNotesBadge()}
+                                </li>
+                            ))}
+                        </ul>
+
+                        {/* Tabla (>= sm) */}
+                        <div className="hidden sm:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-surface-2 border-b border-border">
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Cliente</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Contacto</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((cliente) => (
                                         <tr key={cliente._id} className="relative border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors cursor-pointer">
                                             <td className="px-5 py-[13px]">
                                                 <Link
                                                     to={`/clientes/${cliente._id}`}
                                                     className="flex items-center gap-3 min-w-0 after:content-[''] after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-accent-rose focus-visible:outline-offset-2"
                                                 >
-                                                    <span className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-serif text-base font-semibold ${tint.bg} ${tint.text}`} aria-hidden>
-                                                        {initials}
-                                                    </span>
+                                                    {renderAvatar(cliente)}
                                                     <span className="font-semibold text-text text-sm truncate">
                                                         {`${cliente.firstName} ${cliente.lastName ?? ''}`.trim()}
                                                     </span>
                                                 </Link>
                                             </td>
+                                            <td className="px-5 py-[13px]">{renderContact(cliente)}</td>
                                             <td className="px-5 py-[13px]">
-                                                {cliente.phone && (
-                                                    <p className="text-text-2 text-[13.5px]">{cliente.phone}</p>
-                                                )}
-                                                {cliente.email ? (
-                                                    <a
-                                                        href={`mailto:${cliente.email}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="relative z-10 text-accent text-[13.5px] hover:underline"
-                                                    >
-                                                        {cliente.email}
-                                                    </a>
-                                                ) : !cliente.phone ? (
-                                                    <span className="text-muted text-[13.5px] italic">Sin datos de contacto</span>
-                                                ) : null}
-                                            </td>
-                                            <td className="px-5 py-[13px]">
-                                                {cliente.medicalNotes ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-gold-bg text-gold-text text-[11.5px] font-semibold">
-                                                        <FiAlertCircle aria-hidden /> Notas médicas
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted text-[13.5px]">—</span>
-                                                )}
+                                                {cliente.medicalNotes ? renderNotesBadge() : <span className="text-muted text-[13.5px]">—</span>}
                                             </td>
                                         </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+                    </>
+                )}
             </div>
 
             <ClienteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
