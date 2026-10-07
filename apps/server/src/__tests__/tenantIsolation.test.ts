@@ -136,15 +136,40 @@ describe('EP-08 — Aislamiento multi-tenant', () => {
         asUser(USER_A);
         const res = await request(app).get('/api/clientes');
         expect(res.status).toBe(200);
-        expect(res.body).toHaveLength(1);
-        expect(res.body[0].firstName).toBe('Ana');
+        // UX-92: la ruta responde paginada { data, meta }.
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].firstName).toBe('Ana');
+        expect(res.body.meta.total).toBe(1);
     });
 
     it('GET /api/clientes devuelve solo los clientes del tenant B', async () => {
         asUser(USER_B);
         const res = await request(app).get('/api/clientes');
         expect(res.status).toBe(200);
-        expect(res.body).toHaveLength(2);
+        expect(res.body.data).toHaveLength(2);
+        expect(res.body.meta.total).toBe(2);
+    });
+
+    it('GET /api/clientes/opciones?ids= no devuelve clientes de otro tenant', async () => {
+        asUser(USER_A);
+        const res = await request(app).get(`/api/clientes/opciones?ids=${clientA.id},${clientB1.id}`);
+        expect(res.status).toBe(200);
+        const returned = (res.body as Array<{ _id: string }>).map(c => c._id);
+        expect(returned).toContain(clientA.id);
+        expect(returned).not.toContain(clientB1.id);
+    });
+
+    it('GET /api/clientes/opciones?ids= rechaza con 400 un ID de 12 caracteres', async () => {
+        asUser(USER_A);
+        const res = await request(app).get('/api/clientes/opciones?ids=abcdefghijkl');
+        expect(res.status).toBe(400);
+    });
+
+    it('GET /api/clientes/opciones?search= solo busca dentro del tenant', async () => {
+        asUser(USER_A);
+        const res = await request(app).get('/api/clientes/opciones?search=.*');
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveLength(0);
     });
 
     it('GET /api/servicios devuelve solo los servicios del tenant A', async () => {

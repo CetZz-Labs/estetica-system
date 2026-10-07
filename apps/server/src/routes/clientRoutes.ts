@@ -1,15 +1,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { checkAdminAccess, checkTenantAccess, requireRole } from '../middlewares/authMiddleware';
 import {
     createClient,
     getClients,
+    getClientOptions,
     getClientById,
     updateClient,
     deleteClient,
     createBulkClients
 } from '../controllers/clientController';
 import { validateRequest } from '../middlewares/validateRequest';
+
+const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
 
 const router: Router = Router();
 
@@ -47,7 +50,33 @@ router.post(
 );
 
 // 2. Read All (GET /api/clientes)
-router.get('/', getClients);
+router.get(
+    '/',
+    [
+        query('page').optional().isInt({ min: 1 }).withMessage('page debe ser un entero >= 1'),
+        query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit debe estar entre 1 y 100'),
+        query('search').optional().isString().trim().isLength({ max: 100 }).withMessage('search demasiado largo'),
+        validateRequest
+    ],
+    getClients
+);
+
+// Ruta fija: declarada ANTES de /:id
+router.get(
+    '/opciones',
+    [
+        query('limit').optional().isInt({ min: 1, max: 20 }).withMessage('limit debe estar entre 1 y 20'),
+        query('search').optional().isString().trim().isLength({ max: 100 }).withMessage('search demasiado largo'),
+        query('ids').optional().isString().custom((value: string) => {
+            const ids = value.split(',').map(id => id.trim()).filter(Boolean);
+            if (ids.length > 50) throw new Error('ids admite como máximo 50 elementos');
+            if (!ids.every(id => OBJECT_ID_REGEX.test(id))) throw new Error('ids contiene un ID inválido');
+            return true;
+        }),
+        validateRequest
+    ],
+    getClientOptions
+);
 
 // 3. Read One (GET /api/clientes/:id)
 router.get(

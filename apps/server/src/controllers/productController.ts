@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/Product';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
-
-const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+import { escapeRegex } from '../utils/regex';
 
 // 1. Crear producto
 export const createProduct = async (req: Request, res: Response) => {
