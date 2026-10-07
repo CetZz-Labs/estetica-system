@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FiPlus, FiTrash2, FiBox, FiUser, FiCalendar } from "react-icons/fi";
-import Select, { type StylesConfig } from "react-select";
+import type { StylesConfig } from "react-select";
 
-import { getProducts } from "../api/productApi";
+import { getProductOptions, type ProductOption } from "../api/productApi";
 import { updateServiceRecord } from "../api/serviceRecordApi";
 import { handleApiError } from "../api/errorHandler";
-import type { Product, ServiceRecord } from "../types";
+import type { ServiceRecord } from "../types";
 import { formatCalendarDate } from "../utils/dates";
 import Modal from "./ui/Modal";
 import RemainingLevelSlider from "./ui/RemainingLevelSlider";
+import ProductAsyncSelect, { type ProductSelectOption } from "./ui/ProductAsyncSelect";
 
 interface SelectOption {
     value: string;
@@ -64,20 +65,32 @@ const selectStyles: StylesConfig<SelectOption, false> = {
 export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const queryClient = useQueryClient();
 
-    const { data: inventoryProducts } = useQuery<Product[]>({
-        queryKey: ['products'],
-        queryFn: () => getProducts(),
-        enabled: isOpen
+    // Ids de los insumos ya registrados en la visita: se resuelven en UNA query (max 50, tope del
+    // backend) para conocer currentUnitLevel (checkbox de envase abierto y max del slider).
+    const recordProductIds = useMemo(() => {
+        if (!record) return [] as string[];
+        const ids = (record.productsUsed || []).map(p =>
+            typeof p.product === 'object' && p.product !== null ? p.product._id : p.product
+        );
+        return Array.from(new Set(ids)).slice(0, 50);
+    }, [record]);
+
+    const { data: resolvedOptions } = useQuery<ProductOption[]>({
+        queryKey: ['products', 'options', 'ids', recordProductIds],
+        queryFn: () => getProductOptions({ ids: recordProductIds }),
+        enabled: isOpen && recordProductIds.length > 0
     });
 
-    const productOptions = inventoryProducts?.map(p => ({
-        value: p._id,
-        label: `${p.name} (${p.brand}) - Stock: ${p.stock}`,
-        isDisabled: p.stock === 0
-    })) || [];
-
     // Estado para el selector independiente de Insumos (fuera del form, igual que RegistroModal.tsx).
-    const [selectedProductOption, setSelectedProductOption] = useState<{ value: string, label: string } | null>(null);
+    const [selectedProductOption, setSelectedProductOption] = useState<ProductSelectOption | null>(null);
+    // Insumos agregados en esta sesion de edicion (datos de UI; no viajan a la API).
+    const [addedInfo, setAddedInfo] = useState<Record<string, ProductOption>>({});
+
+    const productInfo = useMemo(() => {
+        const map: Record<string, ProductOption> = {};
+        (resolvedOptions || []).forEach(p => { map[p._id] = p; });
+        return { ...map, ...addedInfo };
+    }, [resolvedOptions, addedInfo]);
     const [quantityToAdd, setQuantityToAdd] = useState<number | ''>('');
 
     const { register, control, handleSubmit, reset, setValue, watch } = useForm<EditRegistroFormValues>({
@@ -92,11 +105,14 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
     const handleCloseModal = () => {
         setSelectedProductOption(null);
         setQuantityToAdd('');
+        setAddedInfo({});
         onClose();
     };
 
     useEffect(() => {
         if (isOpen && record) {
+            const resolvedMap: Record<string, ProductOption> = {};
+            (resolvedOptions || []).forEach(p => { resolvedMap[p._id] = p; });
             reset({
                 notes: record.notes || '',
                 // Cálculo INVERSO (UX-88): el `remainingLevel` guardado (% que queda) se convierte de
@@ -105,7 +121,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                 // original (round-trip sin corromper el dato).
                 productsUsed: (record.productsUsed || []).map(p => {
                     const productId = typeof p.product === 'object' && p.product !== null ? p.product._id : p.product;
-                    const det = inventoryProducts?.find(prod => prod._id === productId);
+                    const det = resolvedMap[productId];
                     const available = p.usedExistingUnit === true ? (det?.currentUnitLevel ?? 100) : 100;
                     const usedPercent = typeof p.remainingLevel === 'number'
                         ? Math.max(0, Math.min(100, available - p.remainingLevel))
@@ -119,7 +135,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                 })
             });
         }
-    }, [isOpen, record, reset, inventoryProducts]);
+    }, [isOpen, record, reset, resolvedOptions]);
 
     const { mutate, isPending } = useMutation({
         mutationFn: (data: EditRegistroFormValues) => updateServiceRecord(record!._id, {
@@ -130,7 +146,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             // el slider en esta edición (fix UX-81): los items con dato histórico llegan con
             // usedPercentTouched: true desde el reset(), así que su valor original se sigue reenviando.
             productsUsed: data.productsUsed.map(({ usedPercentTouched, usedPercent, ...item }) => {
-                const det = inventoryProducts?.find(p => p._id === item.product);
+                const det = productInfo[item.product];
                 const available = item.usedExistingUnit === true
                     ? (det?.currentUnitLevel ?? 100)
                     : 100;
@@ -164,6 +180,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             toast.error('Este insumo ya está en la lista. Eliminalo y agregalo con la cantidad total.');
             return;
         }
+        setAddedInfo(prev => ({ ...prev, [selectedProductOption.value]: selectedProductOption.product }));
         append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
         setSelectedProductOption(null);
         setQuantityToAdd('');
@@ -213,13 +230,10 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
 
                     <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <div className="w-full sm:flex-1">
-                            <Select
-                                options={productOptions}
-                                placeholder="Buscar insumo..."
-                                styles={selectStyles}
-                                noOptionsMessage={() => "Insumo no encontrado o sin stock"}
+                            <ProductAsyncSelect
+                                styles={selectStyles as unknown as StylesConfig<ProductSelectOption, false>}
                                 value={selectedProductOption}
-                                onChange={(val) => setSelectedProductOption(val as { value: string, label: string } | null)}
+                                onChange={setSelectedProductOption}
                             />
                         </div>
 
@@ -232,7 +246,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                     {fields.length > 0 ? (
                         <ul className="space-y-2">
                             {fields.map((field, index) => {
-                                const det = inventoryProducts?.find(p => p._id === field.product);
+                                const det = productInfo[field.product];
                                 // Rango dinámico del slider (UX-89): mismo criterio que RegistroModal.tsx —
                                 // usa watch() (acepta el warning de lint react-hooks/incompatible-library,
                                 // ya presente en otros 3 archivos del proyecto) para poder recortar el valor
@@ -244,9 +258,9 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                     : 100;
                                 return (
                                     <li key={field.id} className="flex flex-col gap-2 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <div className="flex min-w-0 flex-col">
+                                                <span className="truncate text-sm font-medium text-gray-700">{det?.name || 'Insumo'}</span>
                                                 <span className="text-xs text-gray-500">{field.quantity} unidades/ml</span>
                                             </div>
                                             <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><FiTrash2 size={16} /></button>
@@ -259,11 +273,11 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                             value={watchedUsedPercent}
                                         />
                                         {typeof det?.currentUnitLevel === 'number' && (
-                                            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
                                                 <input
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
-                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    className="mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
                                                     {...register(`productsUsed.${index}.usedExistingUnit`, {
                                                         onChange: (e) => {
                                                             // Al tildar, si el % usado ya cargado supera el nuevo tope
@@ -276,7 +290,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                                         },
                                                     })}
                                                 />
-                                                Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock
+                                                <span className="min-w-0">Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock</span>
                                             </label>
                                         )}
                                     </li>

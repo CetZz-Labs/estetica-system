@@ -1,27 +1,22 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FiBox, FiAlertTriangle, FiEdit2, FiTrash2, FiLayers, FiActivity, FiUploadCloud, FiSearch, FiCheckCircle, FiDroplet } from 'react-icons/fi';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { FiBox, FiAlertTriangle, FiEdit2, FiTrash2, FiLayers, FiActivity, FiUploadCloud, FiSearch, FiCheckCircle } from 'react-icons/fi';
 import { toast } from 'sonner';
 
-import { getProducts, deleteProduct as deleteProductApi } from '../api/productApi';
+import { getProductsPage, getProductStats, deleteProduct as deleteProductApi } from '../api/productApi';
+import type { ProductStats } from '../api/productApi';
 import { handleApiError } from '../api/errorHandler';
-import type { Product } from '../types';
+import type { Paginated, Product } from '../types';
 import ProductoModal from '../components/ProductoModal';
 import AjusteStockModal from '../components/AjusteStockModal';
 import CargaMasivaModal from '../components/CargaMasivaModal';
+import StockIndicator from '../components/StockIndicator';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import Pagination from '../components/ui/Pagination';
 import { useTopbar } from '../layouts/TopbarContext';
+import useDebounce from '../utils/useDebounce';
 
-/**
- * Tono Trifecta para el indicador "en vivo" de `currentUnitLevel` (UX-81): informativo,
- * no participa del control de stock. Umbrales alineados a los tokens de estado ya usados
- * en esta vista (sage = buen nivel, gold = medio, alert = crítico).
- */
-const getUnitLevelTone = (level: number): { badgeText: string; barFill: string } => {
-    if (level > 50) return { badgeText: 'text-sage-text', barFill: 'bg-sage' };
-    if (level >= 20) return { badgeText: 'text-gold-text', barFill: 'bg-gold' };
-    return { badgeText: 'text-alert-text', barFill: 'bg-alert-text' };
-};
+const PAGE_SIZE = 7;
 
 export default function Inventario() {
 
@@ -32,6 +27,7 @@ export default function Inventario() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterLowStock, setFilterLowStock] = useState(false);
+    const [page, setPage] = useState(1);
     const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
     const handleNewProduct = () => { setSelectedProduct(null); setIsProductModalOpen(true); };
@@ -41,9 +37,17 @@ export default function Inventario() {
         primaryAction: { label: '+ Nuevo Producto', onClick: handleNewProduct },
     });
 
-    const { data: products, isLoading, isError } = useQuery<Product[]>({
-        queryKey: ['products'],
-        queryFn: getProducts
+    const debouncedSearch = useDebounce(searchTerm.trim(), 300);
+
+    const { data, isLoading, isError } = useQuery<Paginated<Product>>({
+        queryKey: ['products', 'list', { page, limit: PAGE_SIZE, search: debouncedSearch, lowStock: filterLowStock }],
+        queryFn: () => getProductsPage({ page, limit: PAGE_SIZE, search: debouncedSearch, lowStock: filterLowStock }),
+        placeholderData: keepPreviousData,
+    });
+
+    const { data: stats, isLoading: isLoadingStats } = useQuery<ProductStats>({
+        queryKey: ['products', 'stats'],
+        queryFn: getProductStats,
     });
 
     const { mutate: deleteProduct, isPending: isDeleting } = useMutation({
@@ -52,31 +56,76 @@ export default function Inventario() {
             toast.success('Producto eliminado');
             queryClient.invalidateQueries({ queryKey: ['products'] });
             setConfirmDelete(null);
+            // Si se eliminó el último ítem de una página > 1, volver a la anterior.
+            if (items.length === 1 && page > 1) setPage(page - 1);
         },
         onError: (error) => handleApiError(error, 'No se puede eliminar el producto')
     });
 
-    const filteredProducts = products?.filter(product => {
-        const term = searchTerm.toLowerCase();
-        const matchNameBrand = product.name.toLowerCase().includes(term) || (product.brand?.toLowerCase() || '').includes(term);
-        const matchStock = filterLowStock ? product.stock <= 5 : true;
-        return matchNameBrand && matchStock;
-    });
+    const items = data?.data ?? [];
+    const total = data?.meta.total ?? 0;
+    const hasActiveFilters = debouncedSearch !== '' || filterLowStock;
 
-    const totalProducts = products?.length || 0;
-    const outOfStock = products?.filter(p => p.stock === 0).length || 0;
-    const lowStock = products?.filter(p => p.stock > 0 && p.stock <= 5).length || 0;
+    const totalProducts = stats?.total ?? 0;
+    const outOfStock = stats?.outOfStock ?? 0;
+    const lowStock = stats?.lowStock ?? 0;
+
+    const handleSearchChange = (value: string) => { setSearchTerm(value); setPage(1); };
+    const handleLowStockChange = (value: boolean) => { setFilterLowStock(value); setPage(1); };
 
     const handleEditProduct = (product: Product) => { setSelectedProduct(product); setIsProductModalOpen(true); };
     const handleAdjustStock = (product: Product) => { setSelectedProduct(product); setIsStockModalOpen(true); };
     const handleDeleteProduct = (id: string, name: string) => { setConfirmDelete({ id, name }); };
+
+    const renderStatusBadge = (isReponer: boolean) => (
+        isReponer ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-pill bg-alert-bg text-alert-text text-[11.5px] font-semibold">
+                <FiAlertTriangle aria-hidden /> Reponer
+            </span>
+        ) : (
+            <span className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-pill bg-sage-bg text-sage-text text-[11.5px] font-semibold">
+                <FiCheckCircle aria-hidden /> En stock
+            </span>
+        )
+    );
+
+    const renderActions = (product: Product) => (
+        <>
+            <button
+                type="button"
+                onClick={() => handleAdjustStock(product)}
+                title="Ajustar stock"
+                className="px-3 py-1.5 text-xs font-semibold bg-surface border border-[var(--dotted)] text-wine rounded-ctrl hover:bg-hover-soft transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+                <FiActivity aria-hidden /> Stock
+            </button>
+            <button
+                type="button"
+                onClick={() => handleEditProduct(product)}
+                title="Editar detalles"
+                aria-label={`Editar ${product.name}`}
+                className="p-1.5 text-text-3 hover:text-text transition-colors cursor-pointer"
+            >
+                <FiEdit2 size={16} aria-hidden />
+            </button>
+            <button
+                type="button"
+                onClick={() => handleDeleteProduct(product._id, product.name)}
+                title="Eliminar producto"
+                aria-label={`Eliminar ${product.name}`}
+                className="p-1.5 text-text-3 hover:text-alert-text transition-colors cursor-pointer"
+            >
+                <FiTrash2 size={16} aria-hidden />
+            </button>
+        </>
+    );
 
     return (
         <div className="max-w-6xl mx-auto">
 
             {/* KPI cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {isLoading ? (
+                {isLoadingStats ? (
                     Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="bg-surface border border-border rounded-card p-6 flex items-center gap-4 animate-pulse">
                             <div className="w-11 h-11 rounded-ctrl bg-surface-2 shrink-0" />
@@ -129,7 +178,7 @@ export default function Inventario() {
                         type="text"
                         placeholder="Buscar por nombre o marca..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="w-full pl-10 pr-3.5 py-2.5 bg-bg border border-border rounded-ctrl text-sm text-text placeholder:text-placeholder focus:outline-none focus:border-accent-rose transition-colors"
                     />
                 </div>
@@ -139,7 +188,7 @@ export default function Inventario() {
                             type="checkbox"
                             className="w-4 h-4 rounded border-border text-accent focus:ring-accent-rose cursor-pointer"
                             checked={filterLowStock}
-                            onChange={(e) => setFilterLowStock(e.target.checked)}
+                            onChange={(e) => handleLowStockChange(e.target.checked)}
                         />
                         <span>Solo stock bajo (≤ 5)</span>
                     </label>
@@ -153,145 +202,119 @@ export default function Inventario() {
                 </div>
             </div>
 
-            {/* Tabla de productos */}
+            {/* Listado de productos */}
             <div className="bg-surface border border-border rounded-card overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[640px]">
-                        <thead>
-                            <tr className="bg-surface-2 border-b border-border">
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Producto</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Marca</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase text-center">Stock</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Estado</th>
-                                <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                Array.from({ length: 4 }).map((_, i) => (
-                                    <tr key={i} className="border-b border-border-soft animate-pulse">
-                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-3/4" /></td>
-                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-1/2" /></td>
-                                        <td className="px-5 py-[13px]"><div className="h-4 bg-surface-2 rounded w-10 mx-auto" /></td>
-                                        <td className="px-5 py-[13px]"><div className="h-6 bg-surface-2 rounded-pill w-20" /></td>
-                                        <td className="px-5 py-[13px] flex justify-end"><div className="h-8 bg-surface-2 rounded w-24" /></td>
-                                    </tr>
-                                ))
-                            ) : isError ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-10">
-                                        <div className="flex items-center justify-center gap-2 rounded-ctrl bg-alert-bg p-4 text-alert-text">
-                                            <FiAlertTriangle aria-hidden className="shrink-0" />
-                                            <span>No pudimos cargar el inventario en este momento. Intentá de nuevo.</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : products?.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-14">
-                                        <div className="flex flex-col items-center gap-2 text-muted text-center">
-                                            <FiBox size={32} aria-hidden />
-                                            <p className="font-semibold text-text">No hay productos registrados</p>
-                                            <p className="text-sm">Agregá tu primer producto para comenzar.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : filteredProducts?.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-14">
-                                        <div className="flex flex-col items-center gap-2 text-muted text-center">
-                                            <FiSearch size={28} aria-hidden />
-                                            <p>No se encontraron productos con los filtros aplicados.</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                {isLoading ? (
+                    <div className="animate-pulse" aria-busy="true">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 px-5 py-[13px] border-b border-border-soft">
+                                <div className="h-4 bg-surface-2 rounded w-1/3" />
+                                <div className="h-4 bg-surface-2 rounded w-1/4" />
+                                <div className="h-6 bg-surface-2 rounded-pill w-20 ml-auto" />
+                            </div>
+                        ))}
+                    </div>
+                ) : isError ? (
+                    <div className="px-6 py-10">
+                        <div className="flex items-center justify-center gap-2 rounded-ctrl bg-alert-bg p-4 text-alert-text">
+                            <FiAlertTriangle aria-hidden className="shrink-0" />
+                            <span>No pudimos cargar el inventario en este momento. Intentá de nuevo.</span>
+                        </div>
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="px-6 py-14">
+                        <div className="flex flex-col items-center gap-2 text-muted text-center">
+                            {hasActiveFilters ? (
+                                <>
+                                    <FiSearch size={28} aria-hidden />
+                                    <p>No se encontraron productos con los filtros aplicados.</p>
+                                </>
                             ) : (
-                                filteredProducts?.map((product) => {
-                                    const isOutOfStock = product.stock === 0;
-                                    const isLowStock = product.stock > 0 && product.stock <= 5;
-                                    const isReponer = isOutOfStock || isLowStock;
-                                    const hasUnitLevel = typeof product.currentUnitLevel === 'number';
-                                    const unitLevelTone = hasUnitLevel ? getUnitLevelTone(product.currentUnitLevel as number) : null;
-                                    return (
-                                        <tr key={product._id} className="border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors">
-                                            <td className="px-5 py-[13px]">
-                                                <p className="font-semibold text-text text-sm">{product.name}</p>
-                                                {product.description && (
-                                                    <p className="text-muted text-xs mt-0.5 truncate max-w-[180px] sm:max-w-xs">{product.description}</p>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-[13px]">
-                                                <span className="text-muted text-[13.5px]">{product.brand}</span>
-                                            </td>
-                                            <td className="px-5 py-[13px] text-center">
-                                                <span className={`text-[13.5px] font-semibold ${isReponer ? 'text-alert-text' : 'text-text'}`}>
-                                                    {product.stock} {product.stock === 1 ? 'u.' : 'u.'}
-                                                </span>
-                                                {hasUnitLevel && unitLevelTone && (
-                                                    <div className="mt-1.5 flex flex-col items-center gap-1">
-                                                        <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold ${unitLevelTone.badgeText}`}>
-                                                            <FiDroplet aria-hidden size={11} />
-                                                            Envase abierto: {product.currentUnitLevel}%
-                                                        </span>
-                                                        <div
-                                                            className="w-16 h-1 rounded-pill bg-dotted overflow-hidden"
-                                                            role="progressbar"
-                                                            aria-valuenow={product.currentUnitLevel}
-                                                            aria-valuemin={0}
-                                                            aria-valuemax={100}
-                                                            aria-label={`Nivel del envase abierto: ${product.currentUnitLevel}%`}
-                                                        >
-                                                            <div className={`h-full rounded-pill ${unitLevelTone.barFill}`} style={{ width: `${product.currentUnitLevel}%` }} />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-[13px]">
-                                                {isReponer ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-alert-bg text-alert-text text-[11.5px] font-semibold">
-                                                        <FiAlertTriangle aria-hidden /> Reponer
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-sage-bg text-sage-text text-[11.5px] font-semibold">
-                                                        <FiCheckCircle aria-hidden /> En stock
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-[13px]">
-                                                <div className="flex justify-end items-center gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleAdjustStock(product)}
-                                                        title="Ajustar stock"
-                                                        className="px-3 py-1.5 text-xs font-semibold bg-surface border border-[var(--dotted)] text-wine rounded-ctrl hover:bg-hover-soft transition-colors flex items-center gap-1.5 cursor-pointer"
-                                                    >
-                                                        <FiActivity aria-hidden /> Stock
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleEditProduct(product)}
-                                                        title="Editar detalles"
-                                                        className="p-1.5 text-text-3 hover:text-text transition-colors cursor-pointer"
-                                                    >
-                                                        <FiEdit2 size={16} aria-hidden />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDeleteProduct(product._id, product.name)}
-                                                        title="Eliminar producto"
-                                                        className="p-1.5 text-text-3 hover:text-alert-text transition-colors cursor-pointer"
-                                                    >
-                                                        <FiTrash2 size={16} aria-hidden />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
+                                <>
+                                    <FiBox size={32} aria-hidden />
+                                    <p className="font-semibold text-text">No hay productos registrados</p>
+                                    <p className="text-sm">Agregá tu primer producto para comenzar.</p>
+                                </>
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Cards (mobile) */}
+                        <ul className="sm:hidden divide-y divide-border-soft">
+                            {items.map((product) => {
+                                const isReponer = product.stock <= 5;
+                                return (
+                                    <li key={product._id} className="p-4 flex flex-col gap-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-text text-sm break-words">{product.name}</p>
+                                                {product.brand && <p className="text-muted text-[13px] break-words">{product.brand}</p>}
+                                            </div>
+                                            {renderStatusBadge(isReponer)}
+                                        </div>
+                                        <div>
+                                            <span className={`text-[13.5px] font-semibold ${isReponer ? 'text-alert-text' : 'text-text'}`}>
+                                                {product.stock} u.
+                                            </span>
+                                            <StockIndicator product={product} className="mt-1.5" />
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            {renderActions(product)}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        {/* Tabla (>= sm) */}
+                        <div className="hidden sm:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-surface-2 border-b border-border">
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Producto</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Marca</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase text-center">Stock</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Estado</th>
+                                        <th className="px-5 py-3.5 text-[11.5px] font-semibold tracking-wide text-muted uppercase text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((product) => {
+                                        const isReponer = product.stock <= 5;
+                                        return (
+                                            <tr key={product._id} className="border-b border-border-soft last:border-0 hover:bg-surface-2 transition-colors">
+                                                <td className="px-5 py-[13px]">
+                                                    <p className="font-semibold text-text text-sm">{product.name}</p>
+                                                    {product.description && (
+                                                        <p className="text-muted text-xs mt-0.5 truncate max-w-[180px] sm:max-w-xs">{product.description}</p>
+                                                    )}
+                                                </td>
+                                                <td className="px-5 py-[13px]">
+                                                    <span className="text-muted text-[13.5px]">{product.brand}</span>
+                                                </td>
+                                                <td className="px-5 py-[13px] text-center">
+                                                    <span className={`text-[13.5px] font-semibold ${isReponer ? 'text-alert-text' : 'text-text'}`}>
+                                                        {product.stock} u.
+                                                    </span>
+                                                    <StockIndicator product={product} className="mt-1.5 items-center" />
+                                                </td>
+                                                <td className="px-5 py-[13px]">{renderStatusBadge(isReponer)}</td>
+                                                <td className="px-5 py-[13px]">
+                                                    <div className="flex justify-end items-center gap-1.5">
+                                                        {renderActions(product)}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+                    </>
+                )}
             </div>
 
             <ProductoModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} productToEdit={selectedProduct} />
