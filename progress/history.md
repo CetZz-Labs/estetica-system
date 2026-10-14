@@ -1792,3 +1792,18 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 42 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **APPROVED** → `progress/reviews/review_UX-92.md`. UX-92 → **done**.
 * **Pendiente humano:** probar en navegador (cards de Clientes en mobile; crear visita, filtrar historial y crear turno eligiendo cliente con el nuevo select; abrir "registrar visita" desde ficha/turno con cliente preseleccionado).
 * **Deuda fuera de alcance:** `getAppointments` sin `.limit` (acotado por rango de fechas opcional), `serviceRecordController:504` y el `.distinct` de `getPendingRegistration`. Nit: espacio faltante en `RegistroModal.tsx:20`.
+
+---
+
+## 2026-10-14 — REP-1: Reportes de turnos (primer tramo de EP-18)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/REP-1-reportes-turnos` (desde `development`). Sin commitear al cierre de sesión.
+* **Objetivo:** pedido del usuario — gráficos de medición para los clientes (turnos, días más ocupados, productos más usados, etc.). Plan en 5 tramos: REP-1 (base + turnos), REP-2 (ocupación/servicios, EP-18), REP-3 (productos, EP-20), REP-4 (clientes, EP-21), REP-5 (ingresos, EP-19). **Precios/ingresos quedan para después por decisión del usuario** (ni `Service` ni `ServiceRecord` tienen precio: requiere campo `price`, snapshot en la visita y migración).
+* **Decisión:** `recharts` aprobado por el usuario como única dependencia nueva (3.10.1).
+* **Backend:** `GET /api/reportes/turnos?from&to` solo ADMIN → `{range, totals, byDay, byWeekday}`; rango máx 366 días, límites en medianoche local del tenant, `$facet` con `timezone`, series rellenas con ceros; tests unitarios + IDOR/RBAC/TZ.
+* **Frontend:** vista `/reportes` (ruta y nav solo ADMIN), presets Semana/Mes/3 meses/rango, 4 KPIs, 3 gráficos recharts con toggle Gráfico/Tabla, 4 estados.
+* **Docs:** patrón **P18** en `patterns-backend.md` (aggregate + TZ), CHANGELOG.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 54 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-1.md`. REP-1 → **done**.
+* **Pendiente humano:** probar `/reportes` en navegador con ADMIN y turnos reales (360px incluido).
+* **Deuda / notas:** `getTodayDateString` usa la fecha del navegador, no la tz del tenant (los presets pueden desfasarse un día en el borde). Bundle único de 2.135 kB (641 kB gzip) con recharts: evaluar code-splitting de rutas (`React.lazy`).

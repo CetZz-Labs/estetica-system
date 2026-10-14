@@ -159,6 +159,7 @@ export default function AppLayout() {
                                 <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">Equipo</p>
                             </div>
                             <SidebarNavLink to="/profesionales" onClick={closeMenu}>Profesionales</SidebarNavLink>
+                            <SidebarNavLink to="/reportes" onClick={closeMenu}>Reportes</SidebarNavLink>
                         </>
                     )}
 

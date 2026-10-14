@@ -17,6 +17,7 @@ import invitationRoutes from './routes/invitationRoutes';
 import disponibilidadRoutes from './routes/disponibilidadRoutes';
 import notificationSettingsRoutes from './routes/notificationSettingsRoutes';
 import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes';
+import reportRoutes from './routes/reportRoutes';
 
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
@@ -76,6 +77,8 @@ app.use('/api/disponibilidad', checkAdminAccess, checkTenantAccess, requireRole(
 app.use('/api/notificaciones/push-subscription', pushSubscriptionRoutes);
 // EP-17: /api/notificaciones restringido solo a rol ADMIN (configuración SMTP + recordatorios)
 app.use('/api/notificaciones', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), notificationSettingsRoutes);
+// REP-1: /api/reportes restringido solo a rol ADMIN (SRS HU-12-01, RF-033)
+app.use('/api/reportes', checkAdminAccess, checkTenantAccess, requireRole('ADMIN'), reportRoutes);
 // EP-12 fix: appointmentRoutes aplica checkAdminAccess+checkTenantAccess internamente — sin doble middleware
 app.use('/api/turnos', appointmentRoutes);
 
