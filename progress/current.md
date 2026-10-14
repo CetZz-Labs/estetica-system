@@ -9,6 +9,9 @@
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
+## Aprobación pendiente antes de mergear
+- **Pila REP-1 → REP-4 lista, SIN mergear.** El usuario debe probar `/reportes` en el navegador (ADMIN, datos reales, descargas de Excel, 360px) y aprobar manualmente. Ramas apiladas: `feature/REP-1-reportes-turnos` (68d7d0e) → `feature/REP-2-reportes-ocupacion-servicios` (90abf35) → `feature/REP-3-reportes-productos` (567b69b) → `feature/REP-4-reportes-clientes` (90e4378). Merge en ese orden hacia `development`. No hay push hecho.
+
 ## Estado del Backlog
 - REP-1..4 → **done** (ver `progress/history.md`). Cubren EP-18, EP-20 y EP-21 (pendiente decidir si se cierran formalmente en `feature_list.json`).
 - REP-5 (ingresos, EP-19): requiere precio en `Service` + snapshot en `ServiceRecord` + migración (el usuario lo difirió).
