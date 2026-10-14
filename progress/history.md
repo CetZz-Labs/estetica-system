@@ -1832,3 +1832,16 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 77 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-3.md`; confirmó que no hay inyección de fórmulas (`aoa_to_sheet` guarda strings como texto). REP-3 → **done**.
 * **Pendiente humano:** probar `/reportes` y la descarga del Excel en navegador.
 * **Nota:** `/inventario` guarda sus filtros en estado local y no acepta `lowStock` por URL; el enlace "y N más" va sin filtro (mejora posible aparte).
+
+---
+
+## 2026-10-14 — REP-4: Reportes de retención de clientes (EP-21)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/REP-4-reportes-clientes` (apilada sobre REP-3, commit 567b69b).
+* **Backend:** `GET /api/reportes/clientes` solo ADMIN → `totals` (clientsServed, newClients = sin visita previa al rango, returningClients = clientsServed − newClients, returnRate 0..1), `avgVisitIntervalDays` (pares de visitas consecutivas cuya posterior cae en el rango, por sumas telescópicas sin cargar visitas a memoria; verificado a mano por el reviewer: 9,5 d en el ejemplo) e `inactive` (activos con última visita > 90 días, independiente del rango, máx 20 con total real). `INACTIVE_THRESHOLD_DAYS` exportada; 3 pipelines acotados por tenant sobre el índice `{tenantId,client,serviceDate}`; 11 tests nuevos.
+* **Frontend:** `ClientsSection` (KPIs, barra apilada nuevos/recurrentes con tabla, tabla de inactivos con badge trifecta y `<Link>` a `/clientes/:id`, exportación `.xlsx`). Nuevos `utils/exportXlsx.ts` (`downloadXlsx`) y `exportReportClients.ts`; `exportReportProducts.ts` refactorizado sobre el helper (mismo output); `ReportKpiCard` acepta valor string y `compact`.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 88 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-4.md`. REP-4 → **done**.
+* **Pendiente humano:** probar la sección Clientes y la descarga del Excel en navegador.
+* **Discrepancia preexistente (fuera de alcance):** `Client.lastName` sigue `required: true` en `models/Client.ts:18` aunque el CHANGELOG de UX-73 lo declara opcional. El reporte lo tolera con `$ifNull`. Pendiente: alinear schema o corregir el CHANGELOG (feature aparte).
+* **Estado de EP-18/20/21:** REP-1..4 cubren los criterios de EP-18, EP-20 y EP-21. Quedan por marcar/cerrar formalmente en `feature_list.json` (pendiente de decisión del usuario). EP-19 (ingresos) requiere precio en servicios.

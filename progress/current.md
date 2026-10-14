@@ -2,20 +2,19 @@
 
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-10-14
-- **Sesión:** en curso — REP-3 in_progress
-- **Rama:** `feature/REP-3-reportes-productos` (apilada sobre REP-2, commit 90abf35)
-- **Feature en curso:** REP-3 — Reportes: productos (EP-20)
+- **Sesión:** cerrada — REP-4 done
+- **Rama:** `feature/REP-4-reportes-clientes` (pila REP-1 → REP-2 → REP-3 → REP-4; sin mergear)
+- **Feature en curso:** ninguna
 
 ## Plan de Acción
-- Sin explorer nuevo: Product no tiene unidad (`quantity` = envases) y `LOW_STOCK_THRESHOLD = 5` en productController.
-- [ ] implementer backend → `progress/implements/impl_REP-3-backend.md`
-- [ ] implementer frontend → `progress/implements/impl_REP-3-frontend.md`
-- [ ] builds + lint → reviewer → `progress/reviews/review_REP-3.md`
-- [ ] history, current, archivar, commit.
+_(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
-## Contrato de API (REP-3)
-`GET /api/reportes/productos?from&to` → `{ range, totals:{productsUsed,usages,unitsConsumed}, topProducts:[{productId,name,brand,usages,unitsConsumed,stock}] (top 10), lowStock:{threshold, total, items:[{productId,name,brand,stock}] (máx 20, stock asc)} }`. Fuente ServiceRecord.productsUsed (serviceDate UTC); unitsConsumed = suma de quantity excluyendo ítems con usedExistingUnit=true (no tocan stock).
+## Estado del Backlog
+- REP-1..4 → **done** (ver `progress/history.md`). Cubren EP-18, EP-20 y EP-21 (pendiente decidir si se cierran formalmente en `feature_list.json`).
+- REP-5 (ingresos, EP-19): requiere precio en `Service` + snapshot en `ServiceRecord` + migración (el usuario lo difirió).
+- Pendientes: UX-34, UX-35, EP-22 (exportación general), EP-23 a EP-25.
 
 ## Bloqueos y Riesgos Conocidos
-- Validación humana pendiente: `/reportes` (REP-1/2), UX-92, C9 de UX-91.
-- Deuda: bundle grande; `getTodayDateString` sin tz del tenant; 4 tests preexistentes de POST /api/registros.
+- **Validación humana pendiente:** `/reportes` completo (4 secciones) y descargas de Excel en navegador; UX-92; C9 de UX-91.
+- **Deuda:** `Client.lastName` required vs CHANGELOG UX-73; bundle único grande (code-splitting); `getTodayDateString` sin tz del tenant; contraste `text-white` en heatmap; `getAppointments` sin `.limit`; 4 tests preexistentes de POST /api/registros.
+- **Recordatorio operativo:** ningún subagente usa `git stash`; verificar `git stash list` vacío.

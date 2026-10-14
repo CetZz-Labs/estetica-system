@@ -100,3 +100,23 @@ export const getProductsReport = async (from: string, to: string): Promise<Produ
     const { data } = await api.get('/reportes/productos', { params: { from, to } });
     return data;
 };
+
+export interface InactiveClient {
+    clientId: string;
+    name: string;
+    lastVisit: string; // YYYY-MM-DD
+    daysSince: number;
+    visits: number;
+}
+
+export interface ClientsReport {
+    range: { from: string; to: string };
+    totals: { clientsServed: number; newClients: number; returningClients: number; returnRate: number }; // returnRate 0..1
+    avgVisitIntervalDays: number | null;
+    inactive: { thresholdDays: number; total: number; items: InactiveClient[] };
+}
+
+export const getClientsReport = async (from: string, to: string): Promise<ClientsReport> => {
+    const { data } = await api.get('/reportes/clientes', { params: { from, to } });
+    return data;
+};

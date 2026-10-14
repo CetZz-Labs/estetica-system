@@ -21,6 +21,7 @@ import ReportKpiCard from '../components/reports/ReportKpiCard';
 import OccupancySection from '../components/reports/OccupancySection';
 import ServicesSection from '../components/reports/ServicesSection';
 import ProductsSection from '../components/reports/ProductsSection';
+import ClientsSection from '../components/reports/ClientsSection';
 import { AXIS_TICK, TOOLTIP_STYLE, WEEKDAY_LABELS } from '../components/reports/reportShared';
 import type { ViewMode } from '../components/reports/reportShared';
 import { useTopbar } from '../layouts/TopbarContext';
@@ -193,6 +194,7 @@ export default function Reportes() {
             <OccupancySection from={range.from} to={range.to} enabled={canQuery} />
             <ServicesSection from={range.from} to={range.to} enabled={canQuery} />
             <ProductsSection from={range.from} to={range.to} enabled={canQuery} />
+            <ClientsSection from={range.from} to={range.to} enabled={canQuery} />
         </>
     );
 

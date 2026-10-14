@@ -314,3 +314,123 @@ export const getProductsReport = async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Error interno del servidor' });
     }
 };
+
+export const INACTIVE_THRESHOLD_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// REP-4: clientes. Fuente ServiceRecord (serviceDate date-only UTC, P18). Tres pipelines acotados por tenant e
+// índice {tenantId, client, serviceDate}: (1) métricas del rango, (2) inactivos (independiente del rango).
+export const getClientsReport = async (req: Request, res: Response) => {
+    try {
+        const from = String(req.query.from);
+        const to = String(req.query.to);
+
+        const start = startOfDayInTimezone(from, 'UTC');
+        const endExclusive = startOfDayInTimezone(addDays(to, 1), 'UTC');
+        const tenantId = new Types.ObjectId(String(req.tenantId));
+
+        const now = new Date();
+        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const cutoff = new Date(today.getTime() - INACTIVE_THRESHOLD_DAYS * DAY_MS);
+
+        const [rangeAgg, inactiveAgg] = await Promise.all([
+            ServiceRecord.aggregate([
+                { $match: { tenantId, serviceDate: { $gte: start, $lt: endExclusive } } },
+                { $group: { _id: '$client', visits: { $sum: 1 }, first: { $min: '$serviceDate' }, last: { $max: '$serviceDate' } } },
+                // Última visita previa al rango (limit 1 sobre el índice), por cliente del rango.
+                {
+                    $lookup: {
+                        from: 'servicerecords',
+                        localField: '_id',
+                        foreignField: 'client',
+                        pipeline: [
+                            { $match: { tenantId, serviceDate: { $lt: start } } },
+                            { $sort: { serviceDate: -1 } },
+                            { $limit: 1 },
+                            { $project: { _id: 0, serviceDate: 1 } }
+                        ],
+                        as: 'prior'
+                    }
+                },
+                {
+                    // Suma telescópica: Σ gaps consecutivos = última del rango - ancla (visita previa o primera del rango).
+                    $project: {
+                        isNew: { $eq: [{ $size: '$prior' }, 0] },
+                        spanMs: { $subtract: ['$last', { $ifNull: [{ $arrayElemAt: ['$prior.serviceDate', 0] }, '$first'] }] },
+                        pairs: { $cond: [{ $gt: [{ $size: '$prior' }, 0] }, '$visits', { $subtract: ['$visits', 1] }] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        clientsServed: { $sum: 1 },
+                        newClients: { $sum: { $cond: ['$isNew', 1, 0] } },
+                        spanMs: { $sum: '$spanMs' },
+                        pairs: { $sum: '$pairs' }
+                    }
+                }
+            ]),
+            ServiceRecord.aggregate([
+                { $match: { tenantId } },
+                { $group: { _id: '$client', visits: { $sum: 1 }, last: { $max: '$serviceDate' } } },
+                { $match: { last: { $lt: cutoff } } },
+                {
+                    $lookup: {
+                        from: 'clients',
+                        let: { cid: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$_id', '$$cid'] }, tenantId, isActive: true } },
+                            { $project: { firstName: 1, lastName: 1 } }
+                        ],
+                        as: 'cli'
+                    }
+                },
+                { $unwind: '$cli' },
+                {
+                    $project: {
+                        _id: 0,
+                        clientId: '$_id',
+                        name: { $trim: { input: { $concat: ['$cli.firstName', ' ', { $ifNull: ['$cli.lastName', ''] }] } } },
+                        last: 1,
+                        visits: 1,
+                        daysSince: { $floor: { $divide: [{ $subtract: [today, '$last'] }, DAY_MS] } }
+                    }
+                },
+                {
+                    $facet: {
+                        total: [{ $count: 'n' }],
+                        items: [{ $sort: { daysSince: -1, name: 1 } }, { $limit: 20 }]
+                    }
+                }
+            ])
+        ]);
+
+        const t = rangeAgg[0];
+        const clientsServed: number = t?.clientsServed ?? 0;
+        const newClients: number = t?.newClients ?? 0;
+        const returningClients = clientsServed - newClients;
+        const returnRate = clientsServed === 0 ? 0 : Math.round((returningClients / clientsServed) * 10000) / 10000;
+        const pairs: number = t?.pairs ?? 0;
+        const avgVisitIntervalDays = pairs > 0 ? Math.round(((t.spanMs / DAY_MS) / pairs) * 10) / 10 : null;
+
+        const inactive = inactiveAgg[0];
+        const items = ((inactive?.items ?? []) as { clientId: Types.ObjectId; name: string; last: Date; visits: number; daysSince: number }[])
+            .map(i => ({
+                clientId: String(i.clientId),
+                name: i.name,
+                lastVisit: i.last.toISOString().slice(0, 10),
+                daysSince: i.daysSince,
+                visits: i.visits
+            }));
+
+        return res.status(200).json({
+            range: { from, to },
+            totals: { clientsServed, newClients, returningClients, returnRate },
+            avgVisitIntervalDays,
+            inactive: { thresholdDays: INACTIVE_THRESHOLD_DAYS, total: inactive?.total?.[0]?.n ?? 0, items }
+        });
+    } catch (error) {
+        console.error('Error al generar reporte de clientes:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+};

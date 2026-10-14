@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from 'express-validator';
 import { validateRequest } from '../middlewares/validateRequest';
-import { getAppointmentsReport, getOccupancyReport, getServicesReport, getProductsReport } from '../controllers/reportController';
+import { getAppointmentsReport, getOccupancyReport, getServicesReport, getProductsReport, getClientsReport } from '../controllers/reportController';
 import { validateReportRange } from '../utils/reportRange';
 
 const router: Router = Router();
@@ -23,5 +23,6 @@ router.get('/turnos', rangeValidation, getAppointmentsReport);
 router.get('/ocupacion', rangeValidation, getOccupancyReport);
 router.get('/servicios', rangeValidation, getServicesReport);
 router.get('/productos', rangeValidation, getProductsReport);
+router.get('/clientes', rangeValidation, getClientsReport);
 
 export default router;

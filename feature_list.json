@@ -1724,6 +1724,20 @@
         "Sección Productos con gráfico, tabla alternativa y botón Exportar a .xlsx respetando el período",
         "Builds exit 0; lint exit 0; tests IDOR/RBAC/UTC del endpoint"
       ]
+    },
+    {
+      "id": "REP-4",
+      "name": "Reportes: retención de clientes",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "EP-21, apilado sobre REP-3. Endpoint GET /reportes/clientes (solo ADMIN): tasa de retorno, nuevos vs. recurrentes, clientes inactivos (+90 días sin visita) y frecuencia promedio de visitas. Sección Clientes en la vista Reportes con gráfico, tabla y exportación de inactivos a .xlsx.",
+      "acceptance_criteria": [
+        "GET /reportes/clientes solo ADMIN, tenant-scoped, mismo rango y validación que los otros reportes",
+        "Tasa de retorno, nuevos vs. recurrentes y frecuencia promedio de visitas del período",
+        "Lista de clientes inactivos (+90 días sin visita), independiente del período, con total real",
+        "Sección Clientes con gráfico, tabla alternativa y exportación de inactivos; builds/lint exit 0; tests IDOR/RBAC/UTC"
+      ]
     }
   ]
 }
