@@ -1710,6 +1710,20 @@
         "Servicios más realizados (top 10), clientes atendidos y visitas por profesional con gráfico y tabla",
         "Builds exit 0; lint exit 0; tests IDOR/RBAC/TZ de ambos endpoints"
       ]
+    },
+    {
+      "id": "REP-3",
+      "name": "Reportes: productos (más usados, reposición y exportación)",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "EP-20, apilado sobre REP-2. Endpoint GET /reportes/productos (solo ADMIN): productos más usados en el período y productos próximos a agotarse. Sección en la vista Reportes con gráfico, tabla y exportación a Excel (xlsx, sin dependencias nuevas).",
+      "acceptance_criteria": [
+        "GET /reportes/productos solo ADMIN, tenant-scoped, mismo rango y validación que REP-1/2",
+        "Top 10 productos por usos y unidades consumidas del período + lista de productos con stock bajo",
+        "Sección Productos con gráfico, tabla alternativa y botón Exportar a .xlsx respetando el período",
+        "Builds exit 0; lint exit 0; tests IDOR/RBAC/UTC del endpoint"
+      ]
     }
   ]
 }

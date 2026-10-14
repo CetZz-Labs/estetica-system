@@ -1820,3 +1820,15 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 66 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-2.md`. REP-2 → **done**.
 * **Pendiente humano:** probar `/reportes` en navegador (ADMIN, datos reales, 360px).
 * **Notas del reviewer (no bloqueantes):** contraste de `text-white` sobre el acento en `OccupancySection.tsx:143` sin medir; el `role="img"` de la grilla oculta las celdas a lectores de pantalla (compensado por el texto de pico y la tabla).
+
+---
+
+## 2026-10-14 — REP-3: Reportes de productos (EP-20)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda). Sin explorer nuevo: `Product` no tiene unidad (`quantity` = envases), lo que descartó el problema de unidades heterogéneas anticipado en el digest.
+* **Rama:** `feature/REP-3-reportes-productos` (apilada sobre REP-2, commit 90abf35).
+* **Backend:** `GET /api/reportes/productos` solo ADMIN → `totals`, `topProducts` (top 10 por usos; `usedExistingUnit` cuenta como uso pero aporta 0 a `unitsConsumed`, coherente con GOV-STOCK/UX-83; 'Producto eliminado') y `lowStock` (independiente del rango, máx 20 con `total` real). `LOW_STOCK_THRESHOLD` extraído a `utils/stock.ts` (mismo valor 5; `/productos` sin cambios). 11 tests nuevos.
+* **Frontend:** `ProductsSection` (KPIs, barras + tabla, "Próximos a agotarse" con badge Agotado/Stock bajo trifecta) y exportación `.xlsx` de 2 hojas (`utils/exportReportProducts.ts`, solo escritura, sin dependencias nuevas).
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 77 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-3.md`; confirmó que no hay inyección de fórmulas (`aoa_to_sheet` guarda strings como texto). REP-3 → **done**.
+* **Pendiente humano:** probar `/reportes` y la descarga del Excel en navegador.
+* **Nota:** `/inventario` guarda sus filtros en estado local y no acepta `lowStock` por URL; el enlace "y N más" va sin filtro (mejora posible aparte).

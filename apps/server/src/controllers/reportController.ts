@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Appointment } from '../models/Appointment';
+import { Product } from '../models/Product';
 import { ServiceRecord } from '../models/ServiceRecord';
 import { Tenant } from '../models/Tenant';
+import { LOW_STOCK_THRESHOLD } from '../utils/stock';
 import { addDays, listDays, startOfDayInTimezone } from '../utils/reportRange';
 
 const DEFAULT_TZ = 'America/Argentina/Buenos_Aires';
@@ -219,6 +221,96 @@ export const getServicesReport = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Error al generar reporte de servicios:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+};
+
+// REP-3: productos. Ranking por serviceDate (date-only UTC, P18). usedExistingUnit no toca stock (GOV-STOCK):
+// cuenta como uso pero aporta 0 a unitsConsumed. lowStock es independiente del rango.
+export const getProductsReport = async (req: Request, res: Response) => {
+    try {
+        const from = String(req.query.from);
+        const to = String(req.query.to);
+
+        const start = startOfDayInTimezone(from, 'UTC');
+        const endExclusive = startOfDayInTimezone(addDays(to, 1), 'UTC');
+        const tenantId = new Types.ObjectId(String(req.tenantId));
+        const lowFilter = { tenantId, isActive: true, stock: { $lte: LOW_STOCK_THRESHOLD } };
+
+        const [agg, lowItems, lowTotal] = await Promise.all([
+            ServiceRecord.aggregate([
+                { $match: { tenantId, serviceDate: { $gte: start, $lt: endExclusive } } },
+                { $unwind: '$productsUsed' },
+                {
+                    $group: {
+                        _id: '$productsUsed.product',
+                        usages: { $sum: 1 },
+                        unitsConsumed: {
+                            $sum: { $cond: [{ $eq: ['$productsUsed.usedExistingUnit', true] }, 0, '$productsUsed.quantity'] }
+                        }
+                    }
+                },
+                {
+                    $facet: {
+                        totals: [{
+                            $group: {
+                                _id: null,
+                                productsUsed: { $sum: 1 },
+                                usages: { $sum: '$usages' },
+                                unitsConsumed: { $sum: '$unitsConsumed' }
+                            }
+                        }],
+                        topProducts: [
+                            {
+                                $lookup: {
+                                    from: 'products',
+                                    let: { pid: '$_id' },
+                                    pipeline: [
+                                        { $match: { $expr: { $and: [{ $eq: ['$_id', '$$pid'] }, { $eq: ['$tenantId', tenantId] }] } } },
+                                        { $project: { name: 1, brand: 1, stock: 1 } }
+                                    ],
+                                    as: 'prod'
+                                }
+                            },
+                            {
+                                $project: {
+                                    _id: 0,
+                                    productId: '$_id',
+                                    name: { $ifNull: [{ $arrayElemAt: ['$prod.name', 0] }, 'Producto eliminado'] },
+                                    brand: { $ifNull: [{ $arrayElemAt: ['$prod.brand', 0] }, ''] },
+                                    usages: 1,
+                                    unitsConsumed: 1,
+                                    stock: { $ifNull: [{ $arrayElemAt: ['$prod.stock', 0] }, 0] }
+                                }
+                            },
+                            { $sort: { usages: -1, unitsConsumed: -1, name: 1 } },
+                            { $limit: 10 }
+                        ]
+                    }
+                }
+            ]),
+            Product.find(lowFilter).sort({ stock: 1, name: 1 }).limit(20).select('name brand stock').lean(),
+            Product.countDocuments(lowFilter)
+        ]);
+
+        const result = agg[0];
+        const t = result?.totals?.[0];
+        const topProducts = ((result?.topProducts ?? []) as {
+            productId: Types.ObjectId; name: string; brand: string; usages: number; unitsConsumed: number; stock: number;
+        }[]).map(p => ({ ...p, productId: String(p.productId) }));
+
+        return res.status(200).json({
+            range: { from, to },
+            totals: { productsUsed: t?.productsUsed ?? 0, usages: t?.usages ?? 0, unitsConsumed: t?.unitsConsumed ?? 0 },
+            topProducts,
+            lowStock: {
+                threshold: LOW_STOCK_THRESHOLD,
+                total: lowTotal,
+                items: lowItems.map(p => ({ productId: String(p._id), name: p.name, brand: p.brand, stock: p.stock }))
+            }
+        });
+    } catch (error) {
+        console.error('Error al generar reporte de productos:', error);
         return res.status(500).json({ error: 'Error interno del servidor' });
     }
 };

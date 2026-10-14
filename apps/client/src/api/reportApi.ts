@@ -72,3 +72,31 @@ export const getServicesReport = async (from: string, to: string): Promise<Servi
     const { data } = await api.get('/reportes/servicios', { params: { from, to } });
     return data;
 };
+
+export interface TopProduct {
+    productId: string;
+    name: string;
+    brand: string;
+    usages: number;
+    unitsConsumed: number;
+    stock: number;
+}
+
+export interface LowStockItem {
+    productId: string;
+    name: string;
+    brand: string;
+    stock: number;
+}
+
+export interface ProductsReport {
+    range: { from: string; to: string };
+    totals: { productsUsed: number; usages: number; unitsConsumed: number };
+    topProducts: TopProduct[];
+    lowStock: { threshold: number; total: number; items: LowStockItem[] };
+}
+
+export const getProductsReport = async (from: string, to: string): Promise<ProductsReport> => {
+    const { data } = await api.get('/reportes/productos', { params: { from, to } });
+    return data;
+};

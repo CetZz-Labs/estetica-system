@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Product } from '../models/Product';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { escapeRegex } from '../utils/regex';
+import { LOW_STOCK_THRESHOLD } from '../utils/stock';
 
 // 1. Crear producto
 export const createProduct = async (req: Request, res: Response) => {
@@ -41,9 +42,6 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 // 2. Leer todos los productos activos
-// Umbral de stock bajo (coincide con Inventario.tsx: stock <= 5)
-const LOW_STOCK_THRESHOLD = 5;
-
 export const getProducts = async (req: Request, res: Response) => {
     try {
         const { page, limit, skip } = parsePagination(req.query);
