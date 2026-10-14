@@ -1696,6 +1696,20 @@
         "Gráficos de turnos por día, por estado y por día de la semana + tabla",
         "Builds exit 0; lint exit 0; tests IDOR/RBAC del endpoint"
       ]
+    },
+    {
+      "id": "REP-2",
+      "name": "Reportes: ocupación (mapa de calor) y servicios",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "Segundo tramo de EP-18, apilado sobre REP-1. Endpoints GET /reportes/ocupacion (mapa de calor día x hora de turnos) y GET /reportes/servicios (servicios más realizados, clientes atendidos, visitas por profesional), solo ADMIN. Se suman como secciones a la vista Reportes con el mismo filtro de período.",
+      "acceptance_criteria": [
+        "GET /reportes/ocupacion y /reportes/servicios solo ADMIN, tenant-scoped, mismo rango y validación que REP-1",
+        "Mapa de calor día x hora con tabla alternativa accesible y hora pico",
+        "Servicios más realizados (top 10), clientes atendidos y visitas por profesional con gráfico y tabla",
+        "Builds exit 0; lint exit 0; tests IDOR/RBAC/TZ de ambos endpoints"
+      ]
     }
   ]
 }

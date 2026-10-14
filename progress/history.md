@@ -1807,3 +1807,16 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 54 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-1.md`. REP-1 → **done**.
 * **Pendiente humano:** probar `/reportes` en navegador con ADMIN y turnos reales (360px incluido).
 * **Deuda / notas:** `getTodayDateString` usa la fecha del navegador, no la tz del tenant (los presets pueden desfasarse un día en el borde). Bundle único de 2.135 kB (641 kB gzip) con recharts: evaluar code-splitting de rutas (`React.lazy`).
+
+---
+
+## 2026-10-14 — REP-2: Reportes de ocupación (mapa de calor) y servicios (segundo tramo de EP-18)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda). Sin explorer nuevo: se reutilizó el digest de REP-1.
+* **Rama:** `feature/REP-2-reportes-ocupacion-servicios` (apilada sobre `feature/REP-1-reportes-turnos`, commit 68d7d0e).
+* **Backend:** `GET /api/reportes/ocupacion` (grilla completa 168 día×hora, `peak` con desempate, sin cancelados, tz del tenant) y `GET /api/reportes/servicios` (visitas, clientes distintos, top 10 servicios, visitas por profesional; `serviceDate` en UTC; 'Sin asignar' / 'Servicio eliminado'). `rangeValidation` compartida con `/turnos`; `tenantId` ObjectId también en cada `$lookup`; `$limit` 50 en byProfessional. Tests en `reportsRep2.test.ts`.
+* **Frontend:** secciones `OccupancySection` (mapa de calor CSS grid + pico + tabla) y `ServicesSection` (KPIs, barras de servicios y profesionales) en `components/reports/`; `ReportSection`/`ReportDataTable`/`ReportKpiCard` extraídos de `Reportes.tsx` (1:1, sin regresión de REP-1).
+* **Docs:** patrón **P21** en `patterns-frontend.md` (heatmap sin librería), CHANGELOG.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 66 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-2.md`. REP-2 → **done**.
+* **Pendiente humano:** probar `/reportes` en navegador (ADMIN, datos reales, 360px).
+* **Notas del reviewer (no bloqueantes):** contraste de `text-white` sobre el acento en `OccupancySection.tsx:143` sin medir; el `role="img"` de la grilla oculta las celdas a lectores de pantalla (compensado por el texto de pico y la tabla).

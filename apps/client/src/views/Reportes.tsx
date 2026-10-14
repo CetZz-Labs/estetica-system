@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
     Bar,
@@ -15,12 +15,18 @@ import { FiBarChart2, FiCalendar, FiCheckCircle, FiClock, FiXCircle, FiAlertTria
 import { getAppointmentsReport } from '../api/reportApi';
 import type { AppointmentsReport } from '../api/reportApi';
 import { handleApiError } from '../api/errorHandler';
+import ReportSection from '../components/reports/ReportSection';
+import ReportDataTable from '../components/reports/ReportDataTable';
+import ReportKpiCard from '../components/reports/ReportKpiCard';
+import OccupancySection from '../components/reports/OccupancySection';
+import ServicesSection from '../components/reports/ServicesSection';
+import { AXIS_TICK, TOOLTIP_STYLE, WEEKDAY_LABELS } from '../components/reports/reportShared';
+import type { ViewMode } from '../components/reports/reportShared';
 import { useTopbar } from '../layouts/TopbarContext';
 import { formatCalendarDate, getTodayDateString } from '../utils/dates';
 import { getStatusLabel, getStatusPalette } from '../utils/appointmentStatus';
 
 type Preset = '7' | '30' | '90' | 'custom';
-type ViewMode = 'chart' | 'table';
 
 const PRESETS: { id: Preset; label: string }[] = [
     { id: '7', label: 'Semana' },
@@ -29,7 +35,6 @@ const PRESETS: { id: Preset; label: string }[] = [
     { id: 'custom', label: 'Rango personalizado' },
 ];
 
-const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MAX_RANGE_DAYS = 366;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -63,96 +68,6 @@ const STATUS_ICON: Record<(typeof STATUS_ORDER)[number], ReactElement> = {
 };
 
 const CHART_COLOR = 'var(--color-accent)';
-const AXIS_TICK = { fontSize: 11, fill: 'var(--color-text-3)' };
-const TOOLTIP_STYLE = {
-    borderRadius: 10,
-    border: '1px solid var(--color-border)',
-    fontSize: 12,
-};
-
-interface SectionProps {
-    title: string;
-    mode: ViewMode;
-    onModeChange: (mode: ViewMode) => void;
-    chart: ReactNode;
-    table: ReactNode;
-}
-
-function ReportSection({ title, mode, onModeChange, chart, table }: SectionProps) {
-    return (
-        <section className="bg-surface border border-border rounded-card p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h2 className="font-serif text-xl text-text">{title}</h2>
-                <div className="inline-flex bg-hover-soft rounded-ctrl p-[3px]" role="group" aria-label={`Vista de ${title}`}>
-                    {(['chart', 'table'] as ViewMode[]).map((m) => (
-                        <button
-                            key={m}
-                            type="button"
-                            aria-pressed={mode === m}
-                            onClick={() => onModeChange(m)}
-                            className={`px-3 py-1.5 rounded-[8px] text-xs font-semibold cursor-pointer transition-colors ${mode === m ? 'bg-surface text-wine shadow-sm' : 'text-text-3'}`}
-                        >
-                            {m === 'chart' ? 'Gráfico' : 'Tabla'}
-                        </button>
-                    ))}
-                </div>
-            </div>
-            {mode === 'chart' ? chart : table}
-        </section>
-    );
-}
-
-interface DataTableProps {
-    caption: string;
-    firstHeader: string;
-    rows: { label: string; count: number }[];
-}
-
-function DataTable({ caption, firstHeader, rows }: DataTableProps) {
-    return (
-        <div className="max-h-72 overflow-y-auto">
-            <table className="w-full text-sm">
-                <caption className="sr-only">{caption}</caption>
-                <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase tracking-widest text-text-3">
-                        <th scope="col" className="py-2 font-semibold">{firstHeader}</th>
-                        <th scope="col" className="py-2 text-right font-semibold">Turnos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((row) => (
-                        <tr key={row.label} className="border-b border-border-soft">
-                            <td className="py-2 text-text">{row.label}</td>
-                            <td className="py-2 text-right font-semibold text-text">{row.count}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-interface KpiProps {
-    label: string;
-    value: number;
-    icon: ReactElement;
-    hint: string;
-    tone: string;
-}
-
-function KpiCard({ label, value, icon, hint, tone }: KpiProps) {
-    return (
-        <div className="bg-surface border border-border rounded-card p-6 flex flex-col gap-2">
-            <p className="text-xs uppercase tracking-widest text-text-3 font-medium">{label}</p>
-            <p className={`font-serif text-4xl font-semibold ${tone}`}>{value}</p>
-            <p className={`flex items-center gap-1.5 text-xs ${tone}`}>
-                {icon}
-                <span>{hint}</span>
-            </p>
-        </div>
-    );
-}
-
 export default function Reportes() {
     const [preset, setPreset] = useState<Preset>('30');
     const [customFrom, setCustomFrom] = useState('');
@@ -272,6 +187,13 @@ export default function Reportes() {
         </div>
     );
 
+    const extraSections = (
+        <>
+            <OccupancySection from={range.from} to={range.to} enabled={canQuery} />
+            <ServicesSection from={range.from} to={range.to} enabled={canQuery} />
+        </>
+    );
+
     if (isLoading) {
         return (
             <div className="space-y-6" aria-busy="true" aria-label="Cargando reporte">
@@ -288,6 +210,7 @@ export default function Reportes() {
                 <div className="bg-surface border border-border rounded-card p-6 animate-pulse">
                     <div className="h-64 bg-border-soft rounded" />
                 </div>
+                {extraSections}
             </div>
         );
     }
@@ -306,6 +229,7 @@ export default function Reportes() {
                         Elegí un período válido para ver el reporte.
                     </div>
                 )}
+                {extraSections}
             </div>
         );
     }
@@ -324,10 +248,10 @@ export default function Reportes() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard label="Total de turnos" value={totals.total} icon={<FiBarChart2 aria-hidden="true" />} hint="En el período" tone="text-text" />
-                <KpiCard label="Completados" value={totals.completed} icon={<FiCheckCircle aria-hidden="true" />} hint="Atendidos" tone="text-sage-text" />
-                <KpiCard label="Cancelados" value={totals.cancelled} icon={<FiXCircle aria-hidden="true" />} hint="Cancelados" tone="text-alert-text" />
-                <KpiCard label="Pendientes / confirmados" value={totals.pending + totals.confirmed} icon={<FiClock aria-hidden="true" />} hint={`${totals.pending} pendientes · ${totals.confirmed} confirmados`} tone="text-gold-text" />
+                <ReportKpiCard label="Total de turnos" value={totals.total} icon={<FiBarChart2 aria-hidden="true" />} hint="En el período" tone="text-text" />
+                <ReportKpiCard label="Completados" value={totals.completed} icon={<FiCheckCircle aria-hidden="true" />} hint="Atendidos" tone="text-sage-text" />
+                <ReportKpiCard label="Cancelados" value={totals.cancelled} icon={<FiXCircle aria-hidden="true" />} hint="Cancelados" tone="text-alert-text" />
+                <ReportKpiCard label="Pendientes / confirmados" value={totals.pending + totals.confirmed} icon={<FiClock aria-hidden="true" />} hint={`${totals.pending} pendientes · ${totals.confirmed} confirmados`} tone="text-gold-text" />
             </div>
 
             {totals.total === 0 ? (
@@ -363,7 +287,7 @@ export default function Reportes() {
                             </div>
                         }
                         table={
-                            <DataTable
+                            <ReportDataTable
                                 caption="Turnos por día"
                                 firstHeader="Día"
                                 rows={byDayRows.map((r) => ({ label: formatCalendarDate(r.date), count: r.count }))}
@@ -404,7 +328,7 @@ export default function Reportes() {
                                 </>
                             }
                             table={
-                                <DataTable
+                                <ReportDataTable
                                     caption="Turnos por estado"
                                     firstHeader="Estado"
                                     rows={statusRows.map((r) => ({ label: r.label, count: r.count }))}
@@ -429,11 +353,13 @@ export default function Reportes() {
                                     </ResponsiveContainer>
                                 </div>
                             }
-                            table={<DataTable caption="Turnos por día de la semana" firstHeader="Día" rows={weekdayRows} />}
+                            table={<ReportDataTable caption="Turnos por día de la semana" firstHeader="Día" rows={weekdayRows} />}
                         />
                     </div>
                 </>
             )}
+
+            {extraSections}
         </div>
     );
 }
