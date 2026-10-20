@@ -1709,6 +1709,62 @@
         "Backend 400 si usedExistingUnit y remainingLevel > currentUnitLevel (create y update)",
         "Builds/lint exit 0; tests"
       ]
+    },
+    {
+      "id": "REP-1",
+      "name": "Reportes: base, filtro de período y gráficos de turnos",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "Primer tramo de EP-18. Endpoint GET /reportes/turnos (solo ADMIN) con filtro de período, y vista Reportes con recharts: turnos por día, por estado y por día de la semana, con tabla alternativa. Precios/ingresos (EP-19) quedan fuera.",
+      "acceptance_criteria": [
+        "GET /reportes/turnos?from&to solo ADMIN, tenant-scoped, rango máx 366 días, TZ del tenant",
+        "Vista /reportes con presets semana/mes/3 meses y rango personalizado",
+        "Gráficos de turnos por día, por estado y por día de la semana + tabla",
+        "Builds exit 0; lint exit 0; tests IDOR/RBAC del endpoint"
+      ]
+    },
+    {
+      "id": "REP-2",
+      "name": "Reportes: ocupación (mapa de calor) y servicios",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "Segundo tramo de EP-18, apilado sobre REP-1. Endpoints GET /reportes/ocupacion (mapa de calor día x hora de turnos) y GET /reportes/servicios (servicios más realizados, clientes atendidos, visitas por profesional), solo ADMIN. Se suman como secciones a la vista Reportes con el mismo filtro de período.",
+      "acceptance_criteria": [
+        "GET /reportes/ocupacion y /reportes/servicios solo ADMIN, tenant-scoped, mismo rango y validación que REP-1",
+        "Mapa de calor día x hora con tabla alternativa accesible y hora pico",
+        "Servicios más realizados (top 10), clientes atendidos y visitas por profesional con gráfico y tabla",
+        "Builds exit 0; lint exit 0; tests IDOR/RBAC/TZ de ambos endpoints"
+      ]
+    },
+    {
+      "id": "REP-3",
+      "name": "Reportes: productos (más usados, reposición y exportación)",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "EP-20, apilado sobre REP-2. Endpoint GET /reportes/productos (solo ADMIN): productos más usados en el período y productos próximos a agotarse. Sección en la vista Reportes con gráfico, tabla y exportación a Excel (xlsx, sin dependencias nuevas).",
+      "acceptance_criteria": [
+        "GET /reportes/productos solo ADMIN, tenant-scoped, mismo rango y validación que REP-1/2",
+        "Top 10 productos por usos y unidades consumidas del período + lista de productos con stock bajo",
+        "Sección Productos con gráfico, tabla alternativa y botón Exportar a .xlsx respetando el período",
+        "Builds exit 0; lint exit 0; tests IDOR/RBAC/UTC del endpoint"
+      ]
+    },
+    {
+      "id": "REP-4",
+      "name": "Reportes: retención de clientes",
+      "module": "Reports",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "EP-21, apilado sobre REP-3. Endpoint GET /reportes/clientes (solo ADMIN): tasa de retorno, nuevos vs. recurrentes, clientes inactivos (+90 días sin visita) y frecuencia promedio de visitas. Sección Clientes en la vista Reportes con gráfico, tabla y exportación de inactivos a .xlsx.",
+      "acceptance_criteria": [
+        "GET /reportes/clientes solo ADMIN, tenant-scoped, mismo rango y validación que los otros reportes",
+        "Tasa de retorno, nuevos vs. recurrentes y frecuencia promedio de visitas del período",
+        "Lista de clientes inactivos (+90 días sin visita), independiente del período, con total real",
+        "Sección Clientes con gráfico, tabla alternativa y exportación de inactivos; builds/lint exit 0; tests IDOR/RBAC/UTC"
+      ]
     }
   ]
 }
