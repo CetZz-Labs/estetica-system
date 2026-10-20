@@ -2,18 +2,19 @@
 
 ## Metadatos de la Sesión
 - **Última actualización:** 2026-10-20
-- **Sesión:** cerrada — UX-93 y UX-94 done
-- **Rama:** `fix/UX-93-94-push-multilinea-envase-abierto` (desde `development`)
+- **Sesión:** cerrada — UX-93, UX-94 y REP-1..4 mergeados en development
+- **Rama:** `development`
 - **Feature en curso:** ninguna
 
 ## Plan de Acción
 _(sin feature activa — plantilla vacía hasta la próxima tarea)_
 
-## Aprobación pendiente antes de mergear
-- Pila REP-1 → REP-4 sigue lista y SIN mergear (ver `progress/history.md`, 2026-10-14).
-- UX-93/94: probar en navegador (push con varios clientes; visita con producto stock 0 + envase abierto).
+## Estado del Backlog
+- REP-1..4 → **done**, mergeados en `development` (el usuario probó `/reportes`). Cubren EP-18, EP-20 y EP-21 (pendiente decidir si se cierran formalmente en `feature_list.json`).
+- REP-5 (ingresos, EP-19): requiere precio en `Service` + snapshot en `ServiceRecord` + migración (el usuario lo difirió).
+- Pendientes: UX-34, UX-35, EP-22 (exportación general), EP-23 a EP-25.
 
 ## Bloqueos y Riesgos Conocidos
-- 4 tests preexistentes fallando en `tenantIsolation.test.ts`.
-- Deuda previa: `Client.lastName` required vs CHANGELOG UX-73; bundle único grande; `getAppointments` sin `.limit`.
-- Recordatorio operativo: ningún subagente usa `git stash`; verificar `git stash list` vacío.
+- **Validación humana pendiente:** UX-93/94 (push con varios clientes; visita con producto stock 0 + envase abierto); UX-92; C9 de UX-91.
+- **Deuda:** `Client.lastName` required vs CHANGELOG UX-73; bundle único grande (code-splitting); `getTodayDateString` sin tz del tenant; contraste `text-white` en heatmap; `getAppointments` sin `.limit`; 4 tests preexistentes en `tenantIsolation.test.ts`.
+- **Recordatorio operativo:** ningún subagente usa `git stash`; verificar `git stash list` vacío.

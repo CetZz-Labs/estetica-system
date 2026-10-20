@@ -614,4 +614,17 @@ if (productsUsed !== undefined) { // no truthiness/longitud — [] es "vaciar", 
 
 ---
 
+## P18 — Reportes con `aggregate` y zona horaria (REP-1)
+
+Reportes = agregaciones de solo lectura, exentas de paginación (CHECKPOINTS C3), pero con rango acotado (máx 366 días) y `$limit` fijo en rankings.
+
+- **tenantId como ObjectId:** `aggregate` NO castea; en el `$match` usar `new mongoose.Types.ObjectId(req.tenantId)`.
+- **Zona horaria según el tipo de fecha:** campos instante (`Appointment.startTime`) → `timezone: tenant.timezone` en `$dateToString`/`$isoDayOfWeek`/`$hour`, y límites del rango = medianoche local del tenant (no UTC). Campos date-only (`ServiceRecord.serviceDate`, ancla UTC) → agrupar con `timezone: 'UTC'`, o el día corre uno hacia atrás.
+- **Series completas:** rellenar con ceros los días/buckets sin datos en el servidor (el frontend no debe inferirlos) y devolver siempre todos los buckets fijos (ej. 7 días de la semana, `$isoDayOfWeek` 1=Lunes..7=Domingo).
+- **RBAC:** `requireRole('ADMIN')` (P8) — los reportes no se abren a PROFESSIONAL/RECEPTIONIST.
+
+Referencia: `utils/reportRange.ts`, `controllers/reportController.ts`.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón, gotcha o workaround genuinamente nuevo y reutilizable (no cubierto aquí ni en `architecture.md`/`conventions.md`), el `leader` lo promueve a este archivo durante el cierre de sesión. No duplicar patrones que solo reafirman una convención ya documentada.

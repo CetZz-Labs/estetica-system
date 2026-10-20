@@ -1795,6 +1795,57 @@
 
 ---
 
+## 2026-10-14 — REP-1: Reportes de turnos (primer tramo de EP-18)
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/REP-1-reportes-turnos` (desde `development`). Sin commitear al cierre de sesión.
+* **Objetivo:** pedido del usuario — gráficos de medición para los clientes (turnos, días más ocupados, productos más usados, etc.). Plan en 5 tramos: REP-1 (base + turnos), REP-2 (ocupación/servicios, EP-18), REP-3 (productos, EP-20), REP-4 (clientes, EP-21), REP-5 (ingresos, EP-19). **Precios/ingresos quedan para después por decisión del usuario** (ni `Service` ni `ServiceRecord` tienen precio: requiere campo `price`, snapshot en la visita y migración).
+* **Decisión:** `recharts` aprobado por el usuario como única dependencia nueva (3.10.1).
+* **Backend:** `GET /api/reportes/turnos?from&to` solo ADMIN → `{range, totals, byDay, byWeekday}`; rango máx 366 días, límites en medianoche local del tenant, `$facet` con `timezone`, series rellenas con ceros; tests unitarios + IDOR/RBAC/TZ.
+* **Frontend:** vista `/reportes` (ruta y nav solo ADMIN), presets Semana/Mes/3 meses/rango, 4 KPIs, 3 gráficos recharts con toggle Gráfico/Tabla, 4 estados.
+* **Docs:** patrón **P18** en `patterns-backend.md` (aggregate + TZ), CHANGELOG.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 54 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-1.md`. REP-1 → **done**.
+* **Pendiente humano:** probar `/reportes` en navegador con ADMIN y turnos reales (360px incluido).
+* **Deuda / notas:** `getTodayDateString` usa la fecha del navegador, no la tz del tenant (los presets pueden desfasarse un día en el borde). Bundle único de 2.135 kB (641 kB gzip) con recharts: evaluar code-splitting de rutas (`React.lazy`).
+
+---
+
+## 2026-10-14 — REP-2: Reportes de ocupación (mapa de calor) y servicios (segundo tramo de EP-18)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda). Sin explorer nuevo: se reutilizó el digest de REP-1.
+* **Rama:** `feature/REP-2-reportes-ocupacion-servicios` (apilada sobre `feature/REP-1-reportes-turnos`, commit 68d7d0e).
+* **Backend:** `GET /api/reportes/ocupacion` (grilla completa 168 día×hora, `peak` con desempate, sin cancelados, tz del tenant) y `GET /api/reportes/servicios` (visitas, clientes distintos, top 10 servicios, visitas por profesional; `serviceDate` en UTC; 'Sin asignar' / 'Servicio eliminado'). `rangeValidation` compartida con `/turnos`; `tenantId` ObjectId también en cada `$lookup`; `$limit` 50 en byProfessional. Tests en `reportsRep2.test.ts`.
+* **Frontend:** secciones `OccupancySection` (mapa de calor CSS grid + pico + tabla) y `ServicesSection` (KPIs, barras de servicios y profesionales) en `components/reports/`; `ReportSection`/`ReportDataTable`/`ReportKpiCard` extraídos de `Reportes.tsx` (1:1, sin regresión de REP-1).
+* **Docs:** patrón **P21** en `patterns-frontend.md` (heatmap sin librería), CHANGELOG.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 66 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-2.md`. REP-2 → **done**.
+* **Pendiente humano:** probar `/reportes` en navegador (ADMIN, datos reales, 360px).
+* **Notas del reviewer (no bloqueantes):** contraste de `text-white` sobre el acento en `OccupancySection.tsx:143` sin medir; el `role="img"` de la grilla oculta las celdas a lectores de pantalla (compensado por el texto de pico y la tabla).
+
+---
+
+## 2026-10-14 — REP-3: Reportes de productos (EP-20)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda). Sin explorer nuevo: `Product` no tiene unidad (`quantity` = envases), lo que descartó el problema de unidades heterogéneas anticipado en el digest.
+* **Rama:** `feature/REP-3-reportes-productos` (apilada sobre REP-2, commit 90abf35).
+* **Backend:** `GET /api/reportes/productos` solo ADMIN → `totals`, `topProducts` (top 10 por usos; `usedExistingUnit` cuenta como uso pero aporta 0 a `unitsConsumed`, coherente con GOV-STOCK/UX-83; 'Producto eliminado') y `lowStock` (independiente del rango, máx 20 con `total` real). `LOW_STOCK_THRESHOLD` extraído a `utils/stock.ts` (mismo valor 5; `/productos` sin cambios). 11 tests nuevos.
+* **Frontend:** `ProductsSection` (KPIs, barras + tabla, "Próximos a agotarse" con badge Agotado/Stock bajo trifecta) y exportación `.xlsx` de 2 hojas (`utils/exportReportProducts.ts`, solo escritura, sin dependencias nuevas).
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 77 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-3.md`; confirmó que no hay inyección de fórmulas (`aoa_to_sheet` guarda strings como texto). REP-3 → **done**.
+* **Pendiente humano:** probar `/reportes` y la descarga del Excel en navegador.
+* **Nota:** `/inventario` guarda sus filtros en estado local y no acepta `lowStock` por URL; el enlace "y N más" va sin filtro (mejora posible aparte).
+
+---
+
+## 2026-10-14 — REP-4: Reportes de retención de clientes (EP-21)
+
+* **Agente:** Claude (Leader) + implementer-backend + implementer-frontend (en paralelo) + reviewer (1 ronda).
+* **Rama:** `feature/REP-4-reportes-clientes` (apilada sobre REP-3, commit 567b69b).
+* **Backend:** `GET /api/reportes/clientes` solo ADMIN → `totals` (clientsServed, newClients = sin visita previa al rango, returningClients = clientsServed − newClients, returnRate 0..1), `avgVisitIntervalDays` (pares de visitas consecutivas cuya posterior cae en el rango, por sumas telescópicas sin cargar visitas a memoria; verificado a mano por el reviewer: 9,5 d en el ejemplo) e `inactive` (activos con última visita > 90 días, independiente del rango, máx 20 con total real). `INACTIVE_THRESHOLD_DAYS` exportada; 3 pipelines acotados por tenant sobre el índice `{tenantId,client,serviceDate}`; 11 tests nuevos.
+* **Frontend:** `ClientsSection` (KPIs, barra apilada nuevos/recurrentes con tabla, tabla de inactivos con badge trifecta y `<Link>` a `/clientes/:id`, exportación `.xlsx`). Nuevos `utils/exportXlsx.ts` (`downloadXlsx`) y `exportReportClients.ts`; `exportReportProducts.ts` refactorizado sobre el helper (mismo output); `ReportKpiCard` acepta valor string y `compact`.
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: 88 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **VERDE** → `progress/reviews/review_REP-4.md`. REP-4 → **done**.
+* **Pendiente humano:** probar la sección Clientes y la descarga del Excel en navegador.
+* **Discrepancia preexistente (fuera de alcance):** `Client.lastName` sigue `required: true` en `models/Client.ts:18` aunque el CHANGELOG de UX-73 lo declara opcional. El reporte lo tolera con `$ifNull`. Pendiente: alinear schema o corregir el CHANGELOG (feature aparte).
+* **Estado de EP-18/20/21:** REP-1..4 cubren los criterios de EP-18, EP-20 y EP-21. Quedan por marcar/cerrar formalmente en `feature_list.json` (pendiente de decisión del usuario). EP-19 (ingresos) requiere precio en servicios.
+
 ## 2026-10-20 — UX-93 / UX-94: push multilínea y consumo con envase abierto
 
 * **Agente:** Claude (Leader) + explorer + implementer-backend (x2) + implementer-frontend (x2, incluye ronda de corrección) + reviewer (2 rondas).

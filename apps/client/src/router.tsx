@@ -17,6 +17,7 @@ import Historial from "./views/Historial";
 import Inventario from "./views/Inventario";
 import Negocio from "./views/Negocio";
 import Disponibilidad from "./views/Disponibilidad";
+import Reportes from "./views/Reportes";
 import Landing from "./views/Landing";
 import Guia from "./views/Guia";
 import AceptarInvitacion from "./views/AceptarInvitacion";
@@ -81,6 +82,14 @@ export default function Router() {
                         element={
                             <ProtectedRoute roles={['ADMIN', 'PROFESSIONAL']}>
                                 <Inventario />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/reportes"
+                        element={
+                            <ProtectedRoute roles={['ADMIN']}>
+                                <Reportes />
                             </ProtectedRoute>
                         }
                     />

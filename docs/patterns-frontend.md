@@ -674,4 +674,10 @@ window.open('https://wa.me/' + toWhatsAppPhone(client.phone) + '?text=' + encode
 
 ---
 
+## P21 — Mapa de calor sin librería (CSS grid accesible)
+
+recharts no trae heatmap. Patrón (REP-2, `components/reports/OccupancySection.tsx`): CSS grid de celdas con intensidad en **pasos discretos** de opacidad de un token (`accent`), el **número visible dentro de la celda** (el color solo no alcanza, trifecta), leyenda de escala, resumen del máximo en texto + icono ("Pico: …"), contenedor `overflow-x-auto` con `min-width` para 360px y **tabla alternativa** (toggle Gráfico/Tabla, `caption` sr-only, `th scope`). Celdas NO interactivas (nada de `div` con `onClick`). Secciones de reporte reutilizables: `ReportSection`/`ReportDataTable`/`ReportKpiCard` en `components/reports/`.
+
+---
+
 > **Cómo extender este catálogo:** cuando una feature cerrada produzca un patrón o gotcha de UI genuinamente nuevo y reutilizable, el `leader` lo promueve a este archivo durante el cierre de sesión.
