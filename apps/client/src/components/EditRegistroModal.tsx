@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FiPlus, FiTrash2, FiBox, FiUser, FiCalendar } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBox, FiUser, FiCalendar, FiAlertCircle } from "react-icons/fi";
 import type { StylesConfig } from "react-select";
 
 import { getProductOptions, type ProductOption } from "../api/productApi";
@@ -181,7 +181,7 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
             return;
         }
         setAddedInfo(prev => ({ ...prev, [selectedProductOption.value]: selectedProductOption.product }));
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
+        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: selectedProductOption.product.stock === 0 && typeof selectedProductOption.product.currentUnitLevel === 'number' });
         setSelectedProductOption(null);
         setQuantityToAdd('');
     };
@@ -253,6 +253,10 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                 // al tildar el checkbox sin dejar el slider en un estado inconsistente.
                                 const watchedUsedPercent = watch(`productsUsed.${index}.usedPercent`);
                                 const watchedUsedExistingUnit = watch(`productsUsed.${index}.usedExistingUnit`);
+                                // Solo ítems agregados en esta edición: en los ya guardados el stock actual ya
+                                // descontó la visita (stock efectivo = stock + quantity), no se fuerza.
+                                const addedDet = addedInfo[field.product];
+                                const onlyOpenUnit = addedDet?.stock === 0 && typeof addedDet?.currentUnitLevel === 'number';
                                 const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
                                     ? det.currentUnitLevel
                                     : 100;
@@ -277,7 +281,9 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                                 <input
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
-                                                    className="mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    aria-disabled={onlyOpenUnit}
+                                                    onClick={(e) => { if (onlyOpenUnit) e.preventDefault(); }}
+                                                    className={`mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring ${onlyOpenUnit ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} accent-primary`}
                                                     {...register(`productsUsed.${index}.usedExistingUnit`, {
                                                         onChange: (e) => {
                                                             // Al tildar, si el % usado ya cargado supera el nuevo tope
@@ -292,6 +298,12 @@ export default function EditRegistroModal({ isOpen, onClose, record }: Props) {
                                                 />
                                                 <span className="min-w-0">Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock</span>
                                             </label>
+                                        )}
+                                        {onlyOpenUnit && (
+                                            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                                                <FiAlertCircle size={14} className="shrink-0" />
+                                                Sin stock: solo queda el envase abierto, no hay envases nuevos.
+                                            </p>
                                         )}
                                     </li>
                                 );

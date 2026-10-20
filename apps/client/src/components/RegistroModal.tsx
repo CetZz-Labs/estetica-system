@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FiPlus, FiTrash2, FiBox } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiBox, FiAlertCircle } from "react-icons/fi";
 import Select, { type StylesConfig } from "react-select"; // ⭐️ Importamos react-select
 
 import type { ProductOption } from "../api/productApi";
@@ -263,7 +263,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
             return;
         }
         setProductInfo(prev => ({ ...prev, [selectedProductOption.value]: selectedProductOption.product }));
-        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: false });
+        append({ product: selectedProductOption.value, quantity: Number(quantityToAdd), usedExistingUnit: selectedProductOption.product.stock === 0 && typeof selectedProductOption.product.currentUnitLevel === 'number' });
         setSelectedProductOption(null);
         setQuantityToAdd('');
     };
@@ -455,6 +455,7 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                 // Rango dinámico del slider (UX-89): si se tilda "usar envase abierto" y
                                 // se conoce currentUnitLevel, no tiene sentido que la barra siga yendo
                                 // hasta 100 — se acota a lo que efectivamente queda disponible.
+                                const onlyOpenUnit = det?.stock === 0 && typeof det?.currentUnitLevel === 'number';
                                 const maxUsable = watchedUsedExistingUnit === true && typeof det?.currentUnitLevel === 'number'
                                     ? det.currentUnitLevel
                                     : 100;
@@ -482,7 +483,9 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                                 <input
                                                     type="checkbox"
                                                     defaultChecked={field.usedExistingUnit}
-                                                    className="mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring cursor-pointer accent-primary"
+                                                    aria-disabled={onlyOpenUnit}
+                                                    onClick={(e) => { if (onlyOpenUnit) e.preventDefault(); }}
+                                                    className={`mt-0.5 w-4 h-4 shrink-0 rounded border-gray-300 text-primary focus:ring-ring ${onlyOpenUnit ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} accent-primary`}
                                                     {...register(`productsUsed.${index}.usedExistingUnit`, {
                                                         onChange: (e) => {
                                                             // Al tildar, si el % usado ya cargado supera el nuevo tope
@@ -497,6 +500,12 @@ export default function RegistroModal({ isOpen, onClose, preselectedClientId, pr
                                                 />
                                                 <span className="min-w-0">Usar el envase ya abierto (queda {det.currentUnitLevel}%) — no descuenta stock</span>
                                             </label>
+                                        )}
+                                        {onlyOpenUnit && (
+                                            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                                                <FiAlertCircle size={14} className="shrink-0" />
+                                                Sin stock: solo queda el envase abierto, no hay envases nuevos.
+                                            </p>
                                         )}
                                     </li>
                                 );

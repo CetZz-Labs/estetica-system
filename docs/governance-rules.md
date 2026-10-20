@@ -81,6 +81,8 @@
 
 **Nota (UX-81, 2026-09-29):** `servicerecords.productsUsed[].remainingLevel` y `products.currentUnitLevel` son campos **puramente informativos** (estimación libre de "% que queda en el envase abierto") y quedan **explícitamente fuera de los mandatos 1-4 de esta sección**: no participan de la validación de no-negatividad, del descuento/reconciliación de stock (`quantity`), ni de la carga masiva. Se actualizan con un `set` simple (nunca aritmética) y `adjustStock` no los resetea.
 
+**Nota (UX-94):** con `usedExistingUnit: true`, `remainingLevel` no puede ser mayor que `Product.currentUnitLevel` (el envase abierto solo se consume): el servidor responde 400 en create y en update (fase de validación previa a mutar stock), siempre sobre productos del tenant. Un 400 por stock insuficiente sugiere "usar el envase abierto" cuando `currentUnitLevel` está definido.
+
 **Auditado por:** `CHECKPOINTS.md` C3 (Control de Stock).
 
 ---

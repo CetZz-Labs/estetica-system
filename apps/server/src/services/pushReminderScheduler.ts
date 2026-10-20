@@ -33,10 +33,22 @@ const formatTime = (date: Date): string => {
 // Junta las entradas de turnos y retoques en una lista de nombres truncada a MAX_NAMES_IN_BODY,
 // agregando el sufijo "y N más" cuando corresponda (UX-85).
 const buildTruncatedList = (entries: string[]): string => {
-    if (entries.length <= MAX_NAMES_IN_BODY) return entries.join(', ');
+    if (entries.length <= MAX_NAMES_IN_BODY) return entries.join('\n');
     const visible = entries.slice(0, MAX_NAMES_IN_BODY);
     const remaining = entries.length - MAX_NAMES_IN_BODY;
-    return `${visible.join(', ')} y ${remaining} más`;
+    return `${visible.join('\n')}\ny ${remaining} más`;
+};
+
+// UX-93: body con un cliente por línea; encabezados de sección en línea propia.
+export const buildPushBody = (turnosEntries: string[], retoquesEntries: string[]): string => {
+    const bodyParts: string[] = [];
+    if (turnosEntries.length > 0) {
+        bodyParts.push(`Turnos hoy:\n${buildTruncatedList(turnosEntries)}`);
+    }
+    if (retoquesEntries.length > 0) {
+        bodyParts.push(`Retoques pendientes:\n${buildTruncatedList(retoquesEntries)}`);
+    }
+    return bodyParts.join('\n');
 };
 
 export const runPushReminderCheck = async (): Promise<void> => {
@@ -83,17 +95,9 @@ export const runPushReminderCheck = async (): Promise<void> => {
             const turnosEntries = turnosHoy.map((appointment) => `${formatClientName(appointment.client)} ${formatTime(appointment.startTime)}`);
             const retoquesEntries = retoquesPendientes.map((record) => formatClientName(record.client));
 
-            const bodyParts: string[] = [];
-            if (turnosEntries.length > 0) {
-                bodyParts.push(`Turnos hoy: ${buildTruncatedList(turnosEntries)}.`);
-            }
-            if (retoquesEntries.length > 0) {
-                bodyParts.push(`Retoques pendientes: ${buildTruncatedList(retoquesEntries)}.`);
-            }
-
             const payload = JSON.stringify({
                 title: tenant.name,
-                body: bodyParts.join(' ')
+                body: buildPushBody(turnosEntries, retoquesEntries)
             });
 
             for (const subscription of subscriptions) {

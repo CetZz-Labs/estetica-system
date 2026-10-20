@@ -211,6 +211,8 @@ export const adjustStock = async (req: Request, res: Response) => {
 };
 ```
 
+> **Envase abierto (UX-94):** si el item trae `usedExistingUnit: true`, validar además `remainingLevel <= product.currentUnitLevel` (400 si no) antes de mutar nada, tanto en create como en la fase de validación pura del update.
+
 ---
 
 ## P5 — Carga masiva con upsert
