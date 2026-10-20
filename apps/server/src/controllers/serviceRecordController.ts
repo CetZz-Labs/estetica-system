@@ -96,10 +96,19 @@ export const createServiceRecord = async (req: Request, res: Response) => {
                     if (product.currentUnitLevel === undefined || product.currentUnitLevel === null) {
                         return res.status(400).json({ error: 'No hay un envase abierto registrado para ese producto; elegí abrir uno nuevo.' });
                     }
+                    // UX-94: el nivel restante no puede superar el nivel actual del envase abierto.
+                    if (item.remainingLevel !== undefined && item.remainingLevel !== null && item.remainingLevel > product.currentUnitLevel) {
+                        return res.status(400).json({
+                            error: `El nivel restante (${item.remainingLevel}%) no puede superar el nivel actual del envase abierto de ${product.name} (${product.currentUnitLevel}%).`
+                        });
+                    }
                 } else {
                     if (product.stock < item.quantity) {
+                        const hint = product.currentUnitLevel !== undefined && product.currentUnitLevel !== null
+                            ? ' Podés usar el envase abierto.'
+                            : '';
                         return res.status(400).json({
-                            error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido: ${item.quantity}`
+                            error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido: ${item.quantity}.${hint}`
                         });
                     }
 
@@ -375,11 +384,17 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
                 // Misma defensa en profundidad que createServiceRecord, aplicada ANTES de mutar
                 // cualquier stock. Solo se revisan los items del body nuevo (no los viejos: ya
                 // pasaron esta validación en su momento).
-                for (const item of productsUsed as { product: string; usedExistingUnit?: boolean }[]) {
+                for (const item of productsUsed as { product: string; usedExistingUnit?: boolean; remainingLevel?: number }[]) {
                     if (item.usedExistingUnit === true) {
                         const product = productsById.get(String(item.product))!;
                         if (product.currentUnitLevel === undefined || product.currentUnitLevel === null) {
                             return res.status(400).json({ error: 'No hay un envase abierto registrado para ese producto; elegí abrir uno nuevo.' });
+                        }
+                        // UX-94: el nivel restante no puede superar el nivel actual del envase abierto.
+                        if (item.remainingLevel !== undefined && item.remainingLevel !== null && item.remainingLevel > product.currentUnitLevel) {
+                            return res.status(400).json({
+                                error: `El nivel restante (${item.remainingLevel}%) no puede superar el nivel actual del envase abierto de ${product.name} (${product.currentUnitLevel}%).`
+                            });
                         }
                     }
                 }
@@ -391,8 +406,11 @@ export const updateServiceRecord = async (req: Request, res: Response) => {
                     if (delta > 0) {
                         const product = productsById.get(productId)!;
                         if (product.stock < delta) {
+                            const hint = product.currentUnitLevel !== undefined && product.currentUnitLevel !== null
+                                ? ' Podés usar el envase abierto.'
+                                : '';
                             return res.status(400).json({
-                                error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido adicional: ${delta}`
+                                error: `Stock insuficiente para ${product.name}. Disponible: ${product.stock}, Requerido adicional: ${delta}.${hint}`
                             });
                         }
                     }

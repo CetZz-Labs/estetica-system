@@ -12,6 +12,7 @@ Registro de cambios, deprecations y breaking changes siguiendo [Keep a Changelog
 
 ### Changed
 
+- `[CHANGED]` **UX-94** (backend): `POST /api/registros` y `PUT /api/registros/:id` devuelven 400 si un insumo con `usedExistingUnit: true` trae `remainingLevel` mayor que `currentUnitLevel` del producto; el 400 por stock insuficiente sugiere usar el envase abierto cuando existe.
 - EP-12: `Admin.role` enum cambiado de `ADMIN | MANAGER | SUPERADMIN` → `ADMIN | PROFESSIONAL | RECEPTIONIST` (SRS §6.2). El campo `role` de `GET /api/admin` devuelve ahora únicamente uno de los tres nuevos valores. Los valores `MANAGER` y `SUPERADMIN` nunca se usaron en producción (default siempre fue `ADMIN`).
 - EP-12: `checkAdminAccess` ahora filtra `isActive: true`. Admins desactivados reciben 403 en todas las rutas protegidas.
 - EP-12: Nuevo middleware `requireRole(...roles)` aplicado a endpoints específicos según SRS §6.2 (ver tabla de permisos por rol).

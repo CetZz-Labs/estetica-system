@@ -1792,3 +1792,17 @@
 * **Verificación:** server build / client build / client lint Exit 0. Tests server: 42 pass, 4 fail (preexistentes de POST /api/registros). Reviewer **APPROVED** → `progress/reviews/review_UX-92.md`. UX-92 → **done**.
 * **Pendiente humano:** probar en navegador (cards de Clientes en mobile; crear visita, filtrar historial y crear turno eligiendo cliente con el nuevo select; abrir "registrar visita" desde ficha/turno con cliente preseleccionado).
 * **Deuda fuera de alcance:** `getAppointments` sin `.limit` (acotado por rango de fechas opcional), `serviceRecordController:504` y el `.distinct` de `getPendingRegistration`. Nit: espacio faltante en `RegistroModal.tsx:20`.
+
+---
+
+## 2026-10-20 — UX-93 / UX-94: push multilínea y consumo con envase abierto
+
+* **Agente:** Claude (Leader) + explorer + implementer-backend (x2) + implementer-frontend (x2, incluye ronda de corrección) + reviewer (2 rondas).
+* **Rama:** `fix/UX-93-94-push-multilinea-envase-abierto` (desde `development`, independiente de la pila REP-1..4).
+* **UX-93 (backend):** el body del push de turnos y retoques lista cada cliente en su propia línea (`\n`), encabezados en línea propia, truncado a 6 con "y N más" en línea final. `buildPushBody` pura y exportada + test. El mail no agrupa clientes: sin cambios.
+* **UX-94 (backend):** `usedExistingUnit` con `remainingLevel > currentUnitLevel` → 400 en create y update (tenant-scoped, antes de mutar stock); los 400 por stock insuficiente sugieren usar el envase abierto. Documentado en GOV-STOCK, P4 y CHANGELOG; tests en `openPackLevel.test.ts`.
+* **UX-94 (frontend):** con stock 0 y envase abierto el producto es seleccionable, se agrega con `usedExistingUnit:true`, checkbox tildado y bloqueado (aviso icono+texto) y slider con max = nivel restante. En edición no se fuerza sobre ítems ya guardados.
+* **Hallazgo del reviewer (ronda 1):** un checkbox `disabled` registrado en react-hook-form se lee como `false` y pisaría el `true`. Corregido con `aria-disabled` + `onClick` con `preventDefault` (sin `disabled`).
+* **Verificación:** server build / client build / client lint Exit 0. Tests server: solo fallan los 4 preexistentes de `tenantIsolation.test.ts`. Reviewer **VERDE** (ronda 2) → `progress/reviews/review_UX-93-94.md`. UX-93 y UX-94 → **done**.
+* **Pendiente humano:** probar en navegador (a) push real con varios clientes, (b) visita nueva con producto stock 0 + envase abierto (checkbox bloqueado, tope del slider) y edición de esa visita.
+* **Nota:** el escenario "100 % de envase nuevo con stock 0" no era reproducible tal cual (el backend ya rechazaba sin checkbox); se atendió la intención: con stock 0 solo se consume el envase abierto. Riesgo colateral conocido, fuera de alcance: en edición, el reset usa el `currentUnitLevel` actual del producto.
