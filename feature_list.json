@@ -1682,6 +1682,33 @@
         "Clients.tsx sin filtrado en cliente; pickers de cliente con búsqueda server-side",
         "Builds exit 0; CHANGELOG actualizado"
       ]
+    },
+    {
+      "id": "UX-93",
+      "name": "Push: clientes separados por salto de línea",
+      "module": "Fixes",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "El cuerpo de la notificación push de turnos y retoques lista cada cliente en su propia línea (\n) en vez de coma+espacio. Backend, 1 archivo.",
+      "acceptance_criteria": [
+        "Cada cliente de turnos y de retoques en su propia línea; encabezados en línea propia",
+        "Truncado a 6 con \"y N más\" en línea final",
+        "Build server exit 0; test unitario del formateo"
+      ]
+    },
+    {
+      "id": "UX-94",
+      "name": "Visita: producto sin stock solo consume el envase abierto",
+      "module": "Fixes",
+      "phase": "Fase 5",
+      "status": "done",
+      "description": "Si un producto tiene stock 0 y envase abierto (currentUnitLevel), la nueva visita/edición fuerza usedExistingUnit y limita el consumo al nivel restante. Backend valida remainingLevel <= currentUnitLevel con usedExistingUnit. Front: picker habilita stock 0 con envase abierto, checkbox forzado, slider max = currentUnitLevel.",
+      "acceptance_criteria": [
+        "Stock 0 + envase abierto: producto seleccionable, usedExistingUnit forzado, máximo = nivel restante",
+        "Stock 0 sin envase abierto sigue deshabilitado",
+        "Backend 400 si usedExistingUnit y remainingLevel > currentUnitLevel (create y update)",
+        "Builds/lint exit 0; tests"
+      ]
     }
   ]
 }

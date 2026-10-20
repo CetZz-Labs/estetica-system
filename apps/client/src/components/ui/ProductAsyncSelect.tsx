@@ -24,7 +24,8 @@ const OPTIONS_LIMIT = 20;
 const toProductSelectOption = (p: ProductOption): ProductSelectOption => ({
     value: p._id,
     label: `${p.name}${p.brand ? ` (${p.brand})` : ''} - Stock: ${p.stock}`,
-    isDisabled: p.stock === 0,
+    // Sin stock pero con envase abierto sigue seleccionable (solo se puede usar ese envase).
+    isDisabled: p.stock === 0 && typeof p.currentUnitLevel !== 'number',
     product: p,
 });
 
